@@ -3,15 +3,16 @@
 
         <!-- IFAC info -->
         <div v-if="iface._stats?.ifac_signature != null" class="bg-gray-50 p-1 text-sm text-gray-500 space-x-1 border-b dark:bg-zinc-800  dark:border-zinc-700">
-            <div class="flex text-sm">
+            <div class="flex min-w-0 items-center gap-1 text-sm">
                 <div class="my-auto">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4 text-green-500">
                         <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 0 0-4.5 4.5V9H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-.5V5.5A4.5 4.5 0 0 0 10 1Zm3 8V5.5a3 3 0 1 0-6 0V9h6Z" clip-rule="evenodd" />
                     </svg>
                 </div>
-                <span class="ml-1 my-auto">
+                <div class="my-auto inline-flex min-w-0 flex-wrap items-center gap-1">
                     <span class="text-green-500">{{ iface._stats.ifac_size * 8 }}-bit IFAC</span> <span v-if="iface._stats?.ifac_netname != null">• Network Name: <span class="text-purple-500">{{ iface._stats.ifac_netname }}</span></span> • Signature <span @click="onIFACSignatureClick(iface._stats.ifac_signature)" class="cursor-pointer">&lt;{{ iface._stats.ifac_signature.slice(0, 6) }}...{{ iface._stats.ifac_signature.slice(-6) }}&gt;</span>
-                </span>
+                    <CopyButton :value="iface._stats.ifac_signature" label="IFAC Signature"/>
+                </div>
             </div>
         </div>
 
@@ -51,7 +52,7 @@
             </div>
 
             <!-- interface details -->
-            <div>
+            <div class="min-w-0">
                 <div class="font-semibold leading-5 dark:text-white">{{ iface._name }}</div>
                 <div class="text-sm flex space-x-1 dark:text-zinc-100">
 
@@ -61,13 +62,15 @@
                     </div>
 
                     <!-- tcp client interface -->
-                    <div v-else-if="iface.type === 'TCPClientInterface'">
-                        {{ iface.type }} • {{ iface.target_host }}:{{ iface.target_port }}
+                    <div v-else-if="iface.type === 'TCPClientInterface'" class="inline-flex min-w-0 items-center gap-1">
+                        <span class="min-w-0 break-all">{{ iface.type }} • {{ iface.target_host }}:{{ iface.target_port }}</span>
+                        <CopyButton :value="`${iface.target_host}:${iface.target_port}`" label="Interface Endpoint"/>
                     </div>
 
                     <!-- tcp server interface -->
-                    <div v-else-if="iface.type === 'TCPServerInterface'">
-                        {{ iface.type }} • {{ iface.listen_ip }}:{{ iface.listen_port }}
+                    <div v-else-if="iface.type === 'TCPServerInterface'" class="inline-flex min-w-0 items-center gap-1">
+                        <span class="min-w-0 break-all">{{ iface.type }} • {{ iface.listen_ip }}:{{ iface.listen_port }}</span>
+                        <CopyButton :value="`${iface.listen_ip}:${iface.listen_port}`" label="Interface Endpoint"/>
                     </div>
 
                     <!-- other interface types -->
@@ -95,6 +98,17 @@
                     <span class="flex text-gray-700 bg-gray-100 dark:bg-zinc-600 dark:text-white dark:hover:bg-zinc-700 dark:focus-visible:outline-zinc-500 hover:bg-gray-200 p-2 rounded-full">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M5.636 5.636a9 9 0 1 0 12.728 0M12 3v9" />
+                        </svg>
+                    </span>
+                </button>
+            </div>
+
+            <!-- delete interface button -->
+            <div class="my-auto mr-1">
+                <button @click="deleteInterface" title="Delete interface" type="button" class="cursor-pointer">
+                    <span class="flex text-red-600 bg-red-50 hover:bg-red-100 p-2 rounded-full dark:bg-red-950/50 dark:text-red-300 dark:hover:bg-red-900/70">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673A2.25 2.25 0 0 1 15.916 21H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
                         </svg>
                     </span>
                 </button>
@@ -211,10 +225,12 @@ import Utils from "../../js/Utils";
 import DropDownMenuItem from "../DropDownMenuItem.vue";
 import IconButton from "../IconButton.vue";
 import DropDownMenu from "../DropDownMenu.vue";
+import CopyButton from "../CopyButton.vue";
 
 export default {
     name: 'Interface',
     components: {
+        CopyButton,
         DropDownMenu,
         IconButton,
         DropDownMenuItem,

@@ -4,15 +4,21 @@ class ElectronUtils {
         return window.electron != null;
     }
 
-    static relaunch() {
+    static async relaunch() {
         if(window.electron){
-            window.electron.relaunch();
+            return await window.electron.relaunch();
         }
     }
 
-    static showPathInFolder(path) {
+    static async restartBackend(returnRoute = null) {
         if(window.electron){
-            window.electron.showPathInFolder(path);
+            return await window.electron.restartBackend(returnRoute);
+        }
+    }
+
+    static async showPathInFolder(path) {
+        if(window.electron){
+            return await window.electron.showPathInFolder(path);
         }
     }
 

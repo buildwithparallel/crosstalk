@@ -1,6 +1,6 @@
 {
-  "name": "MeshChat",
-  "short_name": "MeshChat",
+  "name": "Crosstalk",
+  "short_name": "Crosstalk",
   "description": "A simple mesh network communications app powered by the Reticulum Network Stack.",
   "scope": "/",
   "start_url": "/",

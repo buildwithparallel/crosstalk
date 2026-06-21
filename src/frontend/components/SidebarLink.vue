@@ -6,12 +6,12 @@
             type="button" 
             :class="[ 
                 isActive
-                    ? 'bg-blue-100 text-blue-800 group:text-blue-800 dark:bg-zinc-800 dark:text-blue-300' 
-                    : 'hover:bg-gray-100 dark:hover:bg-zinc-700'
+                    ? 'bg-[rgba(0,97,253,0.16)] text-white border-[rgba(0,97,253,0.45)] shadow-[0_0_32px_rgba(0,97,253,0.12)]' 
+                    : 'text-[var(--ct-muted)] border-transparent hover:text-white hover:bg-[rgba(255,255,255,0.06)] hover:border-[var(--ct-border)]'
             ]" 
-            class="w-full text-gray-800 dark:text-zinc-200 group flex gap-x-3 rounded-r-full p-2 mr-2 text-sm leading-6 font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-zinc-500"
+            class="w-full group flex gap-x-3 rounded-r-full border p-2 mr-2 text-sm leading-6 font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
         >
-            <span class="my-auto">
+            <span class="my-auto opacity-90 group-hover:opacity-100">
                 <slot name="icon"></slot>
             </span>
             <span class="my-auto flex w-full">

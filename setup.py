@@ -1,18 +1,17 @@
 from cx_Freeze import setup, Executable
 
 setup(
-    name='ReticulumMeshChat',
+    name='Crosstalk',
     version='1.0.0',
     description='A simple mesh network communications app powered by the Reticulum Network Stack',
     executables=[
         Executable(
-            script='meshchat.py', # this script to run
+            script='crosstalk.py', # this script to run
             base=None, # we are running a console application, not a gui
-            target_name='ReticulumMeshChat', # creates ReticulumMeshChat.exe
-            shortcut_name='ReticulumMeshChat', # name shown in shortcut
+            target_name='Crosstalk', # creates Crosstalk.exe
+            shortcut_name='Crosstalk', # name shown in shortcut
             shortcut_dir='ProgramMenuFolder', # put the shortcut in windows start menu
             icon='logo/icon.ico', # set the icon for the exe
-            copyright='Copyright (c) 2024 Liam Cottle',
         ),
     ],
     options={

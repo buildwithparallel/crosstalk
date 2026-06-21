@@ -1,17 +1,17 @@
 <template>
-    <div class="flex-1 h-full min-w-full sm:min-w-[500px] relative dark:bg-zinc-950">
+    <div class="flex-1 h-full min-w-full sm:min-w-[500px] relative bg-[rgba(5,6,10,0.86)]">
         <!-- network -->
         <div id="network" class="w-full h-full"></div>
         <!-- controls -->
-        <div class="absolute flex bottom-0 left-0 bg-gray-100 dark:bg-zinc-900 p-2">
-            <div class="bg-white dark:bg-zinc-800 rounded shadow min-w-52">
-                <div @click="isShowingControls = !isShowingControls" class="flex text-gray-700 dark:text-gray-300 p-2 cursor-pointer">
+        <div class="absolute flex bottom-0 left-0 p-2">
+            <div class="ct-elevated-surface rounded-lg min-w-52 overflow-hidden">
+                <div @click="isShowingControls = !isShowingControls" class="flex text-[var(--ct-muted)] p-2 cursor-pointer">
                     <div class="my-auto">Reticulum Network</div>
                     <div class="flex ml-auto">
                         <button 
                             @click.stop="update" 
                             type="button" 
-                            class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 dark:bg-zinc-700 px-1 py-0.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-400 dark:hover:bg-zinc-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 dark:focus-visible:outline-zinc-600"
+                            class="my-auto inline-flex items-center gap-x-1 rounded-md ct-secondary-button px-1 py-0.5 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5 text-white">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -19,35 +19,28 @@
                         </button>
                     </div>
                 </div>
-                <div v-if="isShowingControls" class="divide-y dark:divide-zinc-700 text-gray-900 dark:text-white border-t border-gray-300 dark:border-zinc-700">
+                <div v-if="isShowingControls" class="divide-y divide-[var(--ct-border)] text-[var(--ct-text)] border-t border-[var(--ct-border)]">
                     <div class="px-1 py-2">
                         <div class="flex items-start">
                             <div class="flex items-center h-5">
                                 <input 
                                     v-model="autoReload" 
                                     type="checkbox" 
-                                    class="w-4 h-4 border border-gray-300 dark:border-zinc-600 rounded bg-gray-50 dark:bg-zinc-900 focus:ring-3 focus:ring-blue-300 dark:focus:ring-blue-800"
+                                    class="w-4 h-4 border border-[var(--ct-border-strong)] rounded bg-[rgba(255,255,255,0.06)] focus:ring-3 focus:ring-blue-800"
                                 >
                             </div>
-                            <label class="ml-2 text-sm font-medium text-gray-900 dark:text-white">Auto Update (5 sec)</label>
+                            <label class="ml-2 text-sm font-medium text-[var(--ct-text)]">Auto Update (5 sec)</label>
                         </div>
                     </div>
                     <div class="p-1">
-                        <div class="text-black dark:text-white">Interfaces</div>
-                        <div class="text-sm text-gray-700 dark:text-gray-300">{{ onlineInterfaces.length }} Online, {{ offlineInterfaces.length }} Offline</div>
+                        <div class="text-[var(--ct-text)]">Interfaces</div>
+                        <div class="text-sm text-[var(--ct-muted)]">{{ onlineInterfaces.length }} Online, {{ offlineInterfaces.length }} Offline</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </template>
-
-<style>
-.vis-tooltip {
-    color: white !important;
-    background: rgba(0, 0, 0, 0.75) !important;
-}
-</style>
 
 <script>
 import "vis-network/styles/vis-network.css";
@@ -77,6 +70,16 @@ export default {
         this.init();
     },
     methods: {
+        graphLabelFont(size = 18) {
+            return {
+                color: "#f8fafc",
+                background: "rgba(9, 12, 22, 0.86)",
+                strokeWidth: 4,
+                strokeColor: "rgba(0, 0, 0, 0.9)",
+                size,
+                face: "CrosstalkRoboto",
+            };
+        },
         async getInterfaceStats() {
             try {
                 const response = await axios.get(`/api/v1/interface-stats`);
@@ -129,17 +132,30 @@ export default {
                 interaction: {
                     tooltipDelay: 0, // show tooltip instantly on hover
                 },
+                edges: {
+                    color: {
+                        color: "rgba(148, 163, 184, 0.62)",
+                        highlight: "#6ea8ff",
+                        hover: "#6ea8ff",
+                    },
+                    smooth: {
+                        enabled: true,
+                        type: "dynamic",
+                    },
+                    width: 1.4,
+                },
                 layout: {
                     // always layout nodes the same way across reloads if nothing changed
                     randomSeed: 1,
                 },
                 nodes: {
                     color: {
-                        border: "#000000",
+                        border: "#111827",
                         highlight: {
-                            border: "#000000",
+                            border: "#6ea8ff",
                         },
                     },
+                    font: this.graphLabelFont(16),
                 },
                 physics: {
                     barnesHut: {
@@ -274,10 +290,7 @@ export default {
                     `${this.config?.display_name ?? 'This Device'}`,
                     `Identity: ${this.config?.identity_hash ?? 'Unknown'}`,
                 ].join("\n"),
-                font: {
-                    color: "#000000",
-                    background: "#ffffff",
-                },
+                font: this.graphLabelFont(18),
             });
 
             // add interfaces
@@ -304,10 +317,7 @@ export default {
                         `RX: ${this.formatBytes(entry.rxb)}`,
                     ].join("\n"),
                     size: 30,
-                    font: {
-                        color: "#000000",
-                        background: '#ffffff',
-                    },
+                    font: this.graphLabelFont(16),
                     shape: "circularImage",
                     image: entry.status ? "/assets/images/network-visualiser/interface_connected.png" : "/assets/images/network-visualiser/interface_disconnected.png",
                 };
@@ -326,7 +336,7 @@ export default {
                         length: 300,
                         background: {
                             enabled: true,
-                            color: entry.status ? "#22c55e" : "#ef4444",
+                            color: entry.status ? "#2ee781" : "#ff3b57",
                         },
                     });
                 } else {
@@ -339,7 +349,7 @@ export default {
                         length: 300,
                         background: {
                             enabled: true,
-                            color: entry.status ? "#22c55e" : "#ef4444",
+                            color: entry.status ? "#2ee781" : "#ff3b57",
                         },
                     });
                 }
@@ -423,7 +433,11 @@ export default {
                     id: `${entry.interface}~${entry.hash}`,
                     from: entry.interface,
                     to: entry.hash,
-                    color: "gray",
+                    color: {
+                        color: "rgba(148, 163, 184, 0.62)",
+                        highlight: "#6ea8ff",
+                        hover: "#6ea8ff",
+                    },
                 });
 
             }

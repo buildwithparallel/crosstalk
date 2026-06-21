@@ -3,48 +3,33 @@
         <div class="overflow-y-auto p-2 space-y-2">
 
             <!-- community interfaces -->
-            <div v-if="!isEditingInterface && config != null && config.show_suggested_community_interfaces" class="bg-white rounded shadow divide-y divide-gray-200 dark:bg-zinc-900">
+            <div v-if="!isEditingInterface && config != null && config.show_suggested_community_interfaces" class="ct-elevated-surface rounded-lg divide-y divide-[var(--ct-border)]">
                 <div class="flex p-2">
                     <div class="my-auto mr-auto">
-                        <div class="font-bold dark:text-white">Community Interfaces</div>
-                        <div class="text-sm dark:text-gray-100">These TCP interfaces serve as a quick way to test Reticulum. We suggest running your own as these may not always be available.</div>
+                        <div class="font-bold text-[var(--ct-text)]">Suggested Public Backbone Node</div>
+                        <div class="text-sm text-[var(--ct-muted)]">Miami Thunder Host is the recommended public backbone node for quickly testing Reticulum connectivity.</div>
                     </div>
                     <div class="my-auto ml-2">
-                        <button @click="updateConfig({'show_suggested_community_interfaces': false})" type="button" class="text-gray-700 bg-gray-100 hover:bg-gray-200 p-2 rounded-full dark:bg-zinc-600 dark:text-white dark:hover:bg-zinc-700 dark:focus-visible:outline-zinc-500">
+                        <button @click="updateConfig({'show_suggested_community_interfaces': false})" type="button" class="ct-secondary-button p-2 rounded-full">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
                                 <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"/>
                             </svg>
                         </button>
                     </div>
                 </div>
-                <div class="divide-y divide-gray-200 dark:text-white">
+                <div class="divide-y divide-[var(--ct-border)] text-[var(--ct-text)]">
 
                     <div class="flex px-2 py-1">
                         <div class="my-auto mr-auto">
-                            <div>RNS Testnet Amsterdam</div>
-                            <div class="text-xs">amsterdam.connect.reticulum.network:4965</div>
+                            <div>Miami Thunder Host</div>
+                            <div class="text-xs">mia.us.thunderhost.net:4242</div>
                         </div>
                         <div class="ml-2 my-auto">
                             <button
-                                @click="newInterfaceName='RNS Testnet Amsterdam';newInterfaceType='TCPClientInterface';newInterfaceTargetHost='amsterdam.connect.reticulum.network';newInterfaceTargetPort='4965'"
+                                @click="usePublicBackboneInterface('Miami Thunder Host', 'mia.us.thunderhost.net', '4242')"
                                 type="button"
-                                class="inline-flex items-center gap-x-1 rounded-md bg-gray-500 px-2 py-1 text-sm font-semibold text-white shadow-sm hover:bg-gray-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500">
-                                <span>Use Interface</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="flex px-2 py-1">
-                        <div class="my-auto mr-auto">
-                            <div>RNS Testnet BetweenTheBorders</div>
-                            <div class="text-xs">reticulum.betweentheborders.com:4242</div>
-                        </div>
-                        <div class="ml-2 my-auto">
-                            <button
-                                @click="newInterfaceName='RNS Testnet BetweenTheBorders';newInterfaceType='TCPClientInterface';newInterfaceTargetHost='reticulum.betweentheborders.com';newInterfaceTargetPort='4242'"
-                                type="button"
-                                class="inline-flex items-center gap-x-1 rounded-md bg-gray-500 px-2 py-1 text-sm font-semibold text-white shadow-sm hover:bg-gray-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500">
-                                <span>Use Interface</span>
+                                class="inline-flex items-center gap-x-1 rounded-md ct-brand-button px-2 py-1 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500">
+                                <span>Use Backbone Node</span>
                             </button>
                         </div>
                     </div>
@@ -53,7 +38,7 @@
             </div>
 
             <!-- add interface form -->
-            <div class="bg-white rounded shadow divide-y divide-gray-300 dark:divide-zinc-700 dark:bg-zinc-900">
+            <div class="ct-elevated-surface rounded-lg divide-y divide-[var(--ct-border)]">
                 <div class="p-2 font-bold dark:text-white">
                     <span v-if="isEditingInterface">Edit Interface</span>
                     <span v-else>Add Interface</span>
@@ -81,6 +66,7 @@
                             <option value="RNodeInterface">RNode Interface</option>
                             <option value="RNodeMultiInterface">RNode Multi Interface</option>
                             <option disabled selected>IP Networks</option>
+                            <option value="PublicBackboneInterface">Public Backbone Node (rmap.world)</option>
                             <option value="TCPClientInterface">TCP Client Interface</option>
                             <option value="TCPServerInterface">TCP Server Interface</option>
                             <option value="UDPInterface">UDP Interface</option>
@@ -93,21 +79,63 @@
                             <option value="PipeInterface">Pipe Interface</option>
                         </select>
                         <FormSubLabel>
-                            Need help? <a class="text-blue-500 underline" href="https://reticulum.network/manual/interfaces.html" target="_blank">Reticulum Docs: Configuring Interfaces</a>
+                            Public rmap.world nodes use Crosstalk's Public Backbone Node setup. Advanced Reticulum interface details are in the <a class="text-blue-500 underline" href="https://reticulum.network/manual/interfaces.html" target="_blank">Reticulum docs</a>.
                         </FormSubLabel>
+                    </div>
+
+                    <div v-if="newInterfaceType === 'PublicBackboneInterface'" class="rounded-lg border border-[rgba(110,168,255,0.34)] bg-[rgba(0,97,253,0.09)] p-3 text-sm text-[var(--ct-text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                        <div class="font-bold">Public Backbone Node Setup</div>
+                        <div class="mt-1 text-[var(--ct-muted)]">Paste the rmap.world configuration block here, then fill the interface fields from it.</div>
+                        <textarea
+                            v-model="publicBackboneConfigText"
+                            rows="7"
+                            placeholder="[[____mia_us_thunderhost_net____]]
+  type = BackboneInterface
+  enabled = yes
+  remote = mia.us.thunderhost.net
+  target_port = 4242
+  transport_identity = ..."
+                            class="mt-2 font-mono border text-sm rounded-lg block w-full p-2.5 bg-[rgba(2,6,23,0.78)] border-[rgba(110,168,255,0.38)] text-[var(--ct-text)] placeholder:text-[var(--ct-dim)]"></textarea>
+                        <div v-if="publicBackboneConfigError" class="mt-1 text-sm text-red-600 dark:text-red-300">{{ publicBackboneConfigError }}</div>
+                        <div class="mt-2 grid grid-cols-1 xl:grid-cols-[auto_1fr] items-center gap-2">
+                            <button
+                                @click="usePublicBackboneConfig"
+                                type="button"
+                                class="inline-flex items-center justify-center gap-x-1 rounded-md ct-brand-button px-2 py-1 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500">
+                                Fill Interface Fields
+                            </button>
+                            <div class="min-w-0 text-[var(--ct-muted)] leading-5">
+                                Crosstalk saves this as a TCP Client Interface. <code>remote</code> becomes Target Host, <code>target_port</code> becomes Target Port, and <code>transport_identity</code> is not required.
+                            </div>
+                        </div>
                     </div>
 
                     <!-- TCPClientInterface -->
                     <!-- interface target host -->
-                    <div v-if="newInterfaceType === 'TCPClientInterface'" class="mb-2">
+                    <div v-if="usesTCPClientFields" class="mb-2">
                         <FormLabel class="mb-1">Target Host</FormLabel>
                         <input type="text" placeholder="e.g: example.com" v-model="newInterfaceTargetHost" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-zinc-900 dark:border-zinc-600 dark:text-white dark:focus:ring-blue-600 dark:focus:border-blue-600">
+                        <FormSubLabel>For rmap.world backbone configs, paste the <code>remote</code> value here.</FormSubLabel>
                     </div>
 
                     <!-- interface target port -->
-                    <div v-if="newInterfaceType === 'TCPClientInterface'" class="mb-2">
+                    <div v-if="usesTCPClientFields" class="mb-2">
                         <FormLabel class="mb-1">Target Port</FormLabel>
                         <input type="text" placeholder="e.g: 1234" v-model="newInterfaceTargetPort" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-zinc-900 dark:border-zinc-600 dark:text-white dark:focus:ring-blue-600 dark:focus:border-blue-600">
+                        <FormSubLabel>For rmap.world backbone configs, paste the <code>target_port</code> value here.</FormSubLabel>
+                    </div>
+
+                    <div v-if="newInterfaceType === 'TCPClientInterface'" class="mb-2 rounded-lg border border-[var(--ct-border)] bg-[rgba(255,255,255,0.05)] p-2 text-sm text-[var(--ct-muted)]">
+                        <div class="font-semibold">Using a public backbone node?</div>
+                        <div class="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-1">
+                            <div>Choose Type</div>
+                            <div>Public Backbone Node (rmap.world)</div>
+                            <div><code>remote = host.example</code></div>
+                            <div>Target Host</div>
+                            <div><code>target_port = 4242</code></div>
+                            <div>Target Port</div>
+                        </div>
+                        <div class="mt-2 text-[var(--ct-dim)]">Transport identity is used by Reticulum backbone nodes internally and is not required for this TCP client entry.</div>
                     </div>
 
                     <!-- TCPServerInterface -->
@@ -586,8 +614,8 @@
             </ExpandingSection>
 
             <!-- optional TCPClientInterface settings -->
-            <ExpandingSection v-if="newInterfaceType === 'TCPClientInterface'">
-                <template v-slot:title>Optional TCPClientInterface Settings</template>
+            <ExpandingSection v-if="usesTCPClientFields">
+                <template v-slot:title>Optional TCP Client Settings</template>
                 <template v-slot:content>
                     <div class="p-2 space-y-3">
 
@@ -803,6 +831,7 @@ import DialogUtils from "../../js/DialogUtils";
 import ExpandingSection from "./ExpandingSection.vue";
 import FormLabel from "../forms/FormLabel.vue";
 import FormSubLabel from "../forms/FormSubLabel.vue";
+import ElectronUtils from "../../js/ElectronUtils";
 
 export default {
     name: 'AddInterfacePage',
@@ -822,6 +851,8 @@ export default {
 
             newInterfaceName: null,
             newInterfaceType: null,
+            publicBackboneConfigText: "",
+            publicBackboneConfigError: null,
 
             newInterfaceGroupID: null,
             newInterfaceMulticastAddressType: null,
@@ -948,6 +979,15 @@ export default {
             }
             return `${totalHz} Hz`;
         },
+        interfaceTypeForSave() {
+            if(this.newInterfaceType === 'PublicBackboneInterface'){
+                return 'TCPClientInterface';
+            }
+            return this.newInterfaceType;
+        },
+        usesTCPClientFields() {
+            return this.interfaceTypeForSave === 'TCPClientInterface';
+        },
     },
     watch: {
         newInterfaceBandwidth: "updateRNodeCalculations",
@@ -966,6 +1006,12 @@ export default {
         if(interfaceName != null){
             this.isEditingInterface = true;
             this.loadInterfaceToEdit(interfaceName);
+            return;
+        }
+
+        const interfaceType = this.$route.query.interface_type;
+        if(typeof interfaceType === "string" && interfaceType !== ""){
+            this.newInterfaceType = interfaceType;
         }
 
     },
@@ -1134,7 +1180,7 @@ export default {
 
                     // required values
                     name: this.newInterfaceName,
-                    type: this.newInterfaceType,
+                    type: this.interfaceTypeForSave,
 
                     // AutoInterface
                     group_id: this.newInterfaceGroupID,
@@ -1209,6 +1255,11 @@ export default {
                     ifac_size: this.sharedInterfaceSettings.ifac_size,
 
                 });
+
+                if(ElectronUtils.isElectron()){
+                    await ElectronUtils.restartBackend("#/interfaces");
+                    return;
+                }
 
                 // show success message
                 if(response.data.message){
@@ -1292,6 +1343,45 @@ export default {
         },
         removeI2PPeer(index) {
             this.I2PSettings.newInterfacePeers.splice(index, 1);
+        },
+        usePublicBackboneInterface(name, host, port) {
+            this.newInterfaceName = name;
+            this.newInterfaceType = 'PublicBackboneInterface';
+            this.newInterfaceTargetHost = host;
+            this.newInterfaceTargetPort = port;
+            this.newInterfaceKISSFramingEnabled = null;
+            this.newInterfaceI2PTunnelingEnabled = null;
+        },
+        usePublicBackboneConfig() {
+            this.publicBackboneConfigError = null;
+
+            const config = this.publicBackboneConfigText ?? "";
+            const sectionName = config.match(/\[\[([^\]]+)\]\]/)?.[1];
+            const type = config.match(/^\s*type\s*=\s*(.+?)\s*$/mi)?.[1]?.trim();
+            const remote = config.match(/^\s*remote\s*=\s*(.+?)\s*$/mi)?.[1]?.trim();
+            const targetPort = config.match(/^\s*target_port\s*=\s*(.+?)\s*$/mi)?.[1]?.trim();
+
+            if(type !== "BackboneInterface"){
+                this.publicBackboneConfigError = "Paste a BackboneInterface block from rmap.world.";
+                return;
+            }
+
+            if(!remote || !targetPort){
+                this.publicBackboneConfigError = "The block must include remote and target_port values.";
+                return;
+            }
+
+            const fallbackName = remote
+                .replace(/[^a-z0-9]+/gi, " ")
+                .trim()
+                .replace(/\s+/g, " ");
+
+            const name = (sectionName ?? fallbackName)
+                .replace(/^_+|_+$/g, "")
+                .replace(/_+/g, " ")
+                .trim() || fallbackName;
+
+            this.usePublicBackboneInterface(name, remote, targetPort);
         },
         addSubInterface() {
             this.RNodeMultiInterface.subInterfaces.push({

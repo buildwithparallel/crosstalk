@@ -30,6 +30,11 @@ contextBridge.exposeInMainWorld('electron', {
         return await ipcRenderer.invoke('relaunch');
     },
 
+    // allow restarting the python backend without closing the electron app
+    restartBackend: async function(returnRoute) {
+        return await ipcRenderer.invoke('restart-backend', returnRoute);
+    },
+
     // allow showing a file path in os file manager
     showPathInFolder: async function(path) {
         return await ipcRenderer.invoke('showPathInFolder', path);

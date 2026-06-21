@@ -11,9 +11,12 @@
             <div v-if="searchedPropagationNodes.length > 0" class="p-2 space-y-2 w-full">
                 <div v-for="propagationNode of searchedPropagationNodes" class="border dark:border-zinc-700 rounded bg-white dark:bg-zinc-800 shadow">
                     <div class="p-1 flex">
-                        <div class="my-auto">
+                        <div class="my-auto min-w-0 pr-2">
                             <div class="font-semibold text-gray-900 dark:text-gray-100">{{ propagationNode.operator_display_name ?? "Unknown Operator" }}</div>
-                            <div class="text-sm text-gray-700 dark:text-gray-300"><{{ propagationNode.destination_hash }}></div>
+                            <div class="flex items-center gap-1 text-sm text-gray-700 dark:text-gray-300">
+                                <span class="min-w-0 break-all">&lt;{{ propagationNode.destination_hash }}&gt;</span>
+                                <CopyButton :value="propagationNode.destination_hash" label="Propagation Node Address"/>
+                            </div>
                         </div>
                         <div class="ml-auto my-auto">
                             <button v-if="config.lxmf_preferred_propagation_node_destination_hash === propagationNode.destination_hash" @click="stopUsingPropagationNode" type="button" class="my-auto inline-flex items-center gap-x-1 rounded-md bg-red-500 dark:bg-red-600 px-2 py-1 text-sm font-semibold text-white shadow-sm hover:bg-red-400 dark:hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 dark:focus-visible:outline-red-600">
@@ -77,9 +80,13 @@
 <script>
 import Utils from "../../js/Utils";
 import WebSocketConnection from "../../js/WebSocketConnection";
+import CopyButton from "../CopyButton.vue";
 
 export default {
     name: 'PropagationNodesPage',
+    components: {
+        CopyButton,
+    },
     data() {
         return {
             searchTerm: "",

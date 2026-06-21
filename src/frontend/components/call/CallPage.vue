@@ -16,18 +16,27 @@
                     <div class="border-b border-gray-300 text-gray-700 p-2">
 
                         <div class="mb-2">
-                            <div class="mb-1 text-sm font-medium text-gray-900">Call Hash</div>
-                            <div class="text-xs text-gray-600">{{ audioCall?.hash || "Unknown" }}</div>
+                            <div class="mb-1 flex items-center gap-1 text-sm font-medium text-gray-900">
+                                <span>Call Hash</span>
+                                <CopyButton class="ml-auto" :value="audioCall?.hash" label="Call Hash"/>
+                            </div>
+                            <div class="break-all text-xs text-gray-600">{{ audioCall?.hash || "Unknown" }}</div>
                         </div>
 
                         <div class="mb-2">
-                            <div class="mb-1 text-sm font-medium text-gray-900">Remote Identity Hash</div>
-                            <div class="text-xs text-gray-600">{{ audioCall?.remote_identity_hash || "Unknown" }}</div>
+                            <div class="mb-1 flex items-center gap-1 text-sm font-medium text-gray-900">
+                                <span>Remote Identity Hash</span>
+                                <CopyButton class="ml-auto" :value="audioCall?.remote_identity_hash" label="Remote Identity Hash"/>
+                            </div>
+                            <div class="break-all text-xs text-gray-600">{{ audioCall?.remote_identity_hash || "Unknown" }}</div>
                         </div>
 
                         <div class="mb-2">
-                            <div class="mb-1 text-sm font-medium text-gray-900">Remote Destination Hash</div>
-                            <div class="text-xs text-gray-600">{{ audioCall?.remote_destination_hash || "Unknown" }}</div>
+                            <div class="mb-1 flex items-center gap-1 text-sm font-medium text-gray-900">
+                                <span>Remote Destination Hash</span>
+                                <CopyButton class="ml-auto" :value="audioCall?.remote_destination_hash" label="Remote Destination Hash"/>
+                            </div>
+                            <div class="break-all text-xs text-gray-600">{{ audioCall?.remote_destination_hash || "Unknown" }}</div>
                         </div>
 
                         <div class="mb-2">
@@ -178,8 +187,11 @@
                                     </svg>
                                 </div>
                             </div>
-                            <div>
-                                <div>{{ audioCall.remote_destination_hash || "Unknown" }}</div>
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1">
+                                    <span class="min-w-0 break-all">{{ audioCall.remote_destination_hash || "Unknown" }}</span>
+                                    <CopyButton :value="audioCall.remote_destination_hash" label="Remote Destination Hash"/>
+                                </div>
                                 <div class="text-sm text-gray-500 dark:text-zinc-100">
                                     <span v-if="audioCall.is_outbound">Outgoing Call...</span>
                                     <span v-else>Incoming Call...</span>
@@ -233,9 +245,15 @@
                                     </svg>
                                 </div>
                             </div>
-                            <div>
-                                <div>Destination: {{ audioCall.remote_destination_hash || "Unknown" }}</div>
-                                <div class="text-sm text-gray-500">Call Hash: {{ audioCall.hash }}</div>
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1">
+                                    <span class="min-w-0 break-all">Destination: {{ audioCall.remote_destination_hash || "Unknown" }}</span>
+                                    <CopyButton :value="audioCall.remote_destination_hash" label="Remote Destination Hash"/>
+                                </div>
+                                <div class="flex items-center gap-1 text-sm text-gray-500">
+                                    <span class="min-w-0 break-all">Call Hash: {{ audioCall.hash }}</span>
+                                    <CopyButton :value="audioCall.hash" label="Call Hash"/>
+                                </div>
                             </div>
                             <div class="hidden group-hover:flex space-x-2 ml-auto my-auto mx-2">
 
@@ -260,8 +278,12 @@
 <script>
 import protobuf from "protobufjs";
 import DialogUtils from "../../js/DialogUtils";
+import CopyButton from "../CopyButton.vue";
 export default {
     name: 'CallPage',
+    components: {
+        CopyButton,
+    },
     data() {
         return {
 

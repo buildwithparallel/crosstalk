@@ -1,7 +1,7 @@
 <template>
     <div class="inline-flex rounded-md shadow-sm">
 
-        <button @click="showMenu" type="button" class="my-auto mr-1 inline-flex items-center gap-x-1 rounded-md bg-gray-500 px-2.5 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700 dark:focus-visible:outline-zinc-500">
+        <button @click="showMenu" type="button" class="my-auto mr-1 inline-flex items-center gap-x-1 rounded-md ct-secondary-button px-2.5 py-1.5 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-5">
                 <path fill-rule="evenodd" d="M1.5 6a2.25 2.25 0 0 1 2.25-2.25h16.5A2.25 2.25 0 0 1 22.5 6v12a2.25 2.25 0 0 1-2.25 2.25H3.75A2.25 2.25 0 0 1 1.5 18V6ZM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0 0 21 18v-1.94l-2.69-2.689a1.5 1.5 0 0 0-2.12 0l-.88.879.97.97a.75.75 0 1 1-1.06 1.06l-5.16-5.159a1.5 1.5 0 0 0-2.12 0L3 16.061Zm10.125-7.81a1.125 1.125 0 1 1 2.25 0 1.125 1.125 0 0 1-2.25 0Z" clip-rule="evenodd" />
             </svg>
@@ -16,12 +16,12 @@
                 leave-active-class="transition ease-in duration-75"
                 leave-from-class="transform opacity-100 scale-100"
                 leave-to-class="transform opacity-0 scale-95">
-                <div v-if="isShowingMenu" v-click-outside="hideMenu" class="absolute bottom-0 -ml-11 sm:right-0 sm:ml-0 z-10 mb-10 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                <div v-if="isShowingMenu" v-click-outside="hideMenu" class="absolute bottom-0 -ml-11 sm:right-0 sm:ml-0 z-10 mb-10 rounded-md ct-elevated-surface focus:outline-none overflow-hidden">
                     <div class="py-1">
-                        <button @click="addImage('low')" type="button" class="w-full block text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 whitespace-nowrap">Low Quality (320x320)</button>
-                        <button @click="addImage('medium')" type="button" class="w-full block text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 whitespace-nowrap">Medium Quality (640x640)</button>
-                        <button @click="addImage('high')" type="button" class="w-full block text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 whitespace-nowrap">High Quality (1280x1280)</button>
-                        <button @click="addImage('original')" type="button" class="w-full block text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 whitespace-nowrap">Original Quality</button>
+                        <button @click="addImage('low')" type="button" class="w-full block text-left px-4 py-2 text-sm text-[var(--ct-muted)] hover:bg-[rgba(255,255,255,0.08)] whitespace-nowrap">Low Quality (320x320)</button>
+                        <button @click="addImage('medium')" type="button" class="w-full block text-left px-4 py-2 text-sm text-[var(--ct-muted)] hover:bg-[rgba(255,255,255,0.08)] whitespace-nowrap">Medium Quality (640x640)</button>
+                        <button @click="addImage('high')" type="button" class="w-full block text-left px-4 py-2 text-sm text-[var(--ct-muted)] hover:bg-[rgba(255,255,255,0.08)] whitespace-nowrap">High Quality (1280x1280)</button>
+                        <button @click="addImage('original')" type="button" class="w-full block text-left px-4 py-2 text-sm text-[var(--ct-muted)] hover:bg-[rgba(255,255,255,0.08)] whitespace-nowrap">Original Quality</button>
                     </div>
                 </div>
             </Transition>

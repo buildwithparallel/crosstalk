@@ -1,5 +1,5 @@
 {
-  "name": "reticulum-meshchat",
+  "name": "crosstalk",
   "version": "2.3.0",
   "description": "",
   "main": "electron/main.js",
@@ -21,8 +21,8 @@
     "electron-builder": "^24.6.3"
   },
   "build": {
-    "appId": "com.liamcottle.reticulummeshchat",
-    "productName": "Reticulum MeshChat",
+    "appId": "com.buildwithparallel.crosstalk",
+    "productName": "Crosstalk",
     "asar": false,
     "files": [
       "electron/**/*"
@@ -33,7 +33,7 @@
     "mac": {
       "target": "dmg",
       "identity": null,
-      "artifactName": "ReticulumMeshChat-v${version}-${os}.${ext}",
+      "artifactName": "Crosstalk-v${version}-${os}.${ext}",
       "extendInfo": {
         "NSMicrophoneUsageDescription": "Microphone access is only needed for Audio Calls",
         "com.apple.security.device.audio-input": true
@@ -49,7 +49,7 @@
       ]
     },
     "win": {
-      "artifactName": "ReticulumMeshChat-v${version}-${os}.${ext}",
+      "artifactName": "Crosstalk-v${version}-${os}.${ext}",
       "target": [
         {
           "target": "portable"
@@ -69,7 +69,7 @@
       ]
     },
     "linux": {
-      "artifactName": "ReticulumMeshChat-v${version}-${os}.${ext}",
+      "artifactName": "Crosstalk-v${version}-${os}.${ext}",
       "target": "AppImage",
       "extraFiles": [
         {
@@ -85,10 +85,10 @@
       "writeUpdateInfo": false
     },
     "portable": {
-      "artifactName": "ReticulumMeshChat-v${version}-${os}-portable.${ext}"
+      "artifactName": "Crosstalk-v${version}-${os}-portable.${ext}"
     },
     "nsis": {
-      "artifactName": "ReticulumMeshChat-v${version}-${os}-installer.${ext}",
+      "artifactName": "Crosstalk-v${version}-${os}-installer.${ext}",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
     }
@@ -101,7 +101,6 @@
     "axios": "^1.10.0",
     "click-outside-vue3": "^4.0.1",
     "compressorjs": "^1.2.1",
-    "electron-prompt": "^1.7.0",
     "micron-parser": "^1.0.2",
     "mitt": "^3.0.1",
     "moment": "^2.30.1",

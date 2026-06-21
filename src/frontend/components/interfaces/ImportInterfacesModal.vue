@@ -104,6 +104,7 @@
 <script>
 import DialogUtils from "../../js/DialogUtils";
 import Utils from "../../js/Utils";
+import ElectronUtils from "../../js/ElectronUtils";
 
 export default {
     name: "ImportInterfacesModal",
@@ -223,8 +224,13 @@ export default {
                 // dismiss modal
                 this.dismiss();
 
+                if(ElectronUtils.isElectron()){
+                    await ElectronUtils.restartBackend("#/interfaces");
+                    return;
+                }
+
                 // tell user interfaces were imported
-                DialogUtils.alert("Interfaces imported successfully. MeshChat must be restarted for these changes to take effect.");
+                DialogUtils.alert("Interfaces imported successfully.");
 
             } catch(e) {
                 const message = e.response?.data?.message || "Failed to import interfaces";

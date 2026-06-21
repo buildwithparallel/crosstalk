@@ -1,0 +1,7 @@
+LICENSE
+README.md
+setup.py
+src/Crosstalk.egg-info/PKG-INFO
+src/Crosstalk.egg-info/SOURCES.txt
+src/Crosstalk.egg-info/dependency_links.txt
+src/Crosstalk.egg-info/top_level.txt

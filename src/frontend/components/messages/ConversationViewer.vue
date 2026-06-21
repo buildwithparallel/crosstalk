@@ -1,7 +1,7 @@
 <template>
 
     <!-- peer selected -->
-    <div v-if="selectedPeer" class="flex flex-col h-full bg-white overflow-hidden sm:m-2 sm:border sm:rounded-xl sm:shadow dark:bg-zinc-950 dark:border-zinc-800">
+    <div v-if="selectedPeer" class="flex flex-col h-full overflow-hidden sm:m-2 sm:border sm:rounded-xl sm:shadow bg-[rgba(8,9,15,0.96)] border-[var(--ct-border)]">
 
         <!-- header -->
         <div class="flex p-2 border-b border-gray-300 dark:border-zinc-800">
@@ -17,7 +17,7 @@
             </div>
 
             <!-- peer info -->
-            <div>
+            <div class="min-w-0">
                 <div @click="updateCustomDisplayName" class="flex cursor-pointer">
                     <div v-if="selectedPeer.custom_display_name != null" class="my-auto mr-1 dark:text-white" title="Custom Display Name">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
@@ -30,8 +30,9 @@
                 <div class="text-sm dark:text-zinc-300">
 
                     <!-- destination hash -->
-                    <div class="inline-block mr-1">
-                        <div><{{ selectedPeer.destination_hash }}></div>
+                    <div class="inline-flex max-w-full items-center gap-1 mr-1 align-middle">
+                        <div class="ct-mono min-w-0 break-all">&lt;{{ selectedPeer.destination_hash }}&gt;</div>
+                        <CopyButton :value="selectedPeer.destination_hash" label="Peer LXMF Address"/>
                     </div>
 
                     <div class="inline-block">
@@ -89,7 +90,7 @@
                 <div v-for="chatItem of selectedPeerChatItemsReversed" :key="chatItem.lxmf_message.hash" class="flex flex-col max-w-xl mt-3" :class="{ 'ml-auto pl-4 md:pl-16 items-end': chatItem.is_outbound, 'mr-auto pr-4 md:pr-16 items-start': !chatItem.is_outbound }">
 
                     <!-- message content -->
-                    <div @click="onChatItemClick(chatItem)" class="border border-gray-300 dark:border-zinc-800 rounded-xl shadow overflow-hidden" :class="[ ['cancelled', 'failed'].includes(chatItem.lxmf_message.state) ? 'bg-red-500 text-white' : chatItem.is_outbound ? 'bg-[#3b82f6] text-white' : 'bg-[#efefef]' ]">
+                    <div @click="onChatItemClick(chatItem)" class="border rounded-xl shadow overflow-hidden" :class="[ ['cancelled', 'failed'].includes(chatItem.lxmf_message.state) ? 'bg-red-500 text-white border-red-400' : chatItem.is_outbound ? 'bg-[var(--ct-blue)] text-white border-blue-400/40' : 'bg-[rgba(255,255,255,0.08)] text-[var(--ct-text)] border-[var(--ct-border-strong)]' ]">
 
                         <div class="w-full space-y-0.5 px-2.5 py-1">
 
@@ -132,20 +133,36 @@
                             </div>
 
                             <!-- file attachment fields -->
-                            <div v-if="chatItem.lxmf_message.fields?.file_attachments" class="space-y-1">
-                                <a @click.stop target="_blank" :download="file_attachment.file_name" :href="`data:application/octet-stream;base64,${file_attachment.file_bytes}`" v-for="file_attachment of chatItem.lxmf_message.fields?.file_attachments ?? []" class="flex border border-gray-300 dark:border-zinc-800 hover:bg-gray-100 rounded px-2 py-1 text-sm text-gray-700 font-semibold cursor-pointer space-x-2 bg-[#efefef]">
-                                    <div class="my-auto">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="my-auto w-full">{{ file_attachment.file_name }}</div>
-                                    <div class="my-auto">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                                        </svg>
-                                    </div>
-                                </a>
+                            <div v-if="chatItem.lxmf_message.fields?.file_attachments" class="space-y-2">
+                                <div v-for="(fileAttachment, fileAttachmentIndex) of chatItem.lxmf_message.fields?.file_attachments ?? []" :key="`${chatItem.lxmf_message.hash}-${fileAttachmentIndex}-${fileAttachment.file_name}`" class="space-y-1">
+                                    <button
+                                        v-if="isImageFileAttachment(fileAttachment)"
+                                        @click.stop="openImage(fileAttachmentDataUrl(fileAttachment))"
+                                        type="button"
+                                        class="block w-full overflow-hidden rounded-lg border border-black/10 bg-black/20 shadow-sm dark:border-white/10"
+                                        :title="`Open ${fileAttachment.file_name}`">
+                                        <img
+                                            :src="fileAttachmentDataUrl(fileAttachment)"
+                                            :alt="fileAttachment.file_name"
+                                            class="max-h-80 w-full object-contain"/>
+                                    </button>
+                                    <a @click.stop :download="fileAttachment.file_name" :href="fileAttachmentDataUrl(fileAttachment)" class="flex border border-gray-300 dark:border-zinc-800 hover:bg-gray-100 rounded px-2 py-1 text-sm text-gray-700 font-semibold cursor-pointer space-x-2 bg-[#efefef]">
+                                        <div class="my-auto">
+                                            <svg v-if="isImageFileAttachment(fileAttachment)" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+                                            </svg>
+                                            <svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13"></path>
+                                            </svg>
+                                        </div>
+                                        <div class="my-auto min-w-0 w-full truncate">{{ fileAttachment.file_name }}</div>
+                                        <div class="my-auto">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                            </svg>
+                                        </div>
+                                    </a>
+                                </div>
                             </div>
 
                         </div>
@@ -163,7 +180,7 @@
                     </div>
 
                     <!-- message state -->
-                    <div v-if="chatItem.is_outbound" class="flex text-right" :class="[ ['cancelled', 'failed'].includes(chatItem.lxmf_message.state) ? 'text-red-500' : 'text-gray-500' ]">
+                    <div v-if="chatItem.is_outbound" class="flex text-right" :class="[ ['cancelled', 'failed'].includes(chatItem.lxmf_message.state) ? 'text-red-300' : 'text-[var(--ct-dim)]' ]">
                         <div class="flex ml-auto space-x-1">
 
                             <!-- state label -->
@@ -211,7 +228,7 @@
                     </div>
 
                     <!-- inbound message info -->
-                    <div v-if="!chatItem.is_outbound" class="text-xs text-gray-500 mt-0.5 flex flex-col">
+                    <div v-if="!chatItem.is_outbound" class="text-xs text-[var(--ct-dim)] mt-0.5 flex flex-col">
 
                         <!-- received timestamp -->
                         <span @click="showReceivedMessageInfo(chatItem.lxmf_message)" class="cursor-pointer">{{ formatTimeAgo(chatItem.lxmf_message.created_at) }}</span>
@@ -221,7 +238,7 @@
                 </div>
 
                 <!-- load previous -->
-                <button v-show="!isLoadingPrevious && hasMorePrevious" id="load-previous" @click="loadPrevious" type="button" class="flex space-x-2 mx-auto bg-gray-200 px-3 py-1 hover:bg-gray-300 rounded-full shadow">
+                <button v-show="!isLoadingPrevious && hasMorePrevious" id="load-previous" @click="loadPrevious" type="button" class="flex space-x-2 mx-auto ct-secondary-button px-3 py-1 rounded-full shadow">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
                         <path stroke-linecap="round" stroke-linejoin="round" d="m15 11.25-3-3m0 0-3 3m3-3v7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                     </svg>
@@ -409,10 +426,12 @@ import ConversationDropDownMenu from "./ConversationDropDownMenu.vue";
 import AddImageButton from "./AddImageButton.vue";
 import IconButton from "../IconButton.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import CopyButton from "../CopyButton.vue";
 
 export default {
     name: 'ConversationViewer',
     components: {
+        CopyButton,
         IconButton,
         AddImageButton,
         ConversationDropDownMenu,
@@ -873,6 +892,29 @@ export default {
             window.open(fileUrl);
 
         },
+        fileAttachmentExtension(fileAttachment) {
+            const fileName = fileAttachment?.file_name ?? "";
+            const extension = fileName.split(".").pop();
+            return extension ? extension.toLowerCase() : "";
+        },
+        fileAttachmentMimeType(fileAttachment) {
+            const mimeTypes = {
+                "avif": "image/avif",
+                "bmp": "image/bmp",
+                "gif": "image/gif",
+                "jpg": "image/jpeg",
+                "jpeg": "image/jpeg",
+                "png": "image/png",
+                "webp": "image/webp",
+            };
+            return mimeTypes[this.fileAttachmentExtension(fileAttachment)] ?? "application/octet-stream";
+        },
+        isImageFileAttachment(fileAttachment) {
+            return this.fileAttachmentMimeType(fileAttachment).startsWith("image/");
+        },
+        fileAttachmentDataUrl(fileAttachment) {
+            return `data:${this.fileAttachmentMimeType(fileAttachment)};base64,${fileAttachment.file_bytes}`;
+        },
         downloadFileFromBase64: async function(fileName, fileBytesBase64) {
 
             // create blob from base64 encoded file bytes
@@ -1038,11 +1080,9 @@ export default {
                 const fields = {};
 
                 // add file attachments
-                var fileAttachmentsTotalSize = 0;
                 if(this.newMessageFiles.length > 0){
                     const fileAttachments = [];
                     for(const file of this.newMessageFiles){
-                        fileAttachmentsTotalSize += file.size;
                         fileAttachments.push({
                             "file_name": file.name,
                             "file_bytes": Utils.arrayBufferToBase64(await file.arrayBuffer()),
@@ -1052,9 +1092,7 @@ export default {
                 }
 
                 // add image attachment
-                var imageTotalSize = 0;
                 if(this.newMessageImage){
-                    imageTotalSize = this.newMessageImage.size;
                     fields["image"] = {
                         // Reticulum sends image type as "jpg", "png", "webp" etc and not "image/jpg" or "image/png"
                         // From memory, Sideband would not display images if the image type has the "image/" prefix
@@ -1067,24 +1105,11 @@ export default {
                 }
 
                 // add audio attachment
-                var audioTotalSize = 0;
                 if(this.newMessageAudio){
-                    audioTotalSize = this.newMessageAudio.size;
                     fields["audio"] = {
                         "audio_mode": this.newMessageAudio.audio_mode,
                         "audio_bytes": Utils.arrayBufferToBase64(await this.newMessageAudio.audio_blob.arrayBuffer()),
                     };
-                }
-
-                // calculate estimated message size in bytes
-                const contentSize = this.newMessageText.length;
-                const totalMessageSize = contentSize + fileAttachmentsTotalSize + imageTotalSize + audioTotalSize;
-
-                // ask user if they still want to send message if it may be rejected by sender
-                if(totalMessageSize > 1000 * 900){ // actual limit in LXMF Router is 1mb
-                    if(!await DialogUtils.confirm(`Your message exceeds 900KB (It's ${this.formatBytes(totalMessageSize)}). It may be rejected by the recipient unless they have increased their delivery limit. Do you want to try sending anyway?`)){
-                        return;
-                    }
                 }
 
                 // send message to reticulum
@@ -1464,23 +1489,40 @@ export default {
             this.$emit("reload-conversations");
 
         },
-        showSentMessageInfo: function(lxmfMessage) {
+        showSentMessageInfo: async function(lxmfMessage) {
 
             // basic info
             const info = [
+                `State: ${lxmfMessage.state ?? "unknown"}`,
                 `Created: ${Utils.convertUnixMillisToLocalDateTimeString(lxmfMessage.timestamp * 1000)}`,
+                `Last Updated: ${Utils.convertDateTimeToLocalDateTimeString(new Date(lxmfMessage.updated_at))}`,
                 `Method: ${lxmfMessage.method ?? "unknown"}`,
+                `Attempts: ${lxmfMessage.delivery_attempts ?? 0}`,
+                `Message Hash: ${lxmfMessage.hash}`,
+                `Destination: ${lxmfMessage.destination_hash}`,
             ];
+
+            if(lxmfMessage.next_delivery_attempt_at != null){
+                info.push(`Next Attempt: ${Utils.convertUnixMillisToLocalDateTimeString(lxmfMessage.next_delivery_attempt_at * 1000)}`);
+            }
+
+            let totalPayloadBytes = new TextEncoder().encode(lxmfMessage.content ?? "").length;
+
+            if(totalPayloadBytes > 0){
+                info.push(`Content: ${this.formatBytes(totalPayloadBytes)}`);
+            }
 
             // add audio attachment size
             if(lxmfMessage.fields?.audio?.audio_bytes){
                 const audioBytesLength = atob(lxmfMessage.fields?.audio?.audio_bytes).length;
+                totalPayloadBytes += audioBytesLength;
                 info.push(`Audio Attachment: ${this.formatBytes(audioBytesLength)}`);
             }
 
             // add image attachment size
             if(lxmfMessage.fields?.image?.image_bytes){
                 const imageBytesLength = atob(lxmfMessage.fields?.image?.image_bytes).length;
+                totalPayloadBytes += imageBytesLength;
                 info.push(`Image Attachment: ${this.formatBytes(imageBytesLength)}`);
             }
 
@@ -1491,12 +1533,80 @@ export default {
                     const fileBytesLength = atob(fileAttachment.file_bytes).length;
                     filesLength += fileBytesLength;
                 }
+                totalPayloadBytes += filesLength;
                 info.push(`File Attachments: ${this.formatBytes(filesLength)}`);
+            }
+
+            info.push(`Approx Payload: ${this.formatBytes(totalPayloadBytes)}`);
+
+            if(['failed', 'rejected'].includes(lxmfMessage.state)){
+                info.push("");
+                info.push("Failure Details");
+                info.push(this.getLxmfFailureExplanation(lxmfMessage));
+                info.push("");
+                info.push("Live Destination Check");
+                info.push(...await this.getLxmfDeliveryDiagnostics(lxmfMessage.destination_hash));
             }
 
             // show message info
             DialogUtils.alert(info.join("\n"));
 
+        },
+        getLxmfFailureExplanation(lxmfMessage) {
+            if(lxmfMessage.state === "rejected"){
+                return "The recipient rejected the transfer. For resource/attachment messages, this commonly means the message exceeded the recipient's delivery limit.";
+            }
+
+            if(lxmfMessage.method === "opportunistic"){
+                return "No delivery proof was received after opportunistic delivery attempts. The destination may be offline, the path may be stale, or an intermediate hop may have dropped the packet.";
+            }
+
+            if(lxmfMessage.method === "direct"){
+                return "No delivery proof was received after direct link attempts. The destination may be offline, the path may be stale, or the direct link/resource transfer could not complete.";
+            }
+
+            if(lxmfMessage.method === "propagated"){
+                return "Propagation delivery did not complete. The propagation node may be unreachable, full, or unable to accept/forward the message.";
+            }
+
+            return "LXMF marked the message failed after delivery did not complete.";
+        },
+        async getLxmfDeliveryDiagnostics(destinationHash) {
+            const diagnostics = [];
+            const timeout = 8;
+
+            const pathCheck = window.axios.get(`/api/v1/destination/${destinationHash}/path`, {
+                params: {
+                    request: true,
+                    timeout: timeout,
+                },
+            }).then((response) => {
+                const path = response.data.path;
+                if(path){
+                    return `Current Path: ${path.hops} ${path.hops === 1 ? 'hop' : 'hops'} via ${path.next_hop_interface}`;
+                }
+                return `Current Path: none found after ${timeout}s`;
+            }).catch((e) => {
+                console.log(e);
+                return "Current Path: check failed";
+            });
+
+            const pingCheck = window.axios.get(`/api/v1/ping/${destinationHash}/lxmf.delivery`, {
+                params: {
+                    timeout: timeout,
+                },
+            }).then((response) => {
+                const pingResult = response.data.ping_result;
+                const rttMilliseconds = (pingResult.rtt * 1000).toFixed(3);
+                return `Probe: reply in ${rttMilliseconds} ms (${pingResult.hops_there} ${pingResult.hops_there === 1 ? 'hop' : 'hops'} there, ${pingResult.hops_back} ${pingResult.hops_back === 1 ? 'hop' : 'hops'} back)`;
+            }).catch((e) => {
+                console.log(e);
+                const message = e.response?.data?.message ?? "Ping failed. Try again later.";
+                return `Probe: ${message}`;
+            });
+
+            diagnostics.push(...await Promise.all([pathCheck, pingCheck]));
+            return diagnostics;
         },
         showReceivedMessageInfo: function(lxmfMessage) {
 
@@ -1555,9 +1665,10 @@ export default {
         },
         canSendMessage() {
 
-            // can't send if empty message
+            // can't send if no content or attachments
             const messageText = this.newMessageText.trim();
-            if(messageText == null || messageText === ""){
+            const hasAttachments = this.newMessageImage != null || this.newMessageAudio != null || this.newMessageFiles.length > 0;
+            if((messageText == null || messageText === "") && !hasAttachments){
                 return false;
             }
 

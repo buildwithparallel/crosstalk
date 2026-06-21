@@ -1,8 +1,8 @@
 <template>
-    <div class="flex flex-col w-80 min-w-80">
+    <div class="flex flex-col w-80 min-w-80 bg-[rgba(10,10,16,0.94)]">
 
         <!-- tabs -->
-        <div class="bg-white dark:bg-zinc-950 border-b border-r border-gray-200 dark:border-zinc-700">
+        <div class="bg-[rgba(11,12,20,0.96)] border-b border-r border-[var(--ct-border)]">
             <div class="-mb-px flex">
                 <div @click="tab = 'conversations'" class="w-full border-b-2 py-3 px-1 text-center text-sm font-medium cursor-pointer" :class="[ tab === 'conversations' ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-zinc-600 hover:text-gray-700 dark:hover:text-gray-300']">Conversations</div>
                 <div @click="tab = 'announces'" class="w-full border-b-2 py-3 px-1 text-center text-sm font-medium cursor-pointer" :class="[ tab === 'announces' ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-zinc-600 hover:text-gray-700 dark:hover:text-gray-300']">Announces</div>
@@ -10,7 +10,7 @@
         </div>
 
         <!-- conversations -->
-        <div v-if="tab === 'conversations'" class="flex-1 flex flex-col bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-zinc-700 overflow-hidden">
+        <div v-if="tab === 'conversations'" class="flex-1 flex flex-col bg-[rgba(11,12,20,0.96)] border-r border-[var(--ct-border)] overflow-hidden">
 
             <!-- search -->
             <div v-if="conversations.length > 0" class="p-1 border-b border-gray-300 dark:border-zinc-700">
@@ -20,7 +20,7 @@
             <!-- peers -->
             <div class="flex h-full overflow-y-auto">
                 <div v-if="searchedConversations.length > 0" class="w-full">
-                    <div @click="onConversationClick(conversation)" v-for="conversation of searchedConversations" class="flex cursor-pointer p-2 border-l-2" :class="[ conversation.destination_hash === selectedDestinationHash ? 'bg-gray-100 dark:bg-zinc-700 border-blue-500 dark:border-blue-400' : 'bg-white dark:bg-zinc-950 border-transparent hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-gray-200 dark:hover:border-zinc-600' ]">
+                    <div @click="onConversationClick(conversation)" v-for="conversation of searchedConversations" class="flex cursor-pointer p-2 border-l-2" :class="[ conversation.destination_hash === selectedDestinationHash ? 'bg-[rgba(0,97,253,0.18)] border-blue-400' : 'bg-transparent border-transparent hover:bg-[rgba(255,255,255,0.06)] hover:border-[var(--ct-border-strong)]' ]">
                         <div class="my-auto mr-2">
                             <div v-if="conversation.lxmf_user_icon" class="p-2 rounded" :style="{ 'color': conversation.lxmf_user_icon.foreground_colour, 'background-color': conversation.lxmf_user_icon.background_colour }">
                                 <MaterialDesignIcon :icon-name="conversation.lxmf_user_icon.icon_name" class="w-6 h-6"/>
@@ -69,7 +69,7 @@
         </div>
 
         <!-- discover -->
-        <div v-if="tab === 'announces'" class="flex-1 flex flex-col bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-zinc-700 overflow-hidden">
+        <div v-if="tab === 'announces'" class="flex-1 flex flex-col bg-[rgba(11,12,20,0.96)] border-r border-[var(--ct-border)] overflow-hidden">
 
             <!-- search -->
             <div v-if="peersCount > 0" class="p-1 border-b border-gray-300 dark:border-zinc-700">
@@ -79,7 +79,7 @@
             <!-- peers -->
             <div class="flex h-full overflow-y-auto">
                 <div v-if="searchedPeers.length > 0" class="w-full">
-                    <div @click="onPeerClick(peer)" v-for="peer of searchedPeers" class="flex cursor-pointer p-2 border-l-2" :class="[ peer.destination_hash === selectedDestinationHash ? 'bg-gray-100 dark:bg-zinc-700 border-blue-500 dark:border-blue-400' : 'bg-white dark:bg-zinc-950 border-transparent hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-gray-200 dark:hover:border-zinc-600' ]">
+                    <div @click="onPeerClick(peer)" v-for="peer of searchedPeers" class="flex cursor-pointer p-2 border-l-2" :class="[ peer.destination_hash === selectedDestinationHash ? 'bg-[rgba(0,97,253,0.18)] border-blue-400' : 'bg-transparent border-transparent hover:bg-[rgba(255,255,255,0.06)] hover:border-[var(--ct-border-strong)]' ]">
                         <div class="my-auto mr-2">
                             <div v-if="peer.lxmf_user_icon" class="p-2 rounded" :style="{ 'color': peer.lxmf_user_icon.foreground_colour, 'background-color': peer.lxmf_user_icon.background_colour }">
                                 <MaterialDesignIcon :icon-name="peer.lxmf_user_icon.icon_name" class="w-6 h-6"/>
@@ -98,7 +98,7 @@
                                 </span>
 
                                 <!-- hops away -->
-                                <span v-if="peer.hops != null && peer.hops !== 128" class="flex my-auto text-sm text-gray-500 space-x-1">
+                                <span v-if="peer.hops != null && peer.hops !== 128" class="flex my-auto text-sm text-gray-500 dark:text-gray-400 space-x-1">
                                     <span>•</span>
                                     <span v-if="peer.hops === 0 || peer.hops === 1">Direct</span>
                                     <span v-else>{{ peer.hops }} hops</span>

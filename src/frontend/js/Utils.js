@@ -111,6 +111,39 @@ class Utils {
         return window.btoa(binary);
     }
 
+    static async copyTextToClipboard(text) {
+        if(text == null || text === ""){
+            return false;
+        }
+
+        try {
+            if(navigator.clipboard?.writeText){
+                await navigator.clipboard.writeText(text);
+                return true;
+            }
+        } catch(e) {
+            // fall back to the hidden textarea copy path
+        }
+
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.setAttribute("readonly", "");
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        textArea.style.pointerEvents = "none";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        try {
+            return document.execCommand("copy");
+        } catch(e) {
+            return false;
+        } finally {
+            document.body.removeChild(textArea);
+        }
+    }
+
     static formatBitsPerSecond(bits) {
 
         if(bits === 0){

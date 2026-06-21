@@ -1,22 +1,14 @@
 <p align="center">
-<a href="https://github.com/liamcottle/reticulum-meshchat"><img src="./logo/logo-chat-bubble.png" width="150"></a>
+<a href="https://github.com/buildwithparallel/crosstalk"><img src="./logo/logo-chat-bubble.png" width="150"></a>
 </p>
 
-<h2 align="center">Reticulum MeshChat</h2>
+<h2 align="center">Crosstalk</h2>
 
-<p align="center">
-<a href="https://discord.gg/APQSQZNV7t"><img src="https://img.shields.io/badge/Discord-Liam%20Cottle's%20Discord-%237289DA?style=flat&logo=discord" alt="discord"/></a>
-<a href="https://twitter.com/liamcottle"><img src="https://img.shields.io/badge/Twitter-@liamcottle-%231DA1F2?style=flat&logo=twitter" alt="twitter"/></a>
-<br/>
-<a href="https://ko-fi.com/liamcottle"><img src="https://img.shields.io/badge/Donate%20a%20Coffee-liamcottle-yellow?style=flat&logo=buy-me-a-coffee" alt="donate on ko-fi"/></a>
-<a href="./donate.md"><img src="https://img.shields.io/badge/Donate%20Bitcoin-bc1qy22smke8n4c54evdxmp7lpy9p0e6m9tavtlg2q-%23FF9900?style=flat&logo=bitcoin" alt="donate bitcoin"/></a>
-</p>
-
-## What is Reticulum MeshChat?
+## What is Crosstalk?
 
 A simple mesh network communications app powered by the [Reticulum Network Stack](https://github.com/markqvist/Reticulum).
 
-<img src="./screenshots/screenshot.png">
+<img src="./example-1.png" alt="Crosstalk app preview">
 
 ## What does it do?
 
@@ -31,7 +23,7 @@ A simple mesh network communications app powered by the [Reticulum Network Stack
 
 ## Features
 
-- Supports sending and receiving messages between [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat), [Sideband](https://github.com/markqvist/Sideband/) and [Nomadnet](https://github.com/markqvist/nomadnet).
+- Supports sending and receiving messages between [Crosstalk](https://github.com/buildwithparallel/crosstalk), [Sideband](https://github.com/markqvist/Sideband/) and [Nomadnet](https://github.com/markqvist/nomadnet).
 - Supports receiving and saving images and attachments sent from Sideband.
 - Supports sending images, voice recordings and file attachments.
 - Supports saving inbound and outbound messages to a local database.
@@ -43,17 +35,32 @@ A simple mesh network communications app powered by the [Reticulum Network Stack
 - Supports running a local LXMF Propagation Node so other users can use your device for message storage and retrieval.
 - Support for browsing pages, and downloading files hosted on Nomad Network Nodes.
 
+## Recent Crosstalk Enhancements
+
+- Renamed and packaged the app as Crosstalk across the desktop window, dock/app title, bundled executable and project metadata.
+- Added a darker, higher-contrast app interface with updated message, network visualiser, menu and interface styling.
+- Added public internet node onboarding in the Interfaces section, including rmap.world guidance and a Public Backbone Node setup flow.
+- Added a disabled-by-default `RMAP World` TCP client interface so users can enable a public Reticulum entrypoint without hand-writing config.
+- Added a suggested Miami Thunder Host community node for quick Reticulum connectivity testing.
+- Added parsing for rmap.world `BackboneInterface` config blocks so `remote` and `target_port` are mapped into Crosstalk TCP client fields.
+- Added interface delete controls, import/export polish and automatic backend restarts after interface changes.
+- Removed the need to manually restart the app after editing interfaces.
+- Moved Crosstalk's Reticulum config into `~/.crosstalk/.reticulum` for the desktop app so a broken global Reticulum config does not prevent launch.
+- Improved chat by removing unnecessary large-message confirmation friction and allowing attachment-only messages.
+- Improved file attachments by previewing image files inline while keeping the original download action.
+- Improved network visualiser contrast, graph labels and connected/disconnected styling.
+
 ## Beta Features
 
-- Support for Audio Calls to other [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) users.
+- Support for Audio Calls to other [Crosstalk](https://github.com/buildwithparallel/crosstalk) users.
   - Audio is encoded with [codec2](https://github.com/drowe67/codec2) to support low bandwidth links.
   - Using a microphone requires using the web ui over localhost or https, due to [AudioWorklet](https://developer.mozilla.org/en-US/docs/Web/API/AudioWorklet) secure context.
-  - I have tested two-way audio calls over LoRa with a single hop. It works well when a [reasonable bitrate](https://unsigned.io/understanding-lora-parameters/) is configured on the RNode.
+  - Two-way audio calls over LoRa can work well with a single hop when a [reasonable bitrate](https://unsigned.io/understanding-lora-parameters/) is configured on the RNode.
   - Some browsers such as FireFox don't work as expected. Try using a Chromium based browser if running via the command line.
 
 ## Download
 
-You can download the latest version for Windows, Mac and Linux from the [releases](https://github.com/liamcottle/reticulum-meshchat/releases) page.
+You can download the latest version for Windows, Mac and Linux from the [releases](https://github.com/buildwithparallel/crosstalk/releases) page.
 
 Alternatively, you can download the source and run it manually from a command line.
 
@@ -61,13 +68,13 @@ See the ["How to use it?"](#how-to-use-it) section, further down on how to do th
 
 ## Other Installation Methods
 
-- [Running MeshChat on Docker](./docs/meshchat_on_docker.md)
-- [Running MeshChat on a Raspberry Pi](./docs/meshchat_on_raspberry_pi.md)
-- [Running MeshChat on Android with Termux](./docs/meshchat_on_android_with_termux.md)
+- [Running Crosstalk on Docker](./docs/crosstalk_on_docker.md)
+- [Running Crosstalk on a Raspberry Pi](./docs/crosstalk_on_raspberry_pi.md)
+- [Running Crosstalk on Android with Termux](./docs/crosstalk_on_android_with_termux.md)
 
 ## Getting Started
 
-Once you've downloaded, installed and launched Reticulum MeshChat, there's a few things you need to do in order to start communicating with other people on the network.
+Once you've downloaded, installed and launched Crosstalk, there's a few things you need to do in order to start communicating with other people on the network.
 
 1. Create an Identity
 2. Configure your Display Name
@@ -83,9 +90,9 @@ A Reticulum Identity is a public/private key-pair. You control the private key u
 
 Your public key is shared with the network when you send an announce, and allows others on the network to automatically discover a route to a destination you control.
 
-At this time, Reticulum MeshChat generates a new Identity the first time you launch it. A future update will allow you to create and manage multiple identities.
+At this time, Crosstalk generates a new Identity the first time you launch it. A future update will allow you to create and manage multiple identities.
 
-For now, if you want to change, or reset your identity, you can access the identity file at `~/.reticulum-meshchat/identity`.
+For now, if you want to change, or reset your identity, you can access the identity file at `~/.crosstalk/identity`.
 
 **Configure your Display Name**
 
@@ -115,7 +122,7 @@ When someone else on the network announces themselves (more specifically, their 
 
 You can click on any of these discovered peers to open a messaging interface. From here, you can send text messages, files and inline images. If they respond, their messages will show up there too.
 
-As well as being able to announce your LXMF address and discover others, Reticulum MeshChat can also discover [Nomad Network](https://github.com/markqvist/nomadnet) nodes hosted by other users. From the Nodes tab, you are free to explore pages and download files they may be publicly sharing on the network.
+As well as being able to announce your LXMF address and discover others, Crosstalk can also discover [Nomad Network](https://github.com/markqvist/nomadnet) nodes hosted by other users. From the Nodes tab, you are free to explore pages and download files they may be publicly sharing on the network.
 
 A future update is planned to allow you to host your own Node and share pages and files with other peers on the network. For now, you could use the official [Nomad Network](https://github.com/markqvist/nomadnet) client to do this.
 
@@ -127,7 +134,7 @@ Remember, in order to connect with other peers or nodes, they must announce on t
 
 ## How does it work?
 
-- A python script ([meshchat.py](./meshchat.py)) runs a Reticulum instance and a WebSocket server.
+- A python script ([crosstalk.py](./crosstalk.py)) runs a Reticulum instance and a WebSocket server.
 - The web page sends and receives LXMF packets encoded in json via the WebSocket.
 - Web Browser -> WebSocket -> Python Reticulum -> (configured interfaces) -> (destination)
 - LXMF messages sent and received are saved to a local SQLite database.
@@ -142,12 +149,12 @@ If you don't want to, or a release is unavailable for your device, you will need
 - install [NodeJS v18+](https://nodejs.org/en)
 - clone the source code from this repo
 - install all dependencies
-- then run `meshchat.py`.
+- then run `crosstalk.py`.
 
 ```
 # clone repo
-git clone https://github.com/liamcottle/reticulum-meshchat
-cd reticulum-meshchat
+git clone https://github.com/buildwithparallel/crosstalk
+cd crosstalk
 
 # install nodejs deps
 # if you want to build electron binaries, remove "--omit=dev"
@@ -160,8 +167,8 @@ npm run build-frontend
 # install python deps
 pip install -r requirements.txt
 
-# run meshchat
-python meshchat.py
+# run crosstalk
+python crosstalk.py
 ```
 
 > NOTE: You should now be able to access the web interface at http://localhost:8000
@@ -169,14 +176,14 @@ python meshchat.py
 For a full list of command line options, you can run;
 
 ```
-python meshchat.py --help
+python crosstalk.py --help
 ```
 
 ```
-usage: meshchat.py [-h] [--host [HOST]] [--port [PORT]] [--headless] [--identity-file IDENTITY_FILE] [--identity-base64 IDENTITY_BASE64] [--generate-identity-file GENERATE_IDENTITY_FILE] [--generate-identity-base64]
+usage: crosstalk.py [-h] [--host [HOST]] [--port [PORT]] [--headless] [--identity-file IDENTITY_FILE] [--identity-base64 IDENTITY_BASE64] [--generate-identity-file GENERATE_IDENTITY_FILE] [--generate-identity-base64]
               [--reticulum-config-dir RETICULUM_CONFIG_DIR] [--storage-dir STORAGE_DIR]
 
-ReticulumMeshChat
+Crosstalk
 
 options:
   -h, --help            show this help message and exit
@@ -209,7 +216,7 @@ If you want to use an existing identity;
 To use a custom identity file, provide the `--identity-file` argument followed by the path to your custom identity file.
 
 ```
-python meshchat.py --identity-file ./custom_identity_file
+python crosstalk.py --identity-file ./custom_identity_file
 ```
 
 If you would like to generate a new identity, you can use the [rnid](https://reticulum.network/manual/using.html#the-rnid-utility) utility provided by Reticulum.
@@ -221,20 +228,20 @@ rnid --generate ./new_identity_file
 If you don't have access to the `rnid` command, you can use the following:
 
 ```
-python meshchat.py --generate-identity-file ./new_identity_file
+python crosstalk.py --generate-identity-file ./new_identity_file
 ```
 
 Alternatively, you can provide a base64 encoded private key, like so;
 
 ```
-python meshchat.py --identity-base64 "GCN6mMhVemdNIK/fw97C1zvU17qjQPFTXRBotVckeGmoOwQIF8VOjXwNNem3CUOJZCQQpJuc/4U94VSsC39Phw=="
+python crosstalk.py --identity-base64 "GCN6mMhVemdNIK/fw97C1zvU17qjQPFTXRBotVckeGmoOwQIF8VOjXwNNem3CUOJZCQQpJuc/4U94VSsC39Phw=="
 ```
 
 > NOTE: this is a randomly generated identity for example purposes. Do not use it, it has been leaked!
 
 ## Build Electron Application
 
-Reticulum MeshChat can be run from source via a command line, as explained above, or as a standalone application.
+Crosstalk can be run from source via a command line, as explained above, or as a standalone application.
 
 To run as a standalone application, we need to compile the python script and dependencies to an executable with [cxfreeze](https://github.com/marcelotduarte/cx_Freeze) and then build an [Electron](https://www.electronjs.org/) app which includes a bundled browser that can interact with the compiled python executable.
 
@@ -271,14 +278,14 @@ npm run electron
 
 
 
-**or; Build and run MeshChat Server**
+**or; Build and run Crosstalk Server**
 
 ```
 npm run build-frontend
-python3 meshchat.py --headless
+python3 crosstalk.py --headless
 ```
 
-I build the vite app everytime without hot reload, since MeshChat expects everything over its own port, not the vite server port. I will attempt to fix this in the future.
+The Vite app is built without hot reload because Crosstalk expects everything over its own port, not the Vite server port.
 
 ## TODO
 
@@ -290,8 +297,48 @@ I build the vite app everytime without hot reload, since MeshChat expects everyt
 
 - By default, the LXMF router rejects inbound messages larger than 1mb.
 - LXMF clients are likely to have [this default limit](https://github.com/markqvist/LXMF/blob/c426c93cc5d63a3dae18ad2264b1299a7ad9e46c/LXMF/LXMRouter.py#L38), and your messages will [fail to send](https://github.com/markqvist/LXMF/blob/c426c93cc5d63a3dae18ad2264b1299a7ad9e46c/LXMF/LXMRouter.py#L1428).
-- MeshChat has increased the receive limit to 10mb to allow for larger attachments.
+- Crosstalk has increased the receive limit to 10mb to allow for larger attachments.
 
 ## License
 
 MIT
+
+## Future Ideas
+
+Proven internet, decentralized-web and crypto concepts that could be useful for Crosstalk, LXMF, NomadNet and wider Reticulum workflows:
+
+- Human-readable names for Reticulum destinations, similar to DNS or ENS, mapping names to destination hashes, public keys and service metadata.
+- ENS-style identity records for LXMF addresses, NomadNet nodes, payment addresses, content hashes, contact cards, propagation-node preferences and emergency relay details.
+- DID-style identity documents with verification keys, service endpoints, rotation keys, recovery keys and capability declarations.
+- DNS-style signed and cached zones for community phonebooks, service directories and local-first name resolution with TTLs.
+- Namecoin or Handshake-style scarce-name systems using proof-of-work, fees, auctions, staking, web-of-trust sponsorship or external-chain anchoring for global names.
+- LXMF email-style workflows with folders, aliases, mailing lists, forwarding, rules, attachments, receipts and delayed delivery through propagation nodes.
+- Usenet, forum and BBS-style threaded discussions replicated through propagation nodes with signed authorship and per-board retention policies.
+- IRC-style live chat rooms for presence-based conversation, temporary channels, moderation and optional logs.
+- Signed announcement channels for community bulletins, emergency alerts, weather updates, release notices and radio/network status.
+- NomadNet directory, search and feed tooling for discovering pages, files, services, nodes and people.
+- RSS or Atom-like signed feeds for blogs, node updates, software releases, classifieds, sensor logs and alert streams.
+- Local-first search indexes that can be exchanged as signed, compressed snapshots.
+- Content-addressed pages and files so caches and mirrors can safely serve verified content by hash.
+- Community cache nodes for popular pages, Retipedia archives, maps, documentation, packages and public bulletins.
+- Store-carry-forward delivery patterns from delay-tolerant networking, including expiry, custody transfer, scheduled sync and opportunistic transport.
+- Bandwidth accounting, quotas, fair queues and priority classes for emergency traffic, announces, messages, file transfers and bulk sync.
+- Compression, delta sync and content-defined chunking to avoid resending full files, pages, maps or indexes.
+- Adaptive content negotiation for scarce links, such as text-only, low-resolution media, full media, send-later and fast-link-only modes.
+- Payment or toll primitives for scarce resources like propagation storage, gateway uptime, file hosting, relay bandwidth and priority delivery.
+- Anti-spam economics using proof-of-work stamps, message postage, sender quotas, allowlists, reputation, paid inbox priority and community blocklists.
+- Web-of-trust tools for contact verification, signed introductions, community trust roots, signed directories and revocation lists.
+- Key rotation and recovery flows using old-key-signed transitions, social recovery, multisig recovery, expiration and revocation bulletins.
+- Capability-based access for posting, reading, moderation, uploads, gateway access, private pages and group membership.
+- Classifieds and marketplace tools for local listings, wanted/offered posts, services, rides, parts, escrow, reputation and expiration.
+- Signed software and package repositories with mirrors, release channels, deltas, reproducible builds and verified updates.
+- Git, issue tracker and wiki workflows over Reticulum using signed releases, patches over LXMF, work documents and code review bundles.
+- Maps and geospatial tools for gateway maps, radio coverage, local hazards, meetups, APRS-like beacons, offline tiles and emergency overlays.
+- Network weather and monitoring tools for reachable nodes, gateway capacity, link quality, propagation delays, announce pressure and service uptime.
+- Dynamic gateway discovery for public and private entrypoints, radio access points, I2P/TCP backbones, regions, policies, capacity and cost.
+- Bridges to regular internet services, including email, RSS, Matrix, IRC, web-to-NomadNet, DNS, ENS and package mirrors, with clear trust/privacy labels.
+- Forms, polls and small signed transactions for surveys, incident reports, check-ins, registrations, local governance and resource requests.
+- Emergency and disaster workflows for priority bulletins, missing/found posts, supply requests, shelter status, medical directories and relay schedules.
+- Voice, voicemail and push-to-talk workflows over LXST where bandwidth allows, with text fallback on degraded links.
+- Personal sovereign cloud features for file sync, notes, contacts, calendar, bookmarks, identity documents, encrypted backups and device sync.
+- Moderation primitives for public networks, including signed blocklists, community allowlists, board moderators, spam stamps, identity age and posting quotas.

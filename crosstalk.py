@@ -34,8 +34,11 @@ from src.backend.audio_call_manager import AudioCall, AudioCallManager
 from src.backend.sideband_commands import SidebandCommands
 
 
+DEFAULT_RMAP_WORLD_INTERFACE_NAME = "RMAP World"
+
+
 # NOTE: this is required to be able to pack our app with cxfreeze as an exe, otherwise it can't access bundled assets
-# this returns a file path based on if we are running meshchat.py directly, or if we have packed it as an exe with cxfreeze
+# this returns a file path based on if we are running crosstalk.py directly, or if we have packed it as an exe with cxfreeze
 # https://cx-freeze.readthedocs.io/en/latest/faq.html#using-data-files
 def get_file_path(filename):
     if getattr(sys, "frozen", False):
@@ -45,7 +48,7 @@ def get_file_path(filename):
     return os.path.join(datadir, filename)
 
 
-class ReticulumMeshChat:
+class Crosstalk:
 
     def __init__(self, identity: RNS.Identity, storage_dir, reticulum_config_dir):
 
@@ -112,6 +115,7 @@ class ReticulumMeshChat:
 
         # init reticulum
         self.reticulum = RNS.Reticulum(reticulum_config_dir)
+        self.ensure_default_public_interfaces()
         self.identity = identity
 
         # init lxmf router
@@ -160,6 +164,28 @@ class ReticulumMeshChat:
         thread = threading.Thread(target=asyncio.run, args=(self.announce_sync_propagation_nodes(),))
         thread.daemon = True
         thread.start()
+
+    # seeds disabled public interfaces that should be visible out of the box
+    def ensure_default_public_interfaces(self):
+
+        if self.config.default_rmap_world_interface_seeded.get():
+            return
+
+        if "interfaces" not in self.reticulum.config:
+            self.reticulum.config["interfaces"] = {}
+
+        interfaces = self.reticulum.config["interfaces"]
+
+        if DEFAULT_RMAP_WORLD_INTERFACE_NAME not in interfaces:
+            interfaces[DEFAULT_RMAP_WORLD_INTERFACE_NAME] = {
+                "type": "TCPClientInterface",
+                "interface_enabled": "false",
+                "target_host": "rmap.world",
+                "target_port": "4242",
+            }
+            self.reticulum.config.write()
+
+        self.config.default_rmap_world_interface_seeded.set(True)
 
     # gets app version from package.json
     def get_app_version(self) -> str:
@@ -765,11 +791,11 @@ class ReticulumMeshChat:
 
             if allow_overwriting_interface:
                 return web.json_response({
-                    "message": "Interface has been saved. Please restart MeshChat for these changes to take effect.",
+                    "message": "Interface has been saved.",
                 })
             else:
                 return web.json_response({
-                    "message": "Interface has been added. Please restart MeshChat for these changes to take effect.",
+                    "message": "Interface has been added.",
                 })
         
         # export interfaces
@@ -818,7 +844,7 @@ class ReticulumMeshChat:
                     text="\n".join(output),
                     content_type="text/plain",
                     headers={
-                        "Content-Disposition": "attachment; filename=meshchat_interfaces"
+                        "Content-Disposition": "attachment; filename=crosstalk_interfaces"
                     }
                 )
 
@@ -985,7 +1011,7 @@ class ReticulumMeshChat:
             self.reticulum.config.write()
 
             return web.json_response({
-                "message": "Transport has been enabled. MeshChat must be restarted for this change to take effect.",
+                "message": "Transport has been enabled.",
             })
 
         # disable transport mode
@@ -997,7 +1023,7 @@ class ReticulumMeshChat:
             self.reticulum.config.write()
 
             return web.json_response({
-                "message": "Transport has been disabled. MeshChat must be restarted for this change to take effect.",
+                "message": "Transport has been disabled.",
             })
 
         # get calls
@@ -3408,6 +3434,7 @@ class Config:
     allow_auto_resending_failed_messages_with_attachments = BoolConfig("allow_auto_resending_failed_messages_with_attachments", False)
     auto_send_failed_messages_to_propagation_node = BoolConfig("auto_send_failed_messages_to_propagation_node", False)
     show_suggested_community_interfaces = BoolConfig("show_suggested_community_interfaces", True)
+    default_rmap_world_interface_seeded = BoolConfig("default_rmap_world_interface_seeded", False)
     lxmf_delivery_transfer_limit_in_bytes = IntConfig("lxmf_delivery_transfer_limit_in_bytes", 1000 * 1000 * 10)  # 10MB
     lxmf_preferred_propagation_node_destination_hash = StringConfig("lxmf_preferred_propagation_node_destination_hash", None)
     lxmf_preferred_propagation_node_auto_sync_interval_seconds = IntConfig("lxmf_preferred_propagation_node_auto_sync_interval_seconds", 0)
@@ -3417,7 +3444,7 @@ class Config:
     lxmf_user_icon_foreground_colour = StringConfig("lxmf_user_icon_foreground_colour", None)
     lxmf_user_icon_background_colour = StringConfig("lxmf_user_icon_background_colour", None)
 
-# FIXME: we should probably set this as an instance variable of ReticulumMeshChat so it has a proper home, and pass it in to the constructor?
+# FIXME: we should probably set this as an instance variable of Crosstalk so it has a proper home, and pass it in to the constructor?
 nomadnet_cached_links = {}
 class NomadnetDownloader:
 
@@ -3595,7 +3622,7 @@ class NomadnetFileDownloader(NomadnetDownloader):
 def main():
 
     # parse command line args
-    parser = argparse.ArgumentParser(description="ReticulumMeshChat")
+    parser = argparse.ArgumentParser(description="Crosstalk")
     parser.add_argument("--host", nargs='?', default="127.0.0.1", type=str, help="The address the web server should listen on.")
     parser.add_argument("--port", nargs='?', default="8000", type=int, help="The port the web server should listen on.")
     parser.add_argument("--headless", action='store_true', help="Web browser will not automatically launch when this flag is passed.")
@@ -3666,8 +3693,8 @@ def main():
         print("Reticulum Identity <{}> has been loaded from file {}.".format(identity.hash.hex(), default_identity_file))
 
     # init app
-    reticulum_meshchat = ReticulumMeshChat(identity, args.storage_dir, args.reticulum_config_dir)
-    reticulum_meshchat.run(args.host, args.port, launch_browser=args.headless is False)
+    reticulum_crosstalk = Crosstalk(identity, args.storage_dir, args.reticulum_config_dir)
+    reticulum_crosstalk.run(args.host, args.port, launch_browser=args.headless is False)
 
 
 if __name__ == "__main__":

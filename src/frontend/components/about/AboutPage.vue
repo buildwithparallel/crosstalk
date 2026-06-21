@@ -12,12 +12,12 @@
                         <div class="mr-auto">
                             <div>Versions</div>
                             <div class="text-sm text-gray-700 dark:text-zinc-400">
-                                MeshChat v{{ appInfo.version }} • RNS v{{ appInfo.rns_version }} • LXMF v{{ appInfo.lxmf_version }} • Python v{{ appInfo.python_version }}
+                                Crosstalk v{{ appInfo.version }} • RNS v{{ appInfo.rns_version }} • LXMF v{{ appInfo.lxmf_version }} • Python v{{ appInfo.python_version }}
                             </div>
                         </div>
                         <div class="hidden sm:block mx-2 my-auto">
                             <a target="_blank" 
-                                href="https://github.com/liamcottle/reticulum-meshchat/releases" 
+                                href="https://github.com/buildwithparallel/crosstalk/releases" 
                                 type="button" 
                                 class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 dark:bg-zinc-700 px-2 py-1 text-sm font-semibold text-white shadow-sm hover:bg-gray-400 dark:hover:bg-zinc-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 dark:focus-visible:outline-zinc-600">
                                 Check for Updates
@@ -27,12 +27,14 @@
 
                     <!-- reticulum config path -->
                     <div class="flex p-1">
-                        <div class="mr-auto">
+                        <div class="mr-auto min-w-0">
                             <div>Reticulum Config Path</div>
                             <div class="text-sm text-gray-700 dark:text-zinc-400 break-all">{{ appInfo.reticulum_config_path }}</div>
                         </div>
-                        <div v-if="isElectron" class="mx-2 my-auto">
+                        <div class="mx-2 my-auto flex shrink-0 items-center gap-2">
+                            <CopyButton :value="appInfo.reticulum_config_path" label="Reticulum Config Path"/>
                             <button @click="showReticulumConfigFile" 
+                                v-if="isElectron"
                                 type="button" 
                                 class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 dark:bg-zinc-700 px-2 py-1 text-sm font-semibold text-white shadow-sm hover:bg-gray-400 dark:hover:bg-zinc-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 dark:focus-visible:outline-zinc-600">
                                 Show in Folder
@@ -42,12 +44,14 @@
 
                     <!-- database path -->
                     <div class="flex p-1">
-                        <div class="mr-auto">
+                        <div class="mr-auto min-w-0">
                             <div>Database Path</div>
                             <div class="text-sm text-gray-700 dark:text-zinc-400 break-all">{{ appInfo.database_path }}</div>
                         </div>
-                        <div v-if="isElectron" class="mx-2 my-auto">
+                        <div class="mx-2 my-auto flex shrink-0 items-center gap-2">
+                            <CopyButton :value="appInfo.database_path" label="Database Path"/>
                             <button @click="showDatabaseFile" 
+                                v-if="isElectron"
                                 type="button" 
                                 class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 dark:bg-zinc-700 px-2 py-1 text-sm font-semibold text-white shadow-sm hover:bg-gray-400 dark:hover:bg-zinc-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 dark:focus-visible:outline-zinc-600">
                                 Show in Folder
@@ -95,20 +99,32 @@
                 <div class="flex border-b border-gray-300 dark:border-zinc-700 text-gray-700 dark:text-zinc-200 p-2 font-semibold">My Addresses</div>
                 <div class="divide-y divide-gray-200 dark:divide-zinc-800 text-gray-900 dark:text-zinc-200">
                     <div class="p-1">
-                        <div>Identity Hash</div>
-                        <div class="text-sm text-gray-700 dark:text-zinc-400">{{ config.identity_hash }}</div>
+                        <div class="flex items-center gap-1">
+                            <div>Identity Hash</div>
+                            <CopyButton class="ml-auto" :value="config.identity_hash" label="Identity Hash"/>
+                        </div>
+                        <div class="text-sm text-gray-700 dark:text-zinc-400 break-all">{{ config.identity_hash }}</div>
                     </div>
                     <div class="p-1">
-                        <div>LXMF Address</div>
-                        <div class="text-sm text-gray-700 dark:text-zinc-400">{{ config.lxmf_address_hash }}</div>
+                        <div class="flex items-center gap-1">
+                            <div>LXMF Address</div>
+                            <CopyButton class="ml-auto" :value="config.lxmf_address_hash" label="LXMF Address"/>
+                        </div>
+                        <div class="text-sm text-gray-700 dark:text-zinc-400 break-all">{{ config.lxmf_address_hash }}</div>
                     </div>
                     <div class="p-1">
-                        <div>LXMF Propagation Node Address</div>
-                        <div class="text-sm text-gray-700 dark:text-zinc-400">{{ config.lxmf_local_propagation_node_address_hash }}</div>
+                        <div class="flex items-center gap-1">
+                            <div>LXMF Propagation Node Address</div>
+                            <CopyButton class="ml-auto" :value="config.lxmf_local_propagation_node_address_hash" label="LXMF Propagation Node Address"/>
+                        </div>
+                        <div class="text-sm text-gray-700 dark:text-zinc-400 break-all">{{ config.lxmf_local_propagation_node_address_hash }}</div>
                     </div>
                     <div class="p-1">
-                        <div>Audio Call Address</div>
-                        <div class="text-sm text-gray-700 dark:text-zinc-400">{{ config.audio_call_address_hash }}</div>
+                        <div class="flex items-center gap-1">
+                            <div>Audio Call Address</div>
+                            <CopyButton class="ml-auto" :value="config.audio_call_address_hash" label="Audio Call Address"/>
+                        </div>
+                        <div class="text-sm text-gray-700 dark:text-zinc-400 break-all">{{ config.audio_call_address_hash }}</div>
                     </div>
                 </div>
             </div>
@@ -120,8 +136,12 @@
 <script>
 import Utils from "../../js/Utils";
 import ElectronUtils from "../../js/ElectronUtils";
+import CopyButton from "../CopyButton.vue";
 export default {
     name: 'AboutPage',
+    components: {
+        CopyButton,
+    },
     data() {
         return {
             appInfo: null,

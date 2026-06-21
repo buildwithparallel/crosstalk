@@ -3,7 +3,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <title>Reticulum MeshChat</title>
+    <title>Crosstalk</title>
     <script src="./assets/js/tailwindcss/tailwind-v3.4.3-forms-v0.5.7.js"></script>
 </head>
 <body class="bg-gray-100 flex">
@@ -17,8 +17,8 @@
 
     <!-- about -->
     <div class="mx-auto text-center mb-2">
-        <div class="font-bold">Reticulum MeshChat</div>
-        <div class="text-sm"><span id="app-version"></span> Developed by Liam Cottle</div>
+        <div class="font-bold">Crosstalk</div>
+        <div class="text-sm"><span id="app-version"></span> Reticulum mesh messaging</div>
     </div>
 
     <!-- loading spinner -->
@@ -67,9 +67,11 @@
     }
 
     function onReady() {
-        // redirect to meshchat and bypass browser cache
+        // redirect to crosstalk and bypass browser cache
         var timestamp = (new Date()).getTime();
-        window.location.href = "http://localhost:9337/?nocache=" + timestamp;
+        const params = new URLSearchParams(window.location.search);
+        const returnRoute = params.get("returnRoute") || "";
+        window.location.href = "http://localhost:9337/?nocache=" + timestamp + returnRoute;
     }
 
 </script>
