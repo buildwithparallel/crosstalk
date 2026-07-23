@@ -18,7 +18,11 @@ from LXMF import LXMRouter
 from aiohttp import web, WSMessage, WSMsgType, WSCloseCode
 import asyncio
 import base64
-import webbrowser
+
+try:
+    import webbrowser
+except ImportError:
+    webbrowser = None
 
 from peewee import SqliteDatabase
 from serial.tools import list_ports
@@ -35,6 +39,49 @@ from src.backend.sideband_commands import SidebandCommands
 
 
 DEFAULT_RMAP_WORLD_INTERFACE_NAME = "RMAP World"
+PROCESS_INSTANCE_ID = os.urandom(8).hex()
+
+
+def restart_current_process():
+    """Replace the current process so persisted Reticulum config is reloaded."""
+    if getattr(sys, "frozen", False):
+        arguments = [sys.executable, *sys.argv[1:]]
+    else:
+        arguments = [sys.executable, *sys.argv]
+
+    print("Restarting Crosstalk backend to apply configuration changes...")
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os.execv(sys.executable, arguments)
+
+
+def is_interface_config_enabled(interface_config: dict) -> bool:
+    raw_value = interface_config.get("enabled", interface_config.get("interface_enabled"))
+    if raw_value is None:
+        return True
+    value = str(raw_value).lower()
+    return value in ("on", "yes", "true")
+
+
+def ensure_dedicated_reticulum_instance(reticulum_config_dir):
+    # Crosstalk must own its own Reticulum stack so interface config changes actually take effect.
+    # With share_instance enabled, it can attach to another app's stale shared instance instead.
+    if not reticulum_config_dir:
+        return
+
+    config_path = os.path.join(reticulum_config_dir, "config")
+    if not os.path.exists(config_path):
+        return
+
+    config = RNS.vendor.configobj.ConfigObj(config_path)
+    if "reticulum" not in config:
+        config["reticulum"] = {}
+
+    share_instance = str(config["reticulum"].get("share_instance", "Yes")).lower()
+    if share_instance in ("yes", "true", "on", "1"):
+        config["reticulum"]["share_instance"] = "No"
+        config["reticulum"]["instance_name"] = "crosstalk"
+        config.write()
 
 
 # NOTE: this is required to be able to pack our app with cxfreeze as an exe, otherwise it can't access bundled assets
@@ -114,7 +161,12 @@ class Crosstalk:
          .orwhere(database.LxmfMessage.state == "sending").execute())
 
         # init reticulum
+        ensure_dedicated_reticulum_instance(reticulum_config_dir)
         self.reticulum = RNS.Reticulum(reticulum_config_dir)
+        # Always collect signed interface advertisements so Crosstalk can show
+        # nearby Reticulum infrastructure. Reticulum guards against registering
+        # the discovery handler more than once when config already enables it.
+        RNS.Transport.discover_interfaces()
         self.ensure_default_public_interfaces()
         self.identity = identity
 
@@ -333,6 +385,17 @@ class Crosstalk:
         async def index(request):
             return web.json_response({
                 "status": "ok",
+                "instance_id": PROCESS_INSTANCE_ID,
+            })
+
+        # restart the standalone Python backend after returning a response.
+        # Electron uses its own child-process restart mechanism instead.
+        @routes.post("/api/v1/restart-backend")
+        async def index(request):
+            asyncio.get_running_loop().call_later(0.25, restart_current_process)
+            return web.json_response({
+                "message": "Backend restart scheduled",
+                "instance_id": PROCESS_INSTANCE_ID,
             })
 
         # fetch com ports
@@ -1760,10 +1823,16 @@ class Crosstalk:
                 interface_stats["probe_responder"] = interface_stats["probe_responder"].hex()
             
             # ensure ifac_signature is hex as json_response can't serialize bytes
+            configured_interfaces = self.reticulum.config.get("interfaces", {})
             for interface in interface_stats["interfaces"]:
 
                 if "short_name" in interface:
                     interface["interface_name"] = interface["short_name"]
+
+                interface_name = interface.get("short_name")
+                if interface_name in configured_interfaces and not is_interface_config_enabled(configured_interfaces[interface_name]):
+                    interface["status"] = False
+                    interface["bitrate"] = 0
 
                 if "parent_interface_name" in interface and interface["parent_interface_name"] is not None:
                     interface["parent_interface_hash"] = interface["parent_interface_hash"].hex()
@@ -1776,6 +1845,66 @@ class Crosstalk:
 
             return web.json_response({
                 "interface_stats": interface_stats,
+            })
+
+        # get Reticulum infrastructure discovered from signed interface advertisements
+        @routes.get("/api/v1/discovered-interfaces")
+        async def index(request):
+
+            transport_only = request.query.get("transport_only", "false").lower() in ("1", "true", "yes")
+            discovered_interfaces = []
+            lxmf_contact_identity_hashes = {
+                announce.identity_hash.lower()
+                for announce in database.Announce.select(database.Announce.identity_hash)
+                .where(database.Announce.aspect == "lxmf.delivery")
+            }
+
+            # Return an explicit allow-list. Discovery records can also contain
+            # connection credentials and proof bytes that must not reach the UI.
+            public_fields = (
+                "name", "type", "status", "status_code", "transport",
+                "transport_id", "network_id", "discovery_hash", "hops",
+                "latitude", "longitude", "height", "frequency", "bandwidth",
+                "sf", "cr", "modulation", "reachable_on", "port",
+                "ifac_netname", "value", "discovered", "last_heard", "heard_count",
+            )
+
+            for discovered in RNS.Reticulum.discovered_interfaces():
+                network_id = discovered.get("network_id")
+                if isinstance(network_id, bytes):
+                    network_id = network_id.hex()
+                elif network_id is not None:
+                    network_id = str(network_id).lower()
+
+                # Infrastructure is for appliances that do not already appear
+                # as normal LXMF messaging contacts.
+                if network_id in lxmf_contact_identity_hashes:
+                    continue
+
+                if transport_only and not discovered.get("transport", False):
+                    continue
+
+                public_interface = {}
+                for field in public_fields:
+                    if field not in discovered:
+                        continue
+                    value = discovered[field]
+                    public_interface[field] = value.hex() if isinstance(value, bytes) else value
+
+                # Reticulum persists a stable discovery record hash, while the
+                # path table uses the rnstransport.discovery.interface destination.
+                # Derive that destination so the frontend can join both datasets.
+                network_id = public_interface.get("network_id")
+                if network_id:
+                    aspect = "rnstransport.discovery.interface".encode("utf-8")
+                    name_hash = RNS.Identity.full_hash(aspect)[:RNS.Identity.NAME_HASH_LENGTH//8]
+                    destination_material = name_hash + bytes.fromhex(network_id)
+                    public_interface["destination_hash"] = RNS.Identity.full_hash(destination_material)[:RNS.Reticulum.TRUNCATED_HASHLENGTH//8].hex()
+
+                discovered_interfaces.append(public_interface)
+
+            return web.json_response({
+                "discovered_interfaces": discovered_interfaces,
             })
 
         # get path table
@@ -2074,7 +2203,7 @@ class Crosstalk:
             AsyncUtils.set_main_loop(asyncio.get_event_loop())
 
             # auto launch web browser
-            if launch_browser:
+            if launch_browser and webbrowser is not None:
                 try:
                     webbrowser.open("http://127.0.0.1:{}".format(port))
                 except:

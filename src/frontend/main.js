@@ -32,6 +32,11 @@ const router = createRouter({
             component: defineAsyncComponent(() => import("./components/interfaces/InterfacesPage.vue")),
         },
         {
+            name: "infrastructure",
+            path: '/infrastructure',
+            component: defineAsyncComponent(() => import("./components/infrastructure/InfrastructurePage.vue")),
+        },
+        {
             name: "interfaces.add",
             path: '/interfaces/add',
             component: defineAsyncComponent(() => import("./components/interfaces/AddInterfacePage.vue")),

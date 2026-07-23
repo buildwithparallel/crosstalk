@@ -201,7 +201,7 @@
         <div class="flex bg-gray-50 p-1 text-sm text-gray-500 space-x-1 border-t rounded-b dark:bg-zinc-800 dark:text-white dark:border-zinc-700">
 
             <!-- status -->
-            <div v-if="iface._stats?.status === true" class="text-sm text-green-500">Connected</div>
+            <div v-if="isInterfaceEnabled(iface) && iface._stats?.status === true" class="text-sm text-green-500">Connected</div>
             <div v-else class="text-sm text-red-500">Disconnected</div>
 
             <!-- stats -->

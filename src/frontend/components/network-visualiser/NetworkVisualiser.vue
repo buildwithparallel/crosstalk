@@ -56,6 +56,7 @@ export default {
             reloadInterval: null,
             isShowingControls: true,
             interfaces: [],
+            discoveredInterfaces: [],
             pathTable: [],
             announces: {},
             network: null,
@@ -92,6 +93,14 @@ export default {
             try {
                 const response = await axios.get(`/api/v1/path-table`);
                 this.pathTable = response.data.path_table;
+            } catch(e) {
+                console.log(e);
+            }
+        },
+        async getDiscoveredInterfaces() {
+            try {
+                const response = await axios.get(`/api/v1/discovered-interfaces`);
+                this.discoveredInterfaces = response.data.discovered_interfaces ?? [];
             } catch(e) {
                 console.log(e);
             }
@@ -233,6 +242,10 @@ export default {
 
                 }
 
+                if(node.options.group === "infrastructure"){
+                    this.$router.push({ name: "infrastructure" });
+                }
+
             });
 
             // update network
@@ -274,6 +287,7 @@ export default {
 
             await this.getConfig();
             await this.getInterfaceStats();
+            await this.getDiscoveredInterfaces();
             await this.getPathTable();
             await this.getAnnounces();
 
@@ -354,6 +368,62 @@ export default {
                     });
                 }
 
+            }
+
+            // add signed Reticulum infrastructure advertisements with friendly names
+            for(const infrastructure of this.discoveredInterfaces){
+                const path = this.pathTable.find((entry) => entry.hash === infrastructure.destination_hash);
+                if(!infrastructure.destination_hash){
+                    continue;
+                }
+                const hops = path?.hops ?? infrastructure.hops;
+                const pathDescription = path
+                    ? `${path.hops} ${path.hops === 1 ? 'Hop' : 'Hops'} via ${path.interface}`
+                    : `${hops ?? 'Unknown'} ${hops === 1 ? 'Hop' : 'Hops'} when advertised; current route not loaded`;
+
+                const radio = [
+                    infrastructure.frequency ? `Frequency: ${this.formatFrequency(infrastructure.frequency)}` : null,
+                    infrastructure.bandwidth ? `Bandwidth: ${this.formatFrequency(infrastructure.bandwidth)}` : null,
+                    infrastructure.sf ? `Spreading Factor: SF${infrastructure.sf}` : null,
+                    infrastructure.cr ? `Coding Rate: 4/${infrastructure.cr}` : null,
+                ].filter((line) => line != null);
+
+                nodes.push({
+                    id: infrastructure.destination_hash,
+                    group: "infrastructure",
+                    label: infrastructure.name ?? "Discovered Infrastructure",
+                    title: [
+                        `Name: ${infrastructure.name ?? 'Unknown'}`,
+                        `Type: ${infrastructure.type ?? 'Unknown'}`,
+                        `State: ${infrastructure.status ?? 'Unknown'}`,
+                        `Transport: ${infrastructure.transport ? 'Enabled' : 'Disabled'}`,
+                        `Transport Identity: ${infrastructure.transport_id ?? 'Unknown'}`,
+                        `Path: ${pathDescription}`,
+                        ...radio,
+                    ].join("\n"),
+                    size: 24,
+                    shape: "dot",
+                    color: {
+                        background: path && infrastructure.status === "available" ? "#2563eb" : "#52525b",
+                        border: infrastructure.transport ? "#93c5fd" : "#a1a1aa",
+                        highlight: { background: "#3b82f6", border: "#dbeafe" },
+                    },
+                    borderWidth: 2,
+                    font: this.graphLabelFont(16),
+                    _infrastructure: infrastructure,
+                });
+
+                edges.push({
+                    id: `${path?.interface ?? 'me'}~${infrastructure.destination_hash}`,
+                    from: path?.interface ?? "me",
+                    to: infrastructure.destination_hash,
+                    dashes: !path,
+                    color: {
+                        color: "rgba(96, 165, 250, 0.72)",
+                        highlight: "#93c5fd",
+                        hover: "#93c5fd",
+                    },
+                });
             }
 
             // add paths for announces
@@ -502,6 +572,9 @@ export default {
         },
         formatBitsPerSecond: function(bits) {
             return Utils.formatBitsPerSecond(bits);
+        },
+        formatFrequency: function(hz) {
+            return Utils.formatFrequency(hz);
         },
     },
     computed: {

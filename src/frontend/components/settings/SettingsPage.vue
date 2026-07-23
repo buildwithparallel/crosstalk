@@ -271,24 +271,18 @@ export default {
         async onIsTransportEnabledChange() {
             if(this.config.is_transport_enabled){
                 try {
-                    const response = await window.axios.post("/api/v1/reticulum/enable-transport");
-                    if(ElectronUtils.isElectron()){
-                        await ElectronUtils.restartBackend("#/settings");
-                        return;
-                    }
-                    DialogUtils.alert(response.data.message);
+                    await window.axios.post("/api/v1/reticulum/enable-transport");
+                    await ElectronUtils.restartBackend("#/settings");
+                    return;
                 } catch(e) {
                     DialogUtils.alert("Failed to enable transport mode!");
                     console.log(e);
                 }
             } else {
                 try {
-                    const response = await window.axios.post("/api/v1/reticulum/disable-transport");
-                    if(ElectronUtils.isElectron()){
-                        await ElectronUtils.restartBackend("#/settings");
-                        return;
-                    }
-                    DialogUtils.alert(response.data.message);
+                    await window.axios.post("/api/v1/reticulum/disable-transport");
+                    await ElectronUtils.restartBackend("#/settings");
+                    return;
                 } catch(e) {
                     DialogUtils.alert("Failed to disable transport mode!");
                     console.log(e);

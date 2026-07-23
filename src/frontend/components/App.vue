@@ -87,6 +87,18 @@
                                 </SidebarLink>
                             </li>
 
+                            <!-- discovered infrastructure -->
+                            <li>
+                                <SidebarLink :to="{ name: 'infrastructure' }">
+                                    <template v-slot:icon>
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 21 12 3m0 0 3.75 18M12 3v18M5.25 9.75h13.5M3.75 15.75h16.5" />
+                                        </svg>
+                                    </template>
+                                    <template v-slot:text>Infrastructure</template>
+                                </SidebarLink>
+                            </li>
+
                             <!-- network visualiser -->
                             <li>
                                 <SidebarLink :to="{ name: 'network-visualiser' }">

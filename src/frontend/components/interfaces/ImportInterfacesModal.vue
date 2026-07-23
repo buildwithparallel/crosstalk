@@ -224,13 +224,8 @@ export default {
                 // dismiss modal
                 this.dismiss();
 
-                if(ElectronUtils.isElectron()){
-                    await ElectronUtils.restartBackend("#/interfaces");
-                    return;
-                }
-
-                // tell user interfaces were imported
-                DialogUtils.alert("Interfaces imported successfully.");
+                await ElectronUtils.restartBackend("#/interfaces");
+                return;
 
             } catch(e) {
                 const message = e.response?.data?.message || "Failed to import interfaces";

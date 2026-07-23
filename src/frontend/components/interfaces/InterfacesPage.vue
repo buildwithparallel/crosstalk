@@ -271,15 +271,10 @@ export default {
             this.loadInterfaces();
         },
         async applyInterfaceChanges() {
-            if(this.isElectron){
-                await ElectronUtils.restartBackend("#/interfaces");
-            }
+            await ElectronUtils.restartBackend("#/interfaces");
         },
     },
     computed: {
-        isElectron() {
-            return ElectronUtils.isElectron();
-        },
         interfacesWithStats() {
             const results = [];
             for(const [interfaceName, iface] of Object.entries(this.interfaces)){

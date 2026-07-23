@@ -14,6 +14,35 @@ class ElectronUtils {
         if(window.electron){
             return await window.electron.restartBackend(returnRoute);
         }
+
+        const restartResponse = await window.axios.post('/api/v1/restart-backend');
+        const previousInstanceId = restartResponse.data.instance_id;
+        const timeoutAt = Date.now() + 30000;
+
+        while(Date.now() < timeoutAt){
+            try {
+                const statusResponse = await window.axios.get('/api/v1/status', {
+                    params: {
+                        restart_check: Date.now(),
+                    },
+                    timeout: 1000,
+                });
+
+                if(statusResponse.data.instance_id !== previousInstanceId){
+                    if(returnRoute){
+                        window.location.hash = returnRoute;
+                    }
+                    window.location.reload();
+                    return;
+                }
+            } catch(e) {
+                // The backend is expected to be briefly unavailable while restarting.
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 250));
+        }
+
+        throw new Error("Crosstalk backend did not restart within 30 seconds");
     }
 
     static async showPathInFolder(path) {

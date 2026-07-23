@@ -816,8 +816,7 @@
             <!-- add/save interface button -->
             <div class="p-2 bg-white rounded shadow divide-y divide-gray-200 dark:bg-zinc-900">
                 <button @click="addInterface" type="button" class="bg-green-500 hover:bg-green-400 focus-visible:outline-green-500 my-auto inline-flex items-center gap-x-1 rounded-md p-2 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:text-white dark:focus:ring-blue-600 dark:focus:border-blue-600">
-                    <span v-if="isEditingInterface">Save Interface</span>
-                    <span v-else>Add Interface</span>
+                    <span>Save Interface</span>
                 </button>
             </div>
 
@@ -1256,20 +1255,8 @@ export default {
 
                 });
 
-                if(ElectronUtils.isElectron()){
-                    await ElectronUtils.restartBackend("#/interfaces");
-                    return;
-                }
-
-                // show success message
-                if(response.data.message){
-                    DialogUtils.alert(response.data.message);
-                }
-
-                // go to interfaces page
-                this.$router.push({
-                    name: "interfaces",
-                });
+                await ElectronUtils.restartBackend("#/interfaces");
+                return;
 
             } catch (e) {
                 const message = e.response?.data?.message ?? "failed to add interface";
