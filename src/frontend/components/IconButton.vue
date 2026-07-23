@@ -1,5 +1,5 @@
 <template>
-    <button type="button" class="text-gray-700 bg-gray-100 dark:bg-zinc-600 dark:text-white dark:hover:bg-zinc-700 dark:focus-visible:outline-zinc-500 hover:bg-gray-200 p-2 rounded-full">
+    <button type="button" class="rounded-full bg-[rgba(255,255,255,0.08)] p-2 text-[var(--ct-muted)] transition hover:bg-[rgba(255,255,255,0.14)] hover:text-[var(--ct-text)]">
         <slot/>
     </button>
 </template>

@@ -1,44 +1,45 @@
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-full sm:min-w-[500px] dark:bg-zinc-950">
-        <div class="flex flex-col h-full space-y-2 p-2 overflow-y-auto">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-full sm:min-w-[500px]">
+        <div class="flex flex-col h-full space-y-3 p-3 overflow-y-auto">
 
-            <!-- appearance -->
-            <div class="bg-white dark:bg-zinc-800 rounded shadow">
-                <div class="flex border-b border-gray-300 dark:border-zinc-700 text-gray-700 dark:text-gray-200 p-2 font-semibold">Ping</div>
-                <div class="dark:divide-zinc-700 text-gray-900 dark:text-gray-100 p-2">
-                    Only lxmf.delivery destinations can be pinged.
+            <!-- page header -->
+            <div class="flex items-center gap-2">
+                <RouterLink :to="{ name: 'tools' }" class="flex rounded-md p-1.5 text-[var(--ct-muted)] transition hover:bg-[rgba(255,255,255,0.08)] hover:text-[var(--ct-text)]" title="Back to Tools">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
+                        <path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clip-rule="evenodd" />
+                    </svg>
+                </RouterLink>
+                <div>
+                    <div class="text-lg font-bold text-[var(--ct-text)]">Ping</div>
+                    <div class="text-sm text-[var(--ct-dim)]">Check if a peer is reachable. Only LXMF delivery destinations can be pinged.</div>
                 </div>
             </div>
 
             <!-- inputs -->
-            <div class="bg-white dark:bg-zinc-800 rounded shadow">
-                <div class="divide-y divide-gray-300 dark:divide-zinc-700 text-gray-900 dark:text-gray-100">
+            <div class="ct-card">
+                <div class="divide-y divide-[var(--ct-border)]">
 
-                    <div class="p-2">
-                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Destination Hash</div>
-                        <div class="flex">
-                            <input v-model="destinationHash" type="text" placeholder="e.g: 7b746057a7294469799cd8d7d429676a" class="bg-gray-50 dark:bg-zinc-700 border border-gray-300 dark:border-zinc-600 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-600 dark:focus:border-blue-600 block w-full p-2.5">
-                        </div>
+                    <div class="p-2.5">
+                        <div class="mb-1 text-sm font-medium text-[var(--ct-text)]">Destination Hash</div>
+                        <input v-model="destinationHash" type="text" placeholder="e.g: 7b746057a7294469799cd8d7d429676a" class="ct-hash block w-full rounded-lg border p-2.5">
                     </div>
 
-                    <div class="p-2">
-                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Ping Timeout (seconds)</div>
-                        <div class="flex">
-                            <input v-model="timeout" type="number" placeholder="Timeout" class="bg-gray-50 dark:bg-zinc-700 border border-gray-300 dark:border-zinc-600 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-600 dark:focus:border-blue-600 block w-full p-2.5">
-                        </div>
+                    <div class="p-2.5">
+                        <div class="mb-1 text-sm font-medium text-[var(--ct-text)]">Ping Timeout (seconds)</div>
+                        <input v-model="timeout" type="number" placeholder="Timeout" class="block w-full rounded-lg border p-2.5 text-sm">
                     </div>
 
-                    <div class="p-2 space-x-1">
-                        <button v-if="!isRunning" @click="start" type="button" class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 px-2 py-1 text-sm font-semibold text-white shadow-sm hover:bg-gray-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 dark:bg-zinc-700 dark:text-white dark:hover:bg-zinc-600 dark:focus-visible:outline-zinc-500">
+                    <div class="flex flex-wrap gap-2 p-2.5">
+                        <button v-if="!isRunning" @click="start" type="button" class="ct-brand-button inline-flex items-center gap-x-1 rounded-lg px-3 py-1.5 text-sm font-semibold">
                             Start
                         </button>
-                        <button v-if="isRunning" @click="stop" type="button" class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 px-2 py-1 text-sm font-semibold text-white shadow-sm hover:bg-gray-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 dark:bg-zinc-700 dark:text-white dark:hover:bg-zinc-600 dark:focus-visible:outline-zinc-500">
+                        <button v-if="isRunning" @click="stop" type="button" class="ct-secondary-button inline-flex items-center gap-x-1 rounded-lg px-3 py-1.5 text-sm font-semibold">
                             Stop
                         </button>
-                        <button @click="clear" type="button" class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 px-2 py-1 text-sm font-semibold text-white shadow-sm hover:bg-gray-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 dark:bg-zinc-700 dark:text-white dark:hover:bg-zinc-600 dark:focus-visible:outline-zinc-500">
+                        <button @click="clear" type="button" class="ct-secondary-button inline-flex items-center gap-x-1 rounded-lg px-3 py-1.5 text-sm font-semibold">
                             Clear Results
                         </button>
-                        <button @click="dropPath" type="button" class="my-auto inline-flex items-center gap-x-1 rounded-md bg-red-500 px-2 py-1 text-sm font-semibold text-white shadow-sm hover:bg-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500">
+                        <button @click="dropPath" type="button" class="ct-danger-button ml-auto inline-flex items-center gap-x-1 rounded-lg px-3 py-1.5 text-sm font-semibold">
                             Drop Path
                         </button>
                     </div>
@@ -47,9 +48,10 @@
             </div>
 
             <!-- results -->
-            <div class="flex flex-col h-full bg-white dark:bg-zinc-800 rounded shadow overflow-hidden min-h-52">
-                <div class="flex border-b border-gray-300 dark:border-zinc-700 text-gray-700 dark:text-gray-200 p-2 font-semibold">Results</div>
-                <div id="results" class="flex flex-col h-full bg-black text-white dark:bg-zinc-800 dark:text-gray-200 p-2 overflow-y-auto overflow-x-auto font-mono whitespace-nowrap">
+            <div class="ct-card flex flex-col h-full overflow-hidden min-h-52">
+                <div class="flex border-b border-[var(--ct-border)] p-2.5 font-semibold text-[var(--ct-text)]">Results</div>
+                <div id="results" class="flex h-full flex-col overflow-y-auto overflow-x-auto whitespace-nowrap bg-[rgba(0,0,0,0.45)] p-2.5 font-mono text-sm text-[var(--ct-muted)]">
+                    <div v-if="pingResults.length === 0" class="text-[var(--ct-dim)]">Ping results will appear here.</div>
                     <div v-for="pingResult of pingResults" class="w-fit">{{ pingResult }}</div>
                 </div>
             </div>
@@ -87,13 +89,13 @@ export default {
 
             // simple check to ensure destination hash is valid
             if(this.destinationHash == null || this.destinationHash.length !== 32){
-                DialogUtils.alert("Invalid Destination Hash!");
+                DialogUtils.toast("Enter a valid 32 character destination hash", "error");
                 return;
             }
 
             // simple check to ensure destination hash is valid
             if(this.timeout == null || this.timeout < 0){
-                DialogUtils.alert("Timeout must be a number!");
+                DialogUtils.toast("Timeout must be a positive number", "error");
                 return;
             }
 
@@ -188,17 +190,17 @@ export default {
 
             // simple check to ensure destination hash is valid
             if(this.destinationHash == null || this.destinationHash.length !== 32){
-                DialogUtils.alert("Invalid Destination Hash!");
+                DialogUtils.toast("Enter a valid 32 character destination hash", "error");
                 return;
             }
 
             try {
                 const response = await window.axios.post(`/api/v1/destination/${this.destinationHash}/drop-path`);
-                DialogUtils.alert(response.data.message);
+                DialogUtils.toast(response.data.message, "success");
             } catch(e) {
                 console.log(e);
                 const message = e.response?.data?.message ?? `Failed to drop path: ${e}`;
-                DialogUtils.alert(message);
+                DialogUtils.toast(message, "error");
             }
 
         },

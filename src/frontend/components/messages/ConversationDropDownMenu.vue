@@ -73,7 +73,7 @@ export default {
         async onDeleteMessageHistory() {
 
             // ask user to confirm deleting conversation history
-            if(!await DialogUtils.confirm("Are you sure you want to delete all messages in this conversation? This can not be undone!")){
+            if(!await DialogUtils.confirm("Are you sure you want to delete all messages in this conversation? This can not be undone!", { title: "Delete Conversation", danger: true, confirmLabel: "Delete All" })){
                 return;
             }
 

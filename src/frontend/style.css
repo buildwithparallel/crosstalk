@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---------------------------------- */
+/* Brand fonts                         */
+/* ---------------------------------- */
+
 @font-face {
     font-family: "CrosstalkRoboto";
     src: url("/assets/fonts/brand/Roboto-Regular.ttf") format("truetype");
@@ -34,21 +38,54 @@
     font-display: swap;
 }
 
+/* ---------------------------------- */
+/* Parallel design tokens (dark-only)  */
+/* ---------------------------------- */
+
 :root {
+    /* surfaces: page -> panel -> raised -> overlay */
     --ct-bg: #090909;
     --ct-bg-2: #0d0d12;
+    --ct-surface: #111118;
+    --ct-surface-2: #16161f;
+    --ct-raised: #1b1c28;
+    --ct-overlay: #14141d;
+
+    /* legacy aliases kept for existing components */
     --ct-panel: rgba(17, 17, 24, 0.94);
     --ct-panel-2: rgba(24, 24, 34, 0.92);
-    --ct-border: #25263a;
+
+    /* borders */
+    --ct-border: #23243a;
     --ct-border-strong: #363856;
+    --ct-border-focus: #6ea8ff;
+
+    /* text hierarchy */
     --ct-text: #f7f8ff;
-    --ct-muted: #d8daec;
-    --ct-dim: #a5a9bd;
+    --ct-muted: #c6c9de;
+    --ct-dim: #8b8fa8;
+
+    /* brand + semantic */
     --ct-blue: #0061fd;
-    --ct-blue-soft: rgba(0, 97, 253, 0.18);
+    --ct-blue-hover: #1f76ff;
+    --ct-blue-soft: rgba(0, 97, 253, 0.16);
+    --ct-blue-glow: rgba(0, 97, 253, 0.35);
     --ct-amber: #ff9900;
+    --ct-amber-soft: rgba(255, 153, 0, 0.14);
     --ct-red: #ff3b57;
+    --ct-red-soft: rgba(255, 59, 87, 0.14);
     --ct-green: #2ee781;
+    --ct-green-soft: rgba(46, 231, 129, 0.12);
+
+    /* radii */
+    --ct-radius-sm: 8px;
+    --ct-radius: 12px;
+    --ct-radius-lg: 16px;
+
+    /* shadows */
+    --ct-shadow-panel: 0 18px 70px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    --ct-shadow-overlay: 0 24px 90px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    --ct-focus-ring: 0 0 0 3px rgba(0, 97, 253, 0.28);
 }
 
 html,
@@ -62,8 +99,8 @@ body,
 
 body {
     background:
-        radial-gradient(ellipse at 50% 28%, rgba(0, 97, 253, 0.16), transparent 36%),
-        radial-gradient(ellipse at 80% 78%, rgba(255, 153, 0, 0.08), transparent 30%),
+        radial-gradient(ellipse at 50% 28%, rgba(0, 97, 253, 0.14), transparent 36%),
+        radial-gradient(ellipse at 80% 78%, rgba(255, 153, 0, 0.06), transparent 30%),
         #090909;
 }
 
@@ -78,7 +115,7 @@ html {
 }
 
 * {
-    scrollbar-color: #2a2a40 #090909;
+    scrollbar-color: #2a2a40 transparent;
 }
 
 ::-webkit-scrollbar {
@@ -87,13 +124,17 @@ html {
 }
 
 ::-webkit-scrollbar-track {
-    background: #090909;
+    background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
     background: #2a2a40;
     border: 2px solid #090909;
     border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #363856;
 }
 
 button,
@@ -115,6 +156,7 @@ textarea {
     background-color: rgba(15, 18, 29, 0.94);
     border-color: rgba(130, 143, 180, 0.34);
     color: var(--ct-text);
+    border-radius: var(--ct-radius-sm);
 }
 
 .dark input::placeholder,
@@ -126,8 +168,8 @@ textarea {
 .dark input:focus,
 .dark select:focus,
 .dark textarea:focus {
-    border-color: #6ea8ff;
-    box-shadow: 0 0 0 3px rgba(0, 97, 253, 0.22);
+    border-color: var(--ct-border-focus);
+    box-shadow: var(--ct-focus-ring);
     outline: none;
 }
 
@@ -140,27 +182,35 @@ textarea {
     color: #7db0ff;
 }
 
+/* ---------------------------------- */
+/* Shell + texture utilities           */
+/* ---------------------------------- */
+
 .ct-shell {
     background:
-        radial-gradient(ellipse at 50% 0%, rgba(0, 97, 253, 0.18), transparent 42%),
-        radial-gradient(ellipse at 90% 100%, rgba(255, 153, 0, 0.07), transparent 34%),
+        radial-gradient(ellipse at 50% 0%, rgba(0, 97, 253, 0.15), transparent 42%),
+        radial-gradient(ellipse at 90% 100%, rgba(255, 153, 0, 0.05), transparent 34%),
         #090909;
 }
 
 .ct-dot-grid {
-    background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.055) 1px, transparent 0);
+    background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
     background-size: 34px 34px;
 }
 
 .ct-vignette {
     background:
-        radial-gradient(ellipse at center, rgba(9,9,9,0) 34%, rgba(9,9,9,0.42) 74%, rgba(0,0,0,0.86) 100%);
+        radial-gradient(ellipse at center, rgba(9, 9, 9, 0) 34%, rgba(9, 9, 9, 0.42) 74%, rgba(0, 0, 0, 0.86) 100%);
 }
+
+/* ---------------------------------- */
+/* Surfaces                            */
+/* ---------------------------------- */
 
 .ct-panel {
     background: linear-gradient(180deg, rgba(20, 20, 30, 0.96), rgba(13, 13, 18, 0.94));
     border: 1px solid var(--ct-border);
-    box-shadow: 0 18px 70px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255,255,255,0.04);
+    box-shadow: var(--ct-shadow-panel);
 }
 
 .ct-panel-flat {
@@ -168,50 +218,171 @@ textarea {
     border: 1px solid var(--ct-border);
 }
 
+.ct-elevated-surface {
+    background: linear-gradient(180deg, rgba(24, 27, 40, 0.96), rgba(12, 13, 20, 0.96));
+    border: 1px solid var(--ct-border);
+    box-shadow: var(--ct-shadow-panel);
+}
+
+.ct-card {
+    background: linear-gradient(180deg, rgba(22, 22, 32, 0.94), rgba(14, 14, 20, 0.94));
+    border: 1px solid var(--ct-border);
+    border-radius: var(--ct-radius);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    transition: border-color 140ms ease, background 140ms ease;
+}
+
+.ct-card-hover:hover {
+    border-color: var(--ct-border-strong);
+    background: linear-gradient(180deg, rgba(27, 28, 40, 0.96), rgba(16, 16, 24, 0.96));
+}
+
+/* ---------------------------------- */
+/* Typography helpers                  */
+/* ---------------------------------- */
+
 .ct-mono {
     font-family: "CrosstalkCode", "Roboto Mono", ui-monospace, monospace;
     letter-spacing: 0.08em;
 }
 
-.ct-glow-blue {
-    box-shadow: 0 0 0 1px rgba(0, 97, 253, 0.34), 0 0 38px rgba(0, 97, 253, 0.16);
+.ct-hash {
+    font-family: "Roboto Mono", ui-monospace, monospace;
+    letter-spacing: 0.02em;
+    font-size: 0.78rem;
+    color: var(--ct-dim);
 }
+
+.ct-section-label {
+    font-family: "CrosstalkCode", ui-monospace, monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ct-dim);
+}
+
+/* ---------------------------------- */
+/* Buttons                             */
+/* ---------------------------------- */
 
 .ct-brand-button {
     background: var(--ct-blue);
     color: #ffffff;
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 8px 26px rgba(0, 97, 253, 0.22);
+    transition: background 130ms ease, transform 80ms ease;
 }
 
 .ct-brand-button:hover {
-    background: #1f76ff;
+    background: var(--ct-blue-hover);
+}
+
+.ct-brand-button:active {
+    transform: translateY(1px);
+}
+
+.ct-brand-button:disabled {
+    opacity: 0.5;
+    pointer-events: none;
 }
 
 .ct-secondary-button {
-    background: rgba(255,255,255,0.08);
+    background: rgba(255, 255, 255, 0.07);
     color: var(--ct-text);
     border: 1px solid var(--ct-border-strong);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    transition: background 130ms ease;
 }
 
 .ct-secondary-button:hover {
-    background: rgba(255,255,255,0.13);
+    background: rgba(255, 255, 255, 0.12);
 }
 
-.ct-elevated-surface {
-    background:
-        linear-gradient(180deg, rgba(24, 27, 40, 0.96), rgba(12, 13, 20, 0.96));
-    border: 1px solid var(--ct-border);
-    box-shadow: 0 18px 70px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.04);
+.ct-danger-button {
+    background: var(--ct-red-soft);
+    color: #ff8298;
+    border: 1px solid rgba(255, 59, 87, 0.4);
+    transition: background 130ms ease;
 }
+
+.ct-danger-button:hover {
+    background: rgba(255, 59, 87, 0.24);
+}
+
+.ct-ghost-button {
+    background: transparent;
+    color: var(--ct-muted);
+    border: 1px solid transparent;
+    transition: background 130ms ease, color 130ms ease;
+}
+
+.ct-ghost-button:hover {
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--ct-text);
+}
+
+/* ---------------------------------- */
+/* Glows + status                      */
+/* ---------------------------------- */
+
+.ct-glow-blue {
+    box-shadow: 0 0 0 1px rgba(0, 97, 253, 0.34), 0 0 38px rgba(0, 97, 253, 0.16);
+}
+
+.ct-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    flex-shrink: 0;
+}
+
+.ct-status-dot.online {
+    background: var(--ct-green);
+    box-shadow: 0 0 8px rgba(46, 231, 129, 0.65);
+}
+
+.ct-status-dot.offline {
+    background: #4a4c62;
+}
+
+.ct-status-dot.error {
+    background: var(--ct-red);
+    box-shadow: 0 0 8px rgba(255, 59, 87, 0.55);
+}
+
+/* ---------------------------------- */
+/* Overlay animations                  */
+/* ---------------------------------- */
+
+@keyframes ct-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes ct-pop-in {
+    from { opacity: 0; transform: scale(0.96) translateY(6px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes ct-toast-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.ct-anim-fade-in { animation: ct-fade-in 140ms ease-out; }
+.ct-anim-pop-in { animation: ct-pop-in 160ms cubic-bezier(0.2, 0.9, 0.3, 1.2); }
+.ct-anim-toast-in { animation: ct-toast-in 180ms cubic-bezier(0.2, 0.9, 0.3, 1.1); }
+
+/* ---------------------------------- */
+/* vis-network tooltip                 */
+/* ---------------------------------- */
 
 .vis-tooltip {
     color: var(--ct-text) !important;
     background: rgba(17, 17, 24, 0.94) !important;
     border: 1px solid var(--ct-border-strong) !important;
     border-radius: 6px !important;
-    box-shadow: 0 16px 60px rgba(0,0,0,0.38) !important;
+    box-shadow: 0 16px 60px rgba(0, 0, 0, 0.38) !important;
     font-family: "CrosstalkCode", ui-monospace, monospace !important;
     font-size: 12px !important;
     letter-spacing: 0.04em !important;

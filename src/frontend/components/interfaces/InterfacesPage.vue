@@ -1,39 +1,39 @@
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-full sm:min-w-[500px] dark:bg-zinc-950">
-        <div class="overflow-y-auto p-2 space-y-2">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-full sm:min-w-[500px]">
+        <div class="overflow-y-auto p-3 space-y-3">
 
-            <div class="flex space-x-1">
+            <!-- page header -->
+            <div class="flex flex-wrap items-center gap-2">
+                <div class="mr-auto">
+                    <div class="text-lg font-bold text-[var(--ct-text)]">Connections</div>
+                    <div class="text-sm text-[var(--ct-dim)]">Ways this device connects to the Reticulum network.</div>
+                </div>
+
+                <!-- Import button -->
+                <button @click="showImportInterfacesModal" type="button" class="inline-flex items-center gap-x-1 rounded-lg ct-secondary-button px-2.5 py-1.5 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                    <span>Import</span>
+                </button>
+
+                <!-- Export button -->
+                <button @click="exportInterfaces" type="button" class="inline-flex items-center gap-x-1 rounded-lg ct-secondary-button px-2.5 py-1.5 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                    </svg>
+                    <span>Export</span>
+                </button>
 
                 <!-- Add Interface button -->
                 <RouterLink :to="{ name: 'interfaces.add' }">
-                    <button type="button" 
-                        class="my-auto inline-flex items-center gap-x-1 rounded-md ct-secondary-button px-2 py-1 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
+                    <button type="button" class="inline-flex items-center gap-x-1 rounded-lg ct-brand-button px-2.5 py-1.5 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                         </svg>
-                        <span>Add Interface</span>
+                        <span>Add Connection</span>
                     </button>
                 </RouterLink>
-
-                <!-- Import button -->
-                <div class="my-auto">
-                    <button @click="showImportInterfacesModal" type="button" class="inline-flex items-center gap-x-1 rounded-md ct-secondary-button px-2 py-1 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                        </svg>
-                        <span>Import</span>
-                    </button>
-                </div>
-
-                <!-- Export button -->
-                <div class="my-auto">
-                    <button @click="exportInterfaces" type="button" class="inline-flex items-center gap-x-1 rounded-md ct-secondary-button px-2 py-1 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                        </svg>
-                        <span>Export</span>
-                    </button>
-                </div>
 
             </div>
 
@@ -86,7 +86,7 @@
                 @delete="deleteInterface(iface._name)"/>
 
             <!-- disabled interfaces -->
-            <div v-if="disabledInterfaces.length > 0" class="font-semibold dark:text-zinc-200">Disabled Interfaces</div>
+            <div v-if="disabledInterfaces.length > 0" class="ct-section-label pt-2">Turned Off</div>
             <Interface
                 v-for="iface of disabledInterfaces"
                 :iface="iface"
@@ -176,7 +176,7 @@ export default {
                 });
                 await this.applyInterfaceChanges();
             } catch(e) {
-                DialogUtils.alert("failed to enable interface");
+                DialogUtils.toast("Failed to enable interface", "error");
                 console.log(e);
             }
 
@@ -193,7 +193,7 @@ export default {
                 });
                 await this.applyInterfaceChanges();
             } catch(e) {
-                DialogUtils.alert("failed to disable interface");
+                DialogUtils.toast("Failed to disable interface", "error");
                 console.log(e);
             }
 
@@ -212,7 +212,7 @@ export default {
         async deleteInterface(interfaceName) {
 
             // ask user to confirm deleting conversation history
-            if(!await DialogUtils.confirm("Are you sure you want to delete this interface? This can not be undone!")){
+            if(!await DialogUtils.confirm("Are you sure you want to delete this interface? This can not be undone!", { title: "Delete Interface", danger: true, confirmLabel: "Delete" })){
                 return;
             }
 
@@ -223,7 +223,7 @@ export default {
                 });
                 await this.applyInterfaceChanges();
             } catch(e) {
-                DialogUtils.alert("failed to delete interface");
+                DialogUtils.toast("Failed to delete interface", "error");
                 console.log(e);
             }
 
@@ -241,7 +241,7 @@ export default {
                 DownloadUtils.downloadFile("crosstalk_interfaces.txt", new Blob([response.data]));
 
             } catch(e) {
-                DialogUtils.alert("Failed to export interfaces");
+                DialogUtils.toast("Failed to export interfaces", "error");
                 console.error(e);
             }
         },
@@ -259,7 +259,7 @@ export default {
                 DownloadUtils.downloadFile(`${interfaceName}.txt`, new Blob([response.data]));
 
             } catch(e) {
-                DialogUtils.alert("Failed to export interface");
+                DialogUtils.toast("Failed to export interface", "error");
                 console.error(e);
             }
         },

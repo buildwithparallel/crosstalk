@@ -32,9 +32,17 @@
                             <label class="ml-2 text-sm font-medium text-[var(--ct-text)]">Auto Update (5 sec)</label>
                         </div>
                     </div>
-                    <div class="p-1">
-                        <div class="text-[var(--ct-text)]">Interfaces</div>
+                    <div class="p-2">
+                        <div class="text-sm font-medium text-[var(--ct-text)]">Connections</div>
                         <div class="text-sm text-[var(--ct-muted)]">{{ onlineInterfaces.length }} Online, {{ offlineInterfaces.length }} Offline</div>
+                    </div>
+                    <div class="space-y-1 p-2 text-xs text-[var(--ct-muted)]">
+                        <div class="ct-section-label mb-1.5">Legend</div>
+                        <div class="flex items-center gap-2"><span class="size-2.5 rounded-full bg-[#2ee781] shadow-[0_0_8px_rgba(46,231,129,0.8)]"></span>Online connection</div>
+                        <div class="flex items-center gap-2"><span class="size-2.5 rounded-full bg-[#ff3b57]"></span>Offline connection</div>
+                        <div class="flex items-center gap-2"><span class="size-2.5 rounded-full bg-[#0061fd]"></span>Person (double-click to chat)</div>
+                        <div class="flex items-center gap-2"><span class="size-2.5 rounded-full bg-[#b779ff]"></span>Nomad node (double-click to browse)</div>
+                        <div class="flex items-center gap-2"><span class="size-2.5 rounded-full bg-[#52525b]"></span>Infrastructure</div>
                     </div>
                 </div>
             </div>
@@ -71,6 +79,67 @@ export default {
         this.init();
     },
     methods: {
+        // deterministic identicon svg data-uri, same algorithm as Identicon.vue
+        identiconDataUri(hash) {
+
+            // cached per hash so vis-network doesn't re-decode on every update
+            this._identiconCache = this._identiconCache ?? {};
+            if(this._identiconCache[hash]){
+                return this._identiconCache[hash];
+            }
+
+            const palettes = [
+                ["#0061fd", "#7db0ff", "#0c1220"],
+                ["#2ee781", "#9ff5c6", "#0b1a13"],
+                ["#ff9900", "#ffc266", "#1d1408"],
+                ["#b779ff", "#dcbcff", "#160f22"],
+                ["#22d3ee", "#a5f3fc", "#082026"],
+                ["#ff5c8a", "#ffadc4", "#220d14"],
+                ["#8da2fb", "#c7d2fe", "#10142a"],
+                ["#f4e04d", "#faf0a0", "#1e1b08"],
+            ];
+
+            // mulberry32 prng seeded from the hash string
+            let seed = 0;
+            const value = String(hash ?? "");
+            for(let i = 0; i < value.length; i++){
+                seed = Math.imul(seed ^ value.charCodeAt(i), 2654435761);
+            }
+            seed = seed >>> 0;
+            const random = function() {
+                seed |= 0;
+                seed = (seed + 0x6D2B79F5) | 0;
+                let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+                t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+                return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+            };
+
+            const size = 5;
+            const [primary, accent, background] = palettes[Math.floor(random() * palettes.length)];
+            let rects = "";
+            const half = Math.ceil(size / 2);
+            for(let y = 0; y < size; y++){
+                for(let x = 0; x < half; x++){
+                    const roll = random();
+                    let colour = null;
+                    if(roll < 0.44) colour = primary;
+                    else if(roll < 0.58) colour = accent;
+                    if(colour){
+                        rects += `<rect x="${x}" y="${y}" width="1" height="1" fill="${colour}"/>`;
+                        const mirrorX = size - 1 - x;
+                        if(mirrorX !== x){
+                            rects += `<rect x="${mirrorX}" y="${y}" width="1" height="1" fill="${colour}"/>`;
+                        }
+                    }
+                }
+            }
+
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" shape-rendering="crispEdges"><rect width="${size}" height="${size}" fill="${background}"/>${rects}</svg>`;
+            const dataUri = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+            this._identiconCache[hash] = dataUri;
+            return dataUri;
+
+        },
         graphLabelFont(size = 18) {
             return {
                 color: "#f8fafc",
@@ -179,7 +248,7 @@ export default {
                 groups: {
                     "me": {
                         shape: "image",
-                        image: "/assets/images/reticulum_logo_512.png",
+                        image: "/assets/images/logo-chat-bubble.png",
                     },
                     "interface": {
 
@@ -334,6 +403,7 @@ export default {
                     font: this.graphLabelFont(16),
                     shape: "circularImage",
                     image: entry.status ? "/assets/images/network-visualiser/interface_connected.png" : "/assets/images/network-visualiser/interface_disconnected.png",
+                    shadow: entry.status ? { enabled: true, color: "rgba(46, 231, 129, 0.45)", size: 22, x: 0, y: 0 } : { enabled: false },
                 };
 
                 // add interface node
@@ -457,7 +527,12 @@ export default {
                     const name = announce.custom_display_name ?? announce.display_name;
 
                     node.shape = "circularImage";
-                    node.image = entry.hops === 1 ? "/assets/images/network-visualiser/user_1hop.png" : "/assets/images/network-visualiser/user.png";
+                    node.image = this.identiconDataUri(announce.destination_hash);
+                    node.color = { border: entry.hops === 1 ? "#2ee781" : "#363856", highlight: { border: "#6ea8ff" } };
+                    node.borderWidth = 2;
+                    if(entry.hops === 1){
+                        node.shadow = { enabled: true, color: "rgba(0, 97, 253, 0.4)", size: 18, x: 0, y: 0 };
+                    }
 
                     node.label = name;
                     node.title = [
@@ -477,7 +552,12 @@ export default {
                     const name = announce.custom_display_name ?? announce.display_name;
 
                     node.shape = "circularImage";
-                    node.image = entry.hops === 1 ? "/assets/images/network-visualiser/server_1hop.png" : "/assets/images/network-visualiser/server.png";
+                    node.image = this.identiconDataUri(announce.destination_hash);
+                    node.color = { border: entry.hops === 1 ? "#b779ff" : "#363856", highlight: { border: "#6ea8ff" } };
+                    node.borderWidth = 2;
+                    if(entry.hops === 1){
+                        node.shadow = { enabled: true, color: "rgba(183, 121, 255, 0.35)", size: 18, x: 0, y: 0 };
+                    }
 
                     node.label = name;
                     node.title = [

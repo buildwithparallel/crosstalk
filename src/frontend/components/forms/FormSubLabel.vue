@@ -1,5 +1,5 @@
 <template>
-    <div class="text-xs text-gray-600 dark:text-zinc-300">
+    <div class="text-xs text-[var(--ct-dim)]">
         <slot/>
     </div>
 </template>

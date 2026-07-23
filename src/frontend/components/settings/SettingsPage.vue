@@ -1,161 +1,133 @@
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-full sm:min-w-[500px] dark:bg-zinc-950">
-        <div class="overflow-y-auto space-y-2 p-2">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-full sm:min-w-[500px]">
+        <div class="overflow-y-auto space-y-3 p-3">
 
-            <!-- appearance -->
-            <div class="bg-white dark:bg-zinc-800 rounded shadow">
-                <div class="flex border-b border-gray-300 dark:border-zinc-700 text-gray-700 dark:text-gray-200 p-2 font-semibold">Appearance</div>
-                <div class="divide-y divide-gray-300 dark:divide-zinc-700 text-gray-900 dark:text-gray-100">
-
-                    <div class="p-2">
-                        <div class="flex">
-                            <select v-model="config.theme" @change="onThemeChange" class="bg-gray-50 dark:bg-zinc-700 border border-gray-300 dark:border-zinc-600 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-600 dark:focus:border-blue-600 block w-full p-2.5">
-                                <option value="light">Light Theme</option>
-                                <option value="dark">Dark Theme</option>
-                            </select>
-                        </div>
-                    </div>
-
-                </div>
+            <!-- page header -->
+            <div>
+                <div class="text-lg font-bold text-[var(--ct-text)]">Settings</div>
+                <div class="text-sm text-[var(--ct-dim)]">Configure how Crosstalk behaves on the network.</div>
             </div>
 
             <!-- transport mode -->
-            <div class="bg-white dark:bg-zinc-800 rounded shadow">
-                <div class="flex border-b border-gray-300 dark:border-zinc-700 text-gray-700 dark:text-gray-200 p-2 font-semibold">Transport Mode</div>
-                <div class="divide-y divide-gray-300 dark:divide-zinc-700 text-gray-900 dark:text-gray-100">
+            <div class="ct-card">
+                <div class="flex border-b border-[var(--ct-border)] p-2.5 font-semibold text-[var(--ct-text)]">Transport Mode</div>
+                <div class="divide-y divide-[var(--ct-border)] text-[var(--ct-muted)]">
 
-                    <div class="p-2">
-                        <div class="flex items-start">
-                            <div class="flex items-center h-5">
-                                <input v-model="config.is_transport_enabled" @change="onIsTransportEnabledChange" type="checkbox" class="w-4 h-4 border border-gray-300 dark:border-zinc-600 rounded bg-gray-50 dark:bg-zinc-700 focus:ring-3 focus:ring-blue-300 dark:focus:ring-blue-600">
-                            </div>
-                            <label class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-100">Enable Transport Mode</label>
-                        </div>
-                        <div class="text-sm text-gray-700 dark:text-gray-300">When enabled, Crosstalk will route traffic for other peers, respond to path requests and pass announces over your interfaces.</div>
-                        <div class="text-sm text-gray-700 dark:text-gray-300">In the desktop app, changes are applied automatically.</div>
+                    <div class="p-2.5">
+                        <label class="flex cursor-pointer items-start gap-x-2.5">
+                            <input v-model="config.is_transport_enabled" @change="onIsTransportEnabledChange" type="checkbox" class="mt-0.5 size-4 rounded border">
+                            <span>
+                                <span class="block text-sm font-medium text-[var(--ct-text)]">Enable Transport Mode</span>
+                                <span class="block text-sm text-[var(--ct-dim)]">When enabled, Crosstalk will route traffic for other peers, respond to path requests and pass announces over your connections. Changes are applied automatically in the desktop app.</span>
+                            </span>
+                        </label>
                     </div>
 
                 </div>
             </div>
 
-            <!-- interfaces -->
-            <div class="bg-white dark:bg-zinc-800 rounded shadow">
-                <div class="flex border-b border-gray-300 dark:border-zinc-700 text-gray-700 dark:text-gray-200 p-2 font-semibold">Interfaces</div>
-                <div class="divide-y divide-gray-300 dark:divide-zinc-700 text-gray-900 dark:text-gray-100">
+            <!-- connections -->
+            <div class="ct-card">
+                <div class="flex border-b border-[var(--ct-border)] p-2.5 font-semibold text-[var(--ct-text)]">Connections</div>
+                <div class="divide-y divide-[var(--ct-border)] text-[var(--ct-muted)]">
 
-                    <div class="p-2">
-                        <div class="flex items-start">
-                            <div class="flex items-center h-5">
-                                <input v-model="config.show_suggested_community_interfaces" @change="onShowSuggestedCommunityInterfacesChange" type="checkbox" class="w-4 h-4 border border-gray-300 dark:border-zinc-600 rounded bg-gray-50 dark:bg-zinc-700 focus:ring-3 focus:ring-blue-300 dark:focus:ring-blue-600">
-                            </div>
-                            <label class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-100">Show Community Interfaces</label>
-                        </div>
-                        <div class="text-sm text-gray-700 dark:text-gray-300">When enabled, community interfaces will be shown on the Add Interface page.</div>
+                    <div class="p-2.5">
+                        <label class="flex cursor-pointer items-start gap-x-2.5">
+                            <input v-model="config.show_suggested_community_interfaces" @change="onShowSuggestedCommunityInterfacesChange" type="checkbox" class="mt-0.5 size-4 rounded border">
+                            <span>
+                                <span class="block text-sm font-medium text-[var(--ct-text)]">Show Community Suggestions</span>
+                                <span class="block text-sm text-[var(--ct-dim)]">When enabled, suggested community nodes will be shown when adding a new connection.</span>
+                            </span>
+                        </label>
                     </div>
 
                 </div>
             </div>
 
             <!-- messages -->
-            <div class="bg-white dark:bg-zinc-800 rounded shadow">
-                <div class="flex border-b border-gray-300 dark:border-zinc-700 text-gray-700 dark:text-gray-200 p-2 font-semibold">Messages</div>
-                <div class="divide-y divide-gray-300 dark:divide-zinc-700 text-gray-900 dark:text-gray-100">
+            <div class="ct-card">
+                <div class="flex border-b border-[var(--ct-border)] p-2.5 font-semibold text-[var(--ct-text)]">Messages</div>
+                <div class="divide-y divide-[var(--ct-border)] text-[var(--ct-muted)]">
 
-                    <div class="p-2">
-                        <div class="flex items-start">
-                            <div class="flex items-center h-5">
-                                <input v-model="config.auto_resend_failed_messages_when_announce_received" @change="onAutoResendFailedMessagesWhenAnnounceReceivedChange" type="checkbox" class="w-4 h-4 border border-gray-300 dark:border-zinc-600 rounded bg-gray-50 dark:bg-zinc-700 focus:ring-3 focus:ring-blue-300 dark:focus:ring-blue-600">
-                            </div>
-                            <label class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-100">Auto resend</label>
-                        </div>
-                        <div class="text-sm text-gray-700 dark:text-gray-300">When enabled, failed messages will auto resend when an announce is received from the intended destination.</div>
+                    <div class="p-2.5">
+                        <label class="flex cursor-pointer items-start gap-x-2.5">
+                            <input v-model="config.auto_resend_failed_messages_when_announce_received" @change="onAutoResendFailedMessagesWhenAnnounceReceivedChange" type="checkbox" class="mt-0.5 size-4 rounded border">
+                            <span>
+                                <span class="block text-sm font-medium text-[var(--ct-text)]">Auto Resend</span>
+                                <span class="block text-sm text-[var(--ct-dim)]">Failed messages will automatically resend when an announce is received from the intended recipient.</span>
+                            </span>
+                        </label>
                     </div>
 
-                    <div class="p-2">
-                        <div class="flex items-start">
-                            <div class="flex items-center h-5">
-                                <input v-model="config.allow_auto_resending_failed_messages_with_attachments" @change="onAllowAutoResendingFailedMessagesWithAttachmentsChange" type="checkbox" class="w-4 h-4 border border-gray-300 dark:border-zinc-600 rounded bg-gray-50 dark:bg-zinc-700 focus:ring-3 focus:ring-blue-300 dark:focus:ring-blue-600">
-                            </div>
-                            <label class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-100">Allow resending with attachments</label>
-                        </div>
-                        <div class="text-sm text-gray-700 dark:text-gray-300">When enabled, failed messages that have attachments are allowed to auto resend.</div>
+                    <div class="p-2.5">
+                        <label class="flex cursor-pointer items-start gap-x-2.5">
+                            <input v-model="config.allow_auto_resending_failed_messages_with_attachments" @change="onAllowAutoResendingFailedMessagesWithAttachmentsChange" type="checkbox" class="mt-0.5 size-4 rounded border">
+                            <span>
+                                <span class="block text-sm font-medium text-[var(--ct-text)]">Allow Resending with Attachments</span>
+                                <span class="block text-sm text-[var(--ct-dim)]">Failed messages that have attachments are allowed to auto resend.</span>
+                            </span>
+                        </label>
                     </div>
 
-                    <div class="p-2">
-                        <div class="flex items-start">
-                            <div class="flex items-center h-5">
-                                <input v-model="config.auto_send_failed_messages_to_propagation_node" @change="onAutoSendFailedMessagesToPropagationNodeChange" type="checkbox" class="w-4 h-4 border border-gray-300 dark:border-zinc-600 rounded bg-gray-50 dark:bg-zinc-700 focus:ring-3 focus:ring-blue-300 dark:focus:ring-blue-600">
-                            </div>
-                            <label class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-100">Auto send to propagation node</label>
-                        </div>
-                        <div class="text-sm text-gray-700 dark:text-gray-300">When enabled, messages that fail to send will be sent to the configured propagation node.</div>
+                    <div class="p-2.5">
+                        <label class="flex cursor-pointer items-start gap-x-2.5">
+                            <input v-model="config.auto_send_failed_messages_to_propagation_node" @change="onAutoSendFailedMessagesToPropagationNodeChange" type="checkbox" class="mt-0.5 size-4 rounded border">
+                            <span>
+                                <span class="block text-sm font-medium text-[var(--ct-text)]">Auto Send to Propagation Node</span>
+                                <span class="block text-sm text-[var(--ct-dim)]">Messages that fail to send will be handed to the configured propagation node for later delivery.</span>
+                            </span>
+                        </label>
                     </div>
 
                 </div>
             </div>
 
-            <!-- propagation nodes -->
-            <div class="bg-white dark:bg-zinc-800 rounded shadow">
-                <div class="flex border-b border-gray-300 dark:border-zinc-700 text-gray-700 dark:text-gray-200 p-2 font-semibold">
-                    <div class="my-auto mr-auto">Propagation Nodes</div>
-                    <div class="my-auto">
-                        <RouterLink :to="{ name: 'propagation-nodes' }" class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 dark:bg-zinc-600 px-2 py-1 text-sm font-semibold text-white shadow-sm hover:bg-gray-400 dark:hover:bg-zinc-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 dark:focus-visible:outline-zinc-500">
-                            Browse Nodes
-                        </RouterLink>
-                    </div>
+            <!-- message delivery / propagation nodes -->
+            <div class="ct-card">
+                <div class="flex items-center border-b border-[var(--ct-border)] p-2.5 font-semibold text-[var(--ct-text)]">
+                    <div class="mr-auto">Message Delivery</div>
+                    <RouterLink :to="{ name: 'propagation-nodes' }" class="ct-secondary-button inline-flex items-center gap-x-1 rounded-lg px-2.5 py-1.5 text-sm font-semibold">
+                        Browse Propagation Nodes
+                    </RouterLink>
                 </div>
-                <div class="divide-y divide-gray-300 dark:divide-zinc-700 text-gray-900 dark:text-gray-100">
+                <div class="divide-y divide-[var(--ct-border)] text-[var(--ct-muted)]">
 
-                    <div class="p-2">
-                        <div class="text-sm text-gray-700 dark:text-gray-300">
-                            <ul class="list-disc list-inside">
-                                <li>When you send a message, the intended recipient may be offline and your message will fail to send.</li>
-                                <li>Instead, messages can be sent to propagation nodes, which store the messages and allow recipients to retrieve them when they're next online.</li>
-                                <li>Propagation nodes automatically peer and sync messages with each other, creating an encrypted, distributed message store.</li>
-                                <li>By default, propagation nodes store messages for up to 30 days. If the recipient hasn't retrieved it by then, the message will be lost.</li>
-                                <li>At this time, delivery reports are unavailable for messages sent to propagation nodes.</li>
-                            </ul>
-                        </div>
+                    <div class="p-2.5 text-sm text-[var(--ct-dim)]">
+                        Propagation nodes hold encrypted messages for recipients that are offline, and hand them over when the recipient next syncs. They store messages for up to 30 days by default.
                     </div>
 
-                    <div class="p-2">
-                        <div class="flex items-start">
-                            <div class="flex items-center h-5">
-                                <input v-model="config.lxmf_local_propagation_node_enabled" @change="onLxmfLocalPropagationNodeEnabledChange" type="checkbox" class="w-4 h-4 border border-gray-300 dark:border-zinc-600 rounded bg-gray-50 dark:bg-zinc-700 focus:ring-3 focus:ring-blue-300 dark:focus:ring-blue-600">
-                            </div>
-                            <label class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-100">Local Propagation Node</label>
-                        </div>
-                        <div class="text-sm text-gray-700 dark:text-gray-300">When enabled, Crosstalk will run a Propagation Node and announce it with the following address for other clients to use.</div>
-                        <div class="flex">
-                            <input disabled v-model="config.lxmf_local_propagation_node_address_hash" type="text" class="bg-gray-200 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-600 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-600 dark:focus:border-blue-600 block w-full p-2.5">
-                        </div>
+                    <div class="p-2.5 space-y-1">
+                        <label class="flex cursor-pointer items-start gap-x-2.5">
+                            <input v-model="config.lxmf_local_propagation_node_enabled" @change="onLxmfLocalPropagationNodeEnabledChange" type="checkbox" class="mt-0.5 size-4 rounded border">
+                            <span>
+                                <span class="block text-sm font-medium text-[var(--ct-text)]">Run a Local Propagation Node</span>
+                                <span class="block text-sm text-[var(--ct-dim)]">Crosstalk will run its own propagation node and announce this address for other clients to use.</span>
+                            </span>
+                        </label>
+                        <input disabled v-model="config.lxmf_local_propagation_node_address_hash" type="text" class="ct-hash block w-full cursor-not-allowed rounded-lg border p-2.5 opacity-60">
                     </div>
 
-                    <div class="p-2">
-                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Preferred Propagation Node</div>
-                        <div class="flex">
-                            <input v-model="config.lxmf_preferred_propagation_node_destination_hash" @input="onLxmfPreferredPropagationNodeDestinationHashChange" type="text" placeholder="Destination Hash. e.g: a39610c89d18bb48c73e429582423c24" class="bg-gray-50 dark:bg-zinc-700 border border-gray-300 dark:border-zinc-600 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-600 dark:focus:border-blue-600 block w-full p-2.5">
-                        </div>
-                        <div class="text-sm text-gray-700 dark:text-gray-300">This is the propagation node your messages will be sent to and retrieved from.</div>
+                    <div class="p-2.5 space-y-1">
+                        <div class="text-sm font-medium text-[var(--ct-text)]">Preferred Propagation Node</div>
+                        <input v-model="config.lxmf_preferred_propagation_node_destination_hash" @input="onLxmfPreferredPropagationNodeDestinationHashChange" type="text" placeholder="Destination hash, e.g: a39610c89d18bb48c73e429582423c24" class="ct-hash block w-full rounded-lg border p-2.5">
+                        <div class="text-sm text-[var(--ct-dim)]">This is the propagation node your messages will be sent to and retrieved from.</div>
                     </div>
 
-                    <div class="p-2">
-                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Auto Sync Interval</div>
-                        <div class="flex">
-                            <select v-model="config.lxmf_preferred_propagation_node_auto_sync_interval_seconds" @change="onLxmfPreferredPropagationNodeAutoSyncIntervalSecondsChange" class="bg-gray-50 dark:bg-zinc-700 border border-gray-300 dark:border-zinc-600 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-600 dark:focus:border-blue-600 block w-full p-2.5">
-                                <option value="0">Disabled</option>
-                                <option value="900">Every 15 Minutes</option>
-                                <option value="1800">Every 30 Minutes</option>
-                                <option value="3600">Every 1 Hour</option>
-                                <option value="10800">Every 3 Hours</option>
-                                <option value="21600">Every 6 Hours</option>
-                                <option value="43200">Every 12 Hours</option>
-                                <option value="86400">Every 24 Hours</option>
-                            </select>
-                        </div>
-                        <div class="text-sm text-gray-700 dark:text-gray-300">
-                            <span v-if="config.lxmf_preferred_propagation_node_last_synced_at">Last Synced: {{ formatSecondsAgo(config.lxmf_preferred_propagation_node_last_synced_at) }}</span>
-                            <span v-else>Last Synced: Never</span>
+                    <div class="p-2.5 space-y-1">
+                        <div class="text-sm font-medium text-[var(--ct-text)]">Auto Sync Interval</div>
+                        <select v-model="config.lxmf_preferred_propagation_node_auto_sync_interval_seconds" @change="onLxmfPreferredPropagationNodeAutoSyncIntervalSecondsChange" class="block w-full rounded-lg border p-2.5 text-sm">
+                            <option value="0">Disabled</option>
+                            <option value="900">Every 15 Minutes</option>
+                            <option value="1800">Every 30 Minutes</option>
+                            <option value="3600">Every 1 Hour</option>
+                            <option value="10800">Every 3 Hours</option>
+                            <option value="21600">Every 6 Hours</option>
+                            <option value="43200">Every 12 Hours</option>
+                            <option value="86400">Every 24 Hours</option>
+                        </select>
+                        <div class="text-sm text-[var(--ct-dim)]">
+                            <span v-if="config.lxmf_preferred_propagation_node_last_synced_at">Last synced {{ formatSecondsAgo(config.lxmf_preferred_propagation_node_last_synced_at) }}</span>
+                            <span v-else>Never synced</span>
                         </div>
                     </div>
 
@@ -224,14 +196,9 @@ export default {
                 const response = await window.axios.patch("/api/v1/config", config);
                 this.config = response.data.config;
             } catch(e) {
-                alert("Failed to save config!");
+                DialogUtils.toast("Failed to save settings", "error");
                 console.log(e);
             }
-        },
-        async onThemeChange() {
-            await this.updateConfig({
-                "theme": this.config.theme,
-            });
         },
         async onAutoResendFailedMessagesWhenAnnounceReceivedChange() {
             await this.updateConfig({
@@ -275,7 +242,7 @@ export default {
                     await ElectronUtils.restartBackend("#/settings");
                     return;
                 } catch(e) {
-                    DialogUtils.alert("Failed to enable transport mode!");
+                    DialogUtils.toast("Failed to enable transport mode", "error");
                     console.log(e);
                 }
             } else {
@@ -284,7 +251,7 @@ export default {
                     await ElectronUtils.restartBackend("#/settings");
                     return;
                 } catch(e) {
-                    DialogUtils.alert("Failed to disable transport mode!");
+                    DialogUtils.toast("Failed to disable transport mode", "error");
                     console.log(e);
                 }
             }

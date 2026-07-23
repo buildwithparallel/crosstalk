@@ -1,5 +1,5 @@
 <template>
-    <div class="cursor-pointer flex p-3 space-x-2 text-sm bg-white text-gray-500 hover:bg-gray-100 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700">
+    <div class="flex cursor-pointer space-x-2 p-3 text-sm text-[var(--ct-muted)] transition hover:bg-[rgba(255,255,255,0.06)] hover:text-[var(--ct-text)]">
         <slot/>
     </div>
 </template>

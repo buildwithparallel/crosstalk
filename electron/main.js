@@ -214,6 +214,14 @@ function escapeHtml(value) {
 
 app.whenReady().then(async () => {
 
+    // use the branded dock icon in dev mode (packaged builds get it from electron-builder)
+    if(process.platform === "darwin" && app.dock){
+        const dockIconPath = path.join(__dirname, "build/icon.png");
+        if(fs.existsSync(dockIconPath)){
+            app.dock.setIcon(dockIconPath);
+        }
+    }
+
     // get arguments passed to application, and remove the provided application path
     const ignoredArguments = ["--no-sandbox", "--ozone-platform-hint=auto"];
     const userProvidedArguments = process.argv.slice(1).filter((arg) => !ignoredArguments.includes(arg));

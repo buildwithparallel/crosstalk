@@ -9,94 +9,90 @@
         @rename-favourite="onRenameFavourite"
         @remove-favourite="onRemoveFavourite"/>
 
-   <div class="flex flex-col flex-1 overflow-hidden min-w-full sm:min-w-[500px] dark:bg-zinc-950">
+   <div class="flex flex-col flex-1 overflow-hidden min-w-full sm:min-w-[500px]">
     <!-- node -->
-    <div v-if="selectedNode" class="flex flex-col h-full bg-white dark:bg-zinc-950 overflow-hidden sm:m-2 sm:border dark:border-zinc-800 sm:rounded-xl sm:shadow dark:shadow-zinc-900">
+    <div v-if="selectedNode" class="flex flex-col h-full overflow-hidden sm:m-2 sm:border sm:rounded-xl sm:shadow bg-[rgba(8,9,15,0.96)] border-[var(--ct-border)]">
         <!-- header -->
-        <div class="flex p-2 border-b border-gray-300 dark:border-zinc-800">
+        <div class="flex items-center gap-x-2 p-2 border-b border-[var(--ct-border)] bg-[rgba(13,13,18,0.6)]">
 
-            <!-- favourite button -->
-            <div class="my-auto mr-2">
-                <div v-if="isFavourite(selectedNode.destination_hash)" @click="removeFavourite(selectedNode)" class="cursor-pointer">
-                    <div class="flex text-yellow-500 dark:text-yellow-300 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 p-1 rounded-full">
-                        <div>
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-5">
-                                <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clip-rule="evenodd" />
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-                <div v-else @click="addFavourite(selectedNode)" class="cursor-pointer">
-                    <div class="flex text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 p-1 rounded-full">
-                        <div>
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
-                            </svg>
-                        </div>
-                    </div>
-                </div>
+            <!-- node identicon -->
+            <div class="shrink-0 overflow-hidden rounded-lg">
+                <Identicon :hash="selectedNode.destination_hash" class="size-9"/>
             </div>
 
             <!-- node info -->
-            <div class="my-auto dark:text-gray-100">
-                <span class="font-semibold">{{ selectedNode.display_name }}</span>
-                <span v-if="selectedNodePath" @click="onDestinationPathClick(selectedNodePath)" class="text-sm cursor-pointer"> - {{ selectedNodePath.hops }} {{ selectedNodePath.hops === 1 ? 'hop' : 'hops' }} away</span>
+            <div class="min-w-0">
+                <div class="truncate text-sm font-semibold text-[var(--ct-text)]">{{ selectedNode.display_name }}</div>
+                <div v-if="selectedNodePath" @click="onDestinationPathClick(selectedNodePath)" class="cursor-pointer text-xs text-[var(--ct-dim)] hover:text-[var(--ct-muted)]">{{ selectedNodePath.hops }} {{ selectedNodePath.hops === 1 ? 'hop' : 'hops' }} away</div>
             </div>
 
-            <!-- identify button -->
-            <div class="my-auto ml-auto mr-2">
-                <div @click="identify(selectedNode.destination_hash)" class="cursor-pointer">
-                    <div class="flex text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 p-1 rounded-full">
-                        <div>
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M7.864 4.243A7.5 7.5 0 0 1 19.5 10.5c0 2.92-.556 5.709-1.568 8.268M5.742 6.364A7.465 7.465 0 0 0 4.5 10.5a7.464 7.464 0 0 1-1.15 3.993m1.989 3.559A11.209 11.209 0 0 0 8.25 10.5a3.75 3.75 0 1 1 7.5 0c0 .527-.021 1.049-.064 1.565M12 10.5a14.94 14.94 0 0 1-3.6 9.75m6.633-4.596a18.666 18.666 0 0 1-2.485 5.33" />
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <div class="ml-auto flex items-center gap-x-1.5">
 
-            <!-- close button -->
-            <div class="my-auto mr-2">
-                <div @click="onCloseNodeViewer" class="cursor-pointer">
-                    <div class="flex text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 p-1 rounded-full">
-                        <div>
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
-                                <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
-                            </svg>
-                        </div>
-                    </div>
-                </div>
+                <!-- favourite button -->
+                <button v-if="isFavourite(selectedNode.destination_hash)" @click="removeFavourite(selectedNode)" type="button" title="Remove from favourites" class="flex rounded-full border border-[var(--ct-border)] bg-[rgba(255,153,0,0.12)] p-1.5 text-[var(--ct-amber)] transition hover:bg-[rgba(255,153,0,0.2)]">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4">
+                        <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+                <button v-else @click="addFavourite(selectedNode)" type="button" title="Add to favourites" class="flex rounded-full border border-[var(--ct-border)] bg-[rgba(255,255,255,0.06)] p-1.5 text-[var(--ct-muted)] transition hover:bg-[rgba(255,255,255,0.1)]">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
+                    </svg>
+                </button>
+
+                <!-- identify button -->
+                <button @click="identify(selectedNode.destination_hash)" type="button" title="Identify yourself to this node" class="flex rounded-full border border-[var(--ct-border)] bg-[rgba(255,255,255,0.06)] p-1.5 text-[var(--ct-muted)] transition hover:bg-[rgba(255,255,255,0.1)]">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.864 4.243A7.5 7.5 0 0 1 19.5 10.5c0 2.92-.556 5.709-1.568 8.268M5.742 6.364A7.465 7.465 0 0 0 4.5 10.5a7.464 7.464 0 0 1-1.15 3.993m1.989 3.559A11.209 11.209 0 0 0 8.25 10.5a3.75 3.75 0 1 1 7.5 0c0 .527-.021 1.049-.064 1.565M12 10.5a14.94 14.94 0 0 1-3.6 9.75m6.633-4.596a18.666 18.666 0 0 1-2.485 5.33" />
+                    </svg>
+                </button>
+
+                <!-- close button -->
+                <button @click="onCloseNodeViewer" type="button" title="Close" class="flex rounded-full border border-[var(--ct-border)] bg-[rgba(255,255,255,0.06)] p-1.5 text-[var(--ct-muted)] transition hover:bg-[rgba(255,255,255,0.1)]">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
+                        <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
+                    </svg>
+                </button>
+
             </div>
         </div>
 
         <!-- browser navigation -->
-        <div class="flex w-full border-gray-300 dark:border-zinc-800 border-b p-2">
-            <button @click="loadNodePage(selectedNode.destination_hash, defaultNodePagePath)" type="button" class="my-auto text-gray-500 dark:text-gray-300 bg-gray-200 dark:bg-zinc-800 hover:bg-gray-300 dark:hover:bg-zinc-700 rounded p-1 cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
-                    <path fill-rule="evenodd" d="M9.293 2.293a1 1 0 0 1 1.414 0l7 7A1 1 0 0 1 17 11h-1v6a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-6H3a1 1 0 0 1-.707-1.707l7-7Z" clip-rule="evenodd" />
-                </svg>
-            </button>
-            <button @click="reloadNodePage" type="button" class="ml-1 my-auto text-gray-500 dark:text-gray-300 bg-gray-200 dark:bg-zinc-800 hover:bg-gray-300 dark:hover:bg-zinc-700 rounded p-1 cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
-                    <path fill-rule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H3.989a.75.75 0 0 0-.75.75v4.242a.75.75 0 0 0 1.5 0v-2.43l.31.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.23-3.723a.75.75 0 0 0 .219-.53V2.929a.75.75 0 0 0-1.5 0V5.36l-.31-.31A7 7 0 0 0 3.239 8.188a.75.75 0 1 0 1.448.389A5.5 5.5 0 0 1 13.89 6.11l.311.31h-2.432a.75.75 0 0 0 0 1.5h4.243a.75.75 0 0 0 .53-.219Z" clip-rule="evenodd" />
-                </svg>
-            </button>
-            <button @click="toggleNodePageSource" type="button" title="Toggle Source Code" class="ml-1 my-auto text-gray-500 dark:text-gray-300 rounded p-1 cursor-pointer" :class="[ isShowingNodePageSource ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-gray-200 dark:bg-zinc-800 hover:bg-gray-300 dark:hover:bg-zinc-700' ]">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
-                </svg>
-            </button>
-            <button @click="loadPreviousNodePage" type="button" :disabled="nodePagePathHistory.length === 0" :class="[ nodePagePathHistory.length > 0 ? 'text-gray-500 dark:text-gray-300 bg-gray-200 dark:bg-zinc-800 hover:bg-gray-300 dark:hover:bg-zinc-700' : 'text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-zinc-900']" class="ml-1 my-auto rounded p-1 cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+        <div class="flex w-full items-center gap-x-1 border-b border-[var(--ct-border)] bg-[rgba(13,13,18,0.6)] p-2">
+            <button @click="loadPreviousNodePage" type="button" title="Back" :disabled="nodePagePathHistory.length === 0" class="flex rounded-md p-1.5 transition" :class="[ nodePagePathHistory.length > 0 ? 'text-[var(--ct-muted)] hover:bg-[rgba(255,255,255,0.08)] hover:text-[var(--ct-text)]' : 'cursor-not-allowed text-[var(--ct-dim)] opacity-40' ]">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
                     <path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clip-rule="evenodd" />
                 </svg>
             </button>
-            <div class="my-auto mx-2 w-full">
-                <input v-model="nodePagePathUrlInput" @keyup.enter="onNodePageUrlClick(nodePagePathUrlInput)" type="text" placeholder="Enter Destination URL" class="bg-gray-50 dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full px-2.5 py-1.5 dark:placeholder-gray-400">
+            <button @click="loadNodePage(selectedNode.destination_hash, defaultNodePagePath)" type="button" title="Home" class="flex rounded-md p-1.5 text-[var(--ct-muted)] transition hover:bg-[rgba(255,255,255,0.08)] hover:text-[var(--ct-text)]">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
+                    <path fill-rule="evenodd" d="M9.293 2.293a1 1 0 0 1 1.414 0l7 7A1 1 0 0 1 17 11h-1v6a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-6H3a1 1 0 0 1-.707-1.707l7-7Z" clip-rule="evenodd" />
+                </svg>
+            </button>
+            <button @click="reloadNodePage" type="button" title="Reload" class="flex rounded-md p-1.5 text-[var(--ct-muted)] transition hover:bg-[rgba(255,255,255,0.08)] hover:text-[var(--ct-text)]">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
+                    <path fill-rule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H3.989a.75.75 0 0 0-.75.75v4.242a.75.75 0 0 0 1.5 0v-2.43l.31.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.23-3.723a.75.75 0 0 0 .219-.53V2.929a.75.75 0 0 0-1.5 0V5.36l-.31-.31A7 7 0 0 0 3.239 8.188a.75.75 0 1 0 1.448.389A5.5 5.5 0 0 1 13.89 6.11l.311.31h-2.432a.75.75 0 0 0 0 1.5h4.243a.75.75 0 0 0 .53-.219Z" clip-rule="evenodd" />
+                </svg>
+            </button>
+            <div class="relative mx-1 w-full">
+                <div v-if="isLoadingNodePage" class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2">
+                    <svg class="size-3.5 animate-spin text-[#7db0ff]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                </div>
+                <svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" class="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[var(--ct-dim)]">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418" />
+                </svg>
+                <input v-model="nodePagePathUrlInput" @keyup.enter="onNodePageUrlClick(nodePagePathUrlInput)" type="text" placeholder="Enter a node address, e.g. abc123…:/page/index.mu" class="ct-hash block w-full rounded-full border !pl-8 px-3 py-1.5 !text-[var(--ct-muted)]">
             </div>
-            <button @click="onNodePageUrlClick(nodePagePathUrlInput)" type="button" class="my-auto text-gray-500 dark:text-gray-300 bg-gray-200 dark:bg-zinc-800 hover:bg-gray-300 dark:hover:bg-zinc-700 rounded p-1 cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+            <button @click="toggleNodePageSource" type="button" title="Toggle Source Code" class="flex rounded-md p-1.5 transition" :class="[ isShowingNodePageSource ? 'bg-[rgba(46,231,129,0.15)] text-[var(--ct-green)]' : 'text-[var(--ct-muted)] hover:bg-[rgba(255,255,255,0.08)] hover:text-[var(--ct-text)]' ]">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" class="size-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
+                </svg>
+            </button>
+            <button @click="onNodePageUrlClick(nodePagePathUrlInput)" type="button" title="Go" class="flex rounded-md bg-[var(--ct-blue)] p-1.5 text-white transition hover:bg-[var(--ct-blue-hover)]">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
                     <path fill-rule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.638L10.23 5.29a.75.75 0 1 1 1.04-1.08l5.5 5.25a.75.75 0 0 1 0 1.08l-5.5 5.25a.75.75 0 1 1-1.04-1.08l4.158-3.96H3.75A.75.75 0 0 1 3 10Z" clip-rule="evenodd" />
                 </svg>
             </button>
@@ -117,7 +113,7 @@
         </div>
 
         <!-- file download bottom bar -->
-        <div v-if="isDownloadingNodeFile" class="flex w-full border-gray-300 dark:border-zinc-800 border-t p-2 dark:text-gray-100">
+        <div v-if="isDownloadingNodeFile" class="flex w-full border-t border-[var(--ct-border)] bg-[rgba(13,13,18,0.6)] p-2 text-[var(--ct-muted)]">
             <div class="my-auto mr-2">
                 <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -129,20 +125,25 @@
     </div>
 
     <!-- no node selected -->
-    <div v-else class="flex flex-col mx-auto my-auto text-center leading-5 dark:text-gray-100">
-        <div class="mx-auto mb-1">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 dark:text-gray-300">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418" />
-            </svg>
-        </div>
-        <div class="font-semibold">No Active Node</div>
-        <div>Select a Node to start browsing!</div>
-        <div class="mx-auto mt-2">
-            <button @click.stop="openUrl" type="button"
-                class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 px-2 py-1 text-sm font-semibold text-white shadow-sm hover:bg-gray-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500
-                dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700 dark:focus-visible:outline-zinc-500">
-                Open a Nomadnet URL
-            </button>
+    <div v-else class="mx-auto my-auto w-full max-w-lg px-6">
+        <div class="flex flex-col items-center text-center">
+            <div class="mb-4 flex size-14 items-center justify-center rounded-2xl border border-[var(--ct-border)] bg-[rgba(0,97,253,0.08)] text-[#7db0ff]">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-7">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418" />
+                </svg>
+            </div>
+            <div class="text-base font-semibold text-[var(--ct-text)]">Browse the Nomad Network</div>
+            <div class="mt-1 max-w-sm text-sm text-[var(--ct-dim)]">Pick a node from the sidebar, or enter a node address below to start browsing decentralised pages and files.</div>
+            <div class="mt-5 flex w-full max-w-md gap-x-1.5">
+                <input
+                    v-model="emptyStateUrlInput"
+                    @keyup.enter="onEmptyStateUrlSubmit"
+                    type="text"
+                    placeholder="Enter a node address…"
+                    class="ct-hash block w-full rounded-full border px-3.5 py-2 !text-[var(--ct-muted)]"
+                >
+                <button @click="onEmptyStateUrlSubmit" type="button" class="ct-brand-button shrink-0 rounded-full px-4 py-2 text-sm font-semibold text-white">Go</button>
+            </div>
         </div>
     </div>
 </div>
@@ -179,11 +180,13 @@ import DialogUtils from "../../js/DialogUtils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import NomadNetworkSidebar from "./NomadNetworkSidebar.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import Identicon from "../Identicon.vue";
 
 export default {
     name: 'NomadNetworkPage',
     components: {
         NomadNetworkSidebar,
+        Identicon,
     },
     props: {
         destinationHash: String,
@@ -198,6 +201,8 @@ export default {
             selectedNodePath: null,
 
             favourites: [],
+
+            emptyStateUrlInput: "",
 
             isLoadingNodePage: false,
             isShowingNodePageSource: false,
@@ -358,7 +363,7 @@ export default {
             }
         },
         onDestinationPathClick: function(path) {
-            DialogUtils.alert(`${path.hops} ${ path.hops === 1 ? 'hop' : 'hops' } away via ${path.next_hop_interface}`);
+            DialogUtils.alert(`${path.hops} ${ path.hops === 1 ? 'hop' : 'hops' } away via ${path.next_hop_interface}`, { title: "Network Path" });
         },
         async getFavourites() {
             try {
@@ -455,15 +460,13 @@ export default {
         updateNodeFromAnnounce: function(announce) {
             this.nodes[announce.destination_hash] = announce;
         },
-        async openUrl() {
+        async onEmptyStateUrlSubmit() {
 
-            // ask for url
-            const url = await DialogUtils.prompt("Enter a Nomadnet URL");
+            // navigate to the url entered in the empty state address bar
+            const url = this.emptyStateUrlInput?.trim();
             if(!url){
                 return;
             }
-
-            // navigate to the url
             await this.onNodePageUrlClick(url);
 
         },
@@ -841,7 +844,11 @@ export default {
         async onRenameFavourite(favourite) {
 
             // ask user for new display name
-            const displayName = await DialogUtils.prompt("Rename this favourite");
+            const displayName = await DialogUtils.prompt("Choose a new name for this favourite.", {
+                title: "Rename Favourite",
+                defaultValue: favourite.display_name ?? "",
+                confirmLabel: "Save",
+            });
             if(displayName == null){
                 return;
             }
@@ -858,14 +865,14 @@ export default {
 
             } catch(e) {
                 console.log(e);
-                DialogUtils.alert("Failed to rename favourite");
+                DialogUtils.toast("Failed to rename favourite", "error");
             }
 
         },
         async onRemoveFavourite(favourite) {
 
             // ask user to confirm
-            if(!await DialogUtils.confirm("Are you sure you want to remove this favourite?")){
+            if(!await DialogUtils.confirm("Are you sure you want to remove this favourite?", { title: "Remove Favourite", danger: true, confirmLabel: "Remove" })){
                 return;
             }
 
@@ -911,7 +918,7 @@ export default {
             try {
 
                 // ask user to confirm
-                if(!await DialogUtils.confirm("Are you sure you want to identify yourself to this NomadNetwork Node? The page will reload after your identity has been sent.")){
+                if(!await DialogUtils.confirm("Are you sure you want to identify yourself to this node? The page will reload after your identity has been sent.", { title: "Identify Yourself", confirmLabel: "Identify" })){
                     return;
                 }
 

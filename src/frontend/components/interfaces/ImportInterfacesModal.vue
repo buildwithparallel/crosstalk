@@ -1,43 +1,43 @@
 <template>
-    <div v-if="isShowing" class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity flex items-center justify-center">
+    <div v-if="isShowing" class="fixed inset-0 z-40 flex items-center justify-center bg-[rgba(0,0,0,0.6)] backdrop-blur-sm transition-opacity">
         <div class="flex w-full h-full p-4 overflow-y-auto">
-            <div v-click-outside="dismiss" class="my-auto mx-auto w-full bg-white dark:bg-zinc-900 rounded-lg shadow-xl max-w-2xl">
+            <div v-click-outside="dismiss" class="ct-panel my-auto mx-auto w-full max-w-2xl rounded-xl border border-[var(--ct-border)]">
 
                 <!-- title -->
-                <div class="p-4 border-b dark:border-zinc-700">
-                    <h3 class="text-lg font-semibold dark:text-white">Import Interfaces</h3>
+                <div class="border-b border-[var(--ct-border)] p-4">
+                    <h3 class="text-lg font-semibold text-[var(--ct-text)]">Import Connections</h3>
                 </div>
 
                 <!-- content -->
-                <div class="divide-y dark:divide-zinc-700">
+                <div class="divide-y divide-[var(--ct-border)]">
 
                     <!-- file input -->
-                    <div class="p-2">
+                    <div class="p-3">
                         <div>
-                            <input ref="import-interfaces-file-input" type="file" @change="onFileSelected" accept="*" class="w-full text-sm text-gray-500 dark:text-zinc-400">
+                            <input ref="import-interfaces-file-input" type="file" @change="onFileSelected" accept="*" class="w-full text-sm text-[var(--ct-dim)]">
                         </div>
-                        <div v-if="!selectedFile" class="mt-2 text-sm text-gray-700 dark:text-zinc-200">
+                        <div v-if="!selectedFile" class="mt-2 text-sm text-[var(--ct-dim)]">
                             <ul class="list-disc list-inside">
-                                <li>You can import interfaces from a ~/.reticulum/config file.</li>
-                                <li>You can import interfaces from an exported interfaces file.</li>
+                                <li>You can import connections from a ~/.reticulum/config file.</li>
+                                <li>You can import connections from an exported interfaces file.</li>
                             </ul>
                         </div>
                     </div>
 
                     <!-- select interfaces -->
-                    <div v-if="importableInterfaces.length > 0" class="divide-y dark:divide-zinc-700">
-                        <div class="flex p-2">
-                            <div class="my-auto mr-auto text-sm font-medium text-gray-700 dark:text-zinc-200">Select Interfaces to Import</div>
+                    <div v-if="importableInterfaces.length > 0" class="divide-y divide-[var(--ct-border)]">
+                        <div class="flex p-3">
+                            <div class="my-auto mr-auto text-sm font-medium text-[var(--ct-text)]">Select Connections to Import</div>
                             <div class="my-auto space-x-2">
-                                <button @click="selectAllInterfaces" class="text-sm text-blue-500 hover:underline">Select All</button>
-                                <button @click="deselectAllInterfaces" class="text-sm text-blue-500 hover:underline">Deselect All</button>
+                                <button @click="selectAllInterfaces" class="text-sm text-[#7db0ff] hover:underline">Select All</button>
+                                <button @click="deselectAllInterfaces" class="text-sm text-[#7db0ff] hover:underline">Deselect All</button>
                             </div>
                         </div>
-                        <div class="bg-gray-200 p-2 space-y-2 max-h-80 overflow-y-auto dark:bg-zinc-800">
-                            <div @click="toggleSelectedInterface(iface.name)" v-for="iface in importableInterfaces" :key="iface.name" class="bg-white cursor-pointer flex items-center p-2 border rounded shadow dark:bg-zinc-900 dark:border-zinc-700">
+                        <div class="max-h-80 space-y-2 overflow-y-auto bg-[rgba(0,0,0,0.3)] p-2">
+                            <div @click="toggleSelectedInterface(iface.name)" v-for="iface in importableInterfaces" :key="iface.name" class="ct-card ct-card-hover flex cursor-pointer items-center p-2.5">
                                 <div class="mr-auto text-sm">
-                                    <div class="font-semibold text-gray-700 dark:text-zinc-100">{{ iface.name }}</div>
-                                    <div class="text-sm text-gray-500 dark:text-zinc-100">
+                                    <div class="font-semibold text-[var(--ct-text)]">{{ iface.name }}</div>
+                                    <div class="text-sm text-[var(--ct-dim)]">
 
                                         <!-- auto interface -->
                                         <div v-if="iface.type === 'AutoInterface'">
@@ -80,18 +80,18 @@
 
                                     </div>
                                 </div>
-                                <input @click.stop type="checkbox" v-model="selectedInterfaces" :value="iface.name" class="mx-2 h-4 w-4 text-blue-600 rounded border-gray-300 dark:border-zinc-600">
+                                <input @click.stop type="checkbox" v-model="selectedInterfaces" :value="iface.name" class="mx-2 size-4 rounded border text-blue-600">
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- actions -->
-                <div class="p-4 border-t dark:border-zinc-700 flex justify-end space-x-2">
-                    <button @click="dismiss" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-zinc-800 dark:text-zinc-200 dark:border-zinc-600 dark:hover:bg-zinc-700">
+                <div class="flex justify-end space-x-2 border-t border-[var(--ct-border)] p-4">
+                    <button @click="dismiss" class="ct-secondary-button rounded-lg px-4 py-2 text-sm font-semibold">
                         Cancel
                     </button>
-                    <button @click="importSelectedInterfaces" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600">
+                    <button @click="importSelectedInterfaces" class="ct-brand-button rounded-lg px-4 py-2 text-sm font-semibold">
                         Import Selected
                     </button>
                 </div>
@@ -157,7 +157,7 @@ export default {
                 // ensure there are some interfaces available to import
                 if(!response.data.interfaces || response.data.interfaces.length === 0){
                     this.clearSelectedFile();
-                    DialogUtils.alert("No interfaces were found in the selected configuration file");
+                    DialogUtils.toast("No connections were found in the selected configuration file", "error");
                     return;
                 }
 
@@ -169,7 +169,7 @@ export default {
 
             } catch(e) {
                 this.clearSelectedFile();
-                DialogUtils.alert("Failed to parse configuration file");
+                DialogUtils.toast("Failed to parse configuration file", "error");
                 console.error(e);
             }
         },
@@ -203,13 +203,13 @@ export default {
 
             // ensure user selected a file to import from
             if(!this.selectedFile){
-                DialogUtils.alert("Please select a configuration file");
+                DialogUtils.toast("Select a configuration file first", "error");
                 return;
             }
 
             // ensure user selected some interfaces
             if(this.selectedInterfaces.length === 0){
-                DialogUtils.alert("Please select at least one interface to import");
+                DialogUtils.toast("Select at least one connection to import", "error");
                 return;
             }
 
@@ -228,8 +228,8 @@ export default {
                 return;
 
             } catch(e) {
-                const message = e.response?.data?.message || "Failed to import interfaces";
-                DialogUtils.alert(message);
+                const message = e.response?.data?.message || "Failed to import connections";
+                DialogUtils.toast(message, "error");
                 console.error(e);
             }
         },

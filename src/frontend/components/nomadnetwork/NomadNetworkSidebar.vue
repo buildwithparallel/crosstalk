@@ -1,39 +1,42 @@
 <template>
-    <div class="flex flex-col w-80 min-w-80">
+    <div class="flex flex-col w-80 min-w-80 bg-[rgba(10,10,16,0.94)]">
 
         <!-- tabs -->
-        <div class="bg-white dark:bg-zinc-950 border-b border-r border-gray-200 dark:border-zinc-700">
-            <div class="-mb-px flex">
-                <div @click="tab = 'favourites'" class="w-full border-b-2 py-3 px-1 text-center text-sm font-medium cursor-pointer" :class="[ tab === 'favourites' ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-zinc-600 hover:text-gray-700 dark:hover:text-gray-300']">Favourites</div>
-                <div @click="tab = 'announces'" class="w-full border-b-2 py-3 px-1 text-center text-sm font-medium cursor-pointer" :class="[ tab === 'announces' ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-zinc-600 hover:text-gray-700 dark:hover:text-gray-300']">Announces</div>
+        <div class="border-b border-r border-[var(--ct-border)] bg-[rgba(11,12,20,0.96)] p-1.5">
+            <div class="flex gap-x-1 rounded-lg bg-[rgba(255,255,255,0.04)] p-1">
+                <button @click="tab = 'favourites'" type="button" class="flex-1 rounded-md py-1.5 text-center text-sm font-semibold transition" :class="[ tab === 'favourites' ? 'bg-[var(--ct-blue)] text-white shadow-[0_4px_16px_rgba(0,97,253,0.3)]' : 'text-[var(--ct-dim)] hover:text-[var(--ct-text)]' ]">Favourites</button>
+                <button @click="tab = 'announces'" type="button" class="flex-1 rounded-md py-1.5 text-center text-sm font-semibold transition" :class="[ tab === 'announces' ? 'bg-[var(--ct-blue)] text-white shadow-[0_4px_16px_rgba(0,97,253,0.3)]' : 'text-[var(--ct-dim)] hover:text-[var(--ct-text)]' ]">Discover</button>
             </div>
         </div>
 
         <!-- favourites -->
-        <div v-if="tab === 'favourites'" class="flex-1 flex flex-col bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-zinc-700 overflow-hidden">
+        <div v-if="tab === 'favourites'" class="flex-1 flex flex-col bg-[rgba(11,12,20,0.96)] border-r border-[var(--ct-border)] overflow-hidden">
 
             <!-- search -->
-            <div v-if="favourites.length > 0" class="p-1 border-b border-gray-300 dark:border-zinc-700">
-                <input v-model="favouritesSearchTerm" type="text" :placeholder="`Search ${favourites.length} Favourites...`" class="bg-gray-50 dark:bg-zinc-700 border border-gray-300 dark:border-zinc-600 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-blue-500 dark:focus:ring-blue-600 focus:border-blue-500 dark:focus:border-blue-600 block w-full p-2.5">
+            <div v-if="favourites.length > 0" class="border-b border-[var(--ct-border)] p-1.5">
+                <div class="relative">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" class="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-[var(--ct-dim)]">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                    </svg>
+                    <input v-model="favouritesSearchTerm" type="text" placeholder="Search favourites…" class="block w-full rounded-lg border !pl-8 p-2 text-sm">
+                </div>
             </div>
 
-            <!-- peers -->
+            <!-- favourite nodes -->
             <div class="flex h-full overflow-y-auto">
-                <div v-if="searchedFavourites.length > 0" class="w-full">
-                    <div @click="onFavouriteClick(favourite)" v-for="favourite of searchedFavourites" class="flex cursor-pointer p-2 border-l-2" :class="[ favourite.destination_hash === selectedDestinationHash ? 'bg-gray-100 dark:bg-zinc-700 border-blue-500 dark:border-blue-400' : 'bg-white dark:bg-zinc-950 border-transparent hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-gray-200 dark:hover:border-zinc-600' ]">
-                        <div class="my-auto mr-2">
-                            <div class="bg-gray-200 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 p-2 rounded">
-                                <MaterialDesignIcon icon-name="server-network-outline" class="w-6 h-6"/>
-                            </div>
+                <div v-if="searchedFavourites.length > 0" class="w-full py-1">
+                    <div @click="onFavouriteClick(favourite)" v-for="favourite of searchedFavourites" :key="favourite.destination_hash" class="mx-1.5 my-0.5 flex cursor-pointer items-center rounded-lg p-2 transition" :class="[ favourite.destination_hash === selectedDestinationHash ? 'bg-[rgba(0,97,253,0.18)] ring-1 ring-inset ring-[rgba(0,97,253,0.4)]' : 'hover:bg-[rgba(255,255,255,0.05)]' ]">
+                        <div class="mr-2.5 shrink-0 overflow-hidden rounded-lg">
+                            <Identicon :hash="favourite.destination_hash" class="size-10"/>
                         </div>
-                        <div>
-                            <div class="text-gray-900 dark:text-gray-100">{{ favourite.display_name }}</div>
-                            <div class="text-gray-500 dark:text-gray-400 text-sm">{{ formatDestinationHash(favourite.destination_hash) }}</div>
+                        <div class="min-w-0">
+                            <div class="truncate text-sm text-[var(--ct-text)]">{{ favourite.display_name }}</div>
+                            <div class="ct-hash truncate">{{ formatDestinationHash(favourite.destination_hash) }}</div>
                         </div>
-                        <div class="ml-auto my-auto">
+                        <div class="ml-auto shrink-0">
                             <DropDownMenu>
                                 <template v-slot:button>
-                                    <IconButton class="bg-transparent dark:bg-transparent">
+                                    <IconButton class="bg-transparent">
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 12.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 18.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z" />
                                         </svg>
@@ -64,90 +67,76 @@
                         </div>
                     </div>
                 </div>
-                <div v-else class="mx-auto my-auto text-center leading-5">
+                <div v-else class="mx-auto my-auto w-full">
 
                     <!-- no favourites at all -->
-                    <div v-if="favourites.length === 0" class="flex flex-col text-gray-900 dark:text-gray-100">
-                        <div class="mx-auto mb-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                    <EmptyState v-if="favourites.length === 0" title="No favourites yet" description="Browse a node and tap the star to save it here for quick access.">
+                        <template v-slot:icon>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-7">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
                             </svg>
-                        </div>
-                        <div class="font-semibold">No Favourites</div>
-                        <div>Discover nodes on the Announces tab.</div>
-                    </div>
+                        </template>
+                    </EmptyState>
 
                     <!-- is searching, but no results -->
-                    <div v-if="favouritesSearchTerm !== '' && favourites.length > 0" class="flex flex-col text-gray-900 dark:text-gray-100">
-                        <div class="mx-auto mb-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                    <EmptyState v-if="favouritesSearchTerm !== '' && favourites.length > 0" title="No results" description="Your search didn't match any favourites.">
+                        <template v-slot:icon>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-7">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
                             </svg>
-                        </div>
-                        <div class="font-semibold">No Search Results</div>
-                        <div>Your search didn't match any Favourites!</div>
-                    </div>
+                        </template>
+                    </EmptyState>
 
                 </div>
             </div>
         </div>
 
         <!-- announces -->
-        <div v-if="tab === 'announces'" class="flex-1 flex flex-col bg-white dark:bg-zinc-950 border-r dark:border-zinc-800 overflow-hidden">
+        <div v-if="tab === 'announces'" class="flex-1 flex flex-col bg-[rgba(11,12,20,0.96)] border-r border-[var(--ct-border)] overflow-hidden">
+
             <!-- search -->
-            <div v-if="nodesCount > 0" class="p-1 border-b border-gray-300 dark:border-zinc-800">
-                <input 
-                    v-model="nodesSearchTerm" 
-                    type="text" 
-                    :placeholder="`Search ${nodesCount} Nodes...`" 
-                    class="bg-gray-50 dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:placeholder-gray-400"
-                >
+            <div v-if="nodesCount > 0" class="border-b border-[var(--ct-border)] p-1.5">
+                <div class="relative">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" class="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-[var(--ct-dim)]">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                    </svg>
+                    <input v-model="nodesSearchTerm" type="text" :placeholder="`Search ${nodesCount} discovered nodes…`" class="block w-full rounded-lg border !pl-8 p-2 text-sm">
+                </div>
             </div>
+
             <!-- nodes -->
             <div class="flex h-full overflow-y-auto">
-                <div v-if="searchedNodes.length > 0" class="w-full">
-                    <div 
-                        @click="onNodeClick(node)" 
-                        v-for="node of searchedNodes" 
-                        class="flex cursor-pointer p-2 border-l-2" 
-                        :class="[ 
-                            node.destination_hash === selectedDestinationHash 
-                                ? 'bg-gray-100 dark:bg-zinc-800 border-blue-500' 
-                                : 'bg-white dark:bg-zinc-950 border-transparent hover:bg-gray-50 dark:hover:bg-zinc-900 hover:border-gray-200 dark:hover:border-zinc-700' 
-                        ]"
-                    >
-                        <div class="my-auto mr-2">
-                            <div class="bg-gray-200 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 p-2 rounded">
-                                <MaterialDesignIcon icon-name="server-network-outline" class="w-6 h-6"/>
-                            </div>
+                <div v-if="searchedNodes.length > 0" class="w-full py-1">
+                    <div @click="onNodeClick(node)" v-for="node of searchedNodes" :key="node.destination_hash" class="mx-1.5 my-0.5 flex cursor-pointer items-center rounded-lg p-2 transition" :class="[ node.destination_hash === selectedDestinationHash ? 'bg-[rgba(0,97,253,0.18)] ring-1 ring-inset ring-[rgba(0,97,253,0.4)]' : 'hover:bg-[rgba(255,255,255,0.05)]' ]">
+                        <div class="mr-2.5 shrink-0 overflow-hidden rounded-lg">
+                            <Identicon :hash="node.destination_hash" class="size-10"/>
                         </div>
-                        <div>
-                            <div class="text-gray-900 dark:text-gray-100">{{ node.display_name }}</div>
-                            <div class="text-gray-500 dark:text-gray-400 text-sm">{{ formatTimeAgo(node.updated_at) }}</div>
+                        <div class="min-w-0">
+                            <div class="truncate text-sm text-[var(--ct-text)]">{{ node.display_name }}</div>
+                            <div class="text-xs text-[var(--ct-dim)]">{{ formatTimeAgo(node.updated_at) }}</div>
                         </div>
                     </div>
                 </div>
-                <div v-else class="mx-auto my-auto text-center leading-5">
+                <div v-else class="mx-auto my-auto w-full">
+
                     <!-- no nodes at all -->
-                    <div v-if="nodesCount === 0" class="flex flex-col">
-                        <div class="mx-auto mb-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-gray-500 dark:text-gray-400">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" />
+                    <EmptyState v-if="nodesCount === 0" title="No nodes discovered yet" description="Nomad Network nodes appear here automatically when they announce on the network.">
+                        <template v-slot:icon>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-7">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.348 14.652a3.75 3.75 0 0 1 0-5.304m5.304 0a3.75 3.75 0 0 1 0 5.304m-7.425 2.121a6.75 6.75 0 0 1 0-9.546m9.546 0a6.75 6.75 0 0 1 0 9.546M5.106 18.894c-3.808-3.807-3.808-9.98 0-13.788m13.788 0c3.808 3.807 3.808 9.98 0 13.788M12 12h.008v.008H12V12Z" />
                             </svg>
-                        </div>
-                        <div class="font-semibold text-gray-900 dark:text-gray-100">No Nodes Discovered</div>
-                        <div class="text-gray-500 dark:text-gray-400">Waiting for a node to announce!</div>
-                    </div>
+                        </template>
+                    </EmptyState>
+
                     <!-- is searching, but no results -->
-                    <div v-if="nodesSearchTerm !== '' && nodesCount > 0" class="flex flex-col">
-                        <div class="mx-auto mb-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-gray-500 dark:text-gray-400">
+                    <EmptyState v-if="nodesSearchTerm !== '' && nodesCount > 0" title="No results" description="Your search didn't match any nodes.">
+                        <template v-slot:icon>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-7">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
                             </svg>
-                        </div>
-                        <div class="font-semibold text-gray-900 dark:text-gray-100">No Search Results</div>
-                        <div class="text-gray-500 dark:text-gray-400">Your search didn't match any Nodes!</div>
-                    </div>
+                        </template>
+                    </EmptyState>
+
                 </div>
             </div>
         </div>
@@ -158,14 +147,15 @@
 <script>
 
 import Utils from "../../js/Utils";
-import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import DropDownMenu from "../DropDownMenu.vue";
 import IconButton from "../IconButton.vue";
 import DropDownMenuItem from "../DropDownMenuItem.vue";
+import Identicon from "../Identicon.vue";
+import EmptyState from "../base/EmptyState.vue";
 
 export default {
     name: 'NomadNetworkSidebar',
-    components: {DropDownMenuItem, IconButton, DropDownMenu, MaterialDesignIcon},
+    components: {DropDownMenuItem, IconButton, DropDownMenu, Identicon, EmptyState},
     props: {
         nodes: Object,
         favourites: Array,

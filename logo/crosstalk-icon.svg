@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d1322"/>
+      <stop offset="0.55" stop-color="#090909"/>
+      <stop offset="1" stop-color="#05070c"/>
+    </linearGradient>
+    <radialGradient id="glowbg" cx="0.5" cy="0.42" r="0.7">
+      <stop offset="0" stop-color="#0061fd" stop-opacity="0.30"/>
+      <stop offset="0.6" stop-color="#0061fd" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#0061fd" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="stroke" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6ea8ff"/>
+      <stop offset="0.5" stop-color="#2f7fff"/>
+      <stop offset="1" stop-color="#0061fd"/>
+    </linearGradient>
+    <linearGradient id="node" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8db9ff"/>
+      <stop offset="1" stop-color="#0061fd"/>
+    </linearGradient>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="14"/>
+    </filter>
+  </defs>
+
+  <!-- rounded dark square -->
+  <rect x="32" y="32" width="960" height="960" rx="224" fill="url(#bg)"/>
+  <rect x="32" y="32" width="960" height="960" rx="224" fill="url(#glowbg)"/>
+  <rect x="34" y="34" width="956" height="956" rx="222" fill="none" stroke="#233350" stroke-width="4" opacity="0.6"/>
+
+  <!-- glow behind the bubble -->
+  <g filter="url(#softGlow)" opacity="0.45">
+    <path d="M322 232 h380 a86 86 0 0 1 86 86 v288 a86 86 0 0 1 -86 86 h-206 l-110 97 c-15 13 -38 3 -38 -17 v-80 h-26 a86 86 0 0 1 -86 -86 v-288 a86 86 0 0 1 86 -86 z"
+          fill="none" stroke="#0061fd" stroke-width="32"/>
+  </g>
+
+  <!-- chat bubble outline -->
+  <path d="M322 232 h380 a86 86 0 0 1 86 86 v288 a86 86 0 0 1 -86 86 h-206 l-110 97 c-15 13 -38 3 -38 -17 v-80 h-26 a86 86 0 0 1 -86 -86 v-288 a86 86 0 0 1 86 -86 z"
+        fill="rgba(9, 14, 26, 0.55)" stroke="url(#stroke)" stroke-width="32" stroke-linejoin="round"/>
+
+  <!-- mesh edges -->
+  <g stroke="url(#stroke)" stroke-width="10" stroke-linecap="round" opacity="0.9">
+    <line x1="512" y1="322" x2="388" y2="414"/>
+    <line x1="512" y1="322" x2="640" y2="398"/>
+    <line x1="388" y1="414" x2="478" y2="518"/>
+    <line x1="640" y1="398" x2="478" y2="518"/>
+    <line x1="640" y1="398" x2="672" y2="522"/>
+    <line x1="478" y1="518" x2="672" y2="522"/>
+    <line x1="388" y1="414" x2="640" y2="398"/>
+    <line x1="512" y1="322" x2="478" y2="518"/>
+    <line x1="388" y1="414" x2="372" y2="538"/>
+    <line x1="372" y1="538" x2="478" y2="518"/>
+  </g>
+
+  <!-- node glows -->
+  <g fill="#2f7fff" opacity="0.7" filter="url(#softGlow)">
+    <circle cx="512" cy="322" r="26"/>
+    <circle cx="478" cy="518" r="26"/>
+    <circle cx="672" cy="522" r="18"/>
+  </g>
+
+  <!-- mesh nodes -->
+  <g>
+    <circle cx="512" cy="322" r="34" fill="url(#node)"/>
+    <circle cx="388" cy="414" r="25" fill="#0b1730" stroke="url(#stroke)" stroke-width="9"/>
+    <circle cx="640" cy="398" r="28" fill="#0b1730" stroke="url(#stroke)" stroke-width="9"/>
+    <circle cx="478" cy="518" r="31" fill="url(#node)"/>
+    <circle cx="672" cy="522" r="22" fill="url(#node)"/>
+    <circle cx="372" cy="538" r="19" fill="#0b1730" stroke="url(#stroke)" stroke-width="9"/>
+  </g>
+</svg>

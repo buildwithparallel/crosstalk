@@ -7,7 +7,7 @@
         @conversation-click="onConversationClick"
         @peer-click="onPeerClick"/>
 
-    <div class="flex flex-col flex-1 overflow-hidden min-w-full sm:min-w-[500px] dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-full sm:min-w-[500px]">
 
         <!-- messages tab -->
         <ConversationViewer
@@ -90,10 +90,15 @@ export default {
 
             // ask for destination address if not provided
             if(destinationHash == null){
-                destinationHash = await DialogUtils.prompt("Enter LXMF Address");
+                destinationHash = await DialogUtils.prompt("Enter the LXMF address of the person you want to message.", {
+                    title: "New Message",
+                    placeholder: "e.g. 5e2f3c2b91a4…",
+                    confirmLabel: "Start Chat",
+                });
                 if(!destinationHash){
                     return;
                 }
+                destinationHash = destinationHash.trim();
             }
 
             // if user provided an address with an "lxmf@" prefix, lets remove that to get the raw destination hash

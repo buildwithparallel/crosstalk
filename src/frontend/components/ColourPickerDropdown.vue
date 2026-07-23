@@ -4,7 +4,7 @@
         <!-- menu button -->
         <div ref="dropdown-button" @click.stop="toggleMenu">
             <slot>
-                <div class="size-8 border border-gray-300 dark:border-zinc-700 rounded shadow cursor-pointer" :style="{ 'background-color': colour }"></div>
+                <div class="size-8 cursor-pointer rounded border border-[var(--ct-border-strong)] shadow" :style="{ 'background-color': colour }"></div>
             </slot>
         </div>
 

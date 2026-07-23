@@ -1,46 +1,43 @@
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-full sm:min-w-[500px] dark:bg-zinc-950">
-        <div class="overflow-y-auto space-y-2 p-2">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-full sm:min-w-[500px]">
+        <div class="overflow-y-auto space-y-3 p-3">
+
+            <!-- page header -->
+            <div>
+                <div class="text-lg font-bold text-[var(--ct-text)]">Profile Icon</div>
+                <div class="text-sm text-[var(--ct-dim)]">Personalise how you appear to other people on the network.</div>
+            </div>
 
             <!-- info -->
-            <div class="bg-white dark:bg-zinc-800 rounded shadow">
-                <div class="flex border-b border-gray-300 dark:border-zinc-700 text-gray-700 dark:text-gray-200 p-2 font-semibold">Customise your Profile Icon</div>
-                <div class="text-gray-900 dark:text-gray-100">
-                    <div class="text-sm p-2">
-                        <ul class="list-disc list-inside">
-                            <li>Personalise your profile with a custom coloured icon.</li>
-                            <li>This icon will be sent in all of your outgoing messages.</li>
-                            <li>When you send someone a message, they will see your new icon.</li>
-                            <li>You can <span @click="removeProfileIcon" class="cursor-pointer underline text-blue-500">remove your icon</span>, however it will still show for anyone that already received it.</li>
-                        </ul>
-                    </div>
-                </div>
+            <div class="ct-card p-3 text-sm text-[var(--ct-dim)]">
+                Your icon is sent with your outgoing messages, so people you chat with will see it. Without a custom icon, others see a unique auto-generated avatar based on your address.
+                You can <span @click="removeProfileIcon" class="cursor-pointer text-[#7db0ff] underline hover:text-[var(--ct-text)]">remove your icon</span>, however it will still show for anyone that already received it.
             </div>
 
             <!-- colours -->
-            <div class="bg-white dark:bg-zinc-800 rounded shadow">
-                <div class="flex border-b border-gray-300 dark:border-zinc-700 text-gray-700 dark:text-gray-200 p-2 font-semibold">Select your Colours</div>
-                <div class="divide-y divide-gray-300 dark:divide-zinc-700 text-gray-900 dark:text-gray-100">
+            <div class="ct-card">
+                <div class="flex border-b border-[var(--ct-border)] p-2.5 font-semibold text-[var(--ct-text)]">Select your Colours</div>
+                <div class="divide-y divide-[var(--ct-border)]">
 
                     <!-- background colour -->
-                    <div class="p-2 flex space-x-2">
+                    <div class="flex space-x-2.5 p-2.5">
                         <div class="flex my-auto">
                             <ColourPickerDropdown v-model:colour="iconBackgroundColour"/>
                         </div>
                         <div class="my-auto">
-                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Background Colour</div>
-                            <div class="text-sm text-gray-900 dark:text-gray-100">{{ iconBackgroundColour }}</div>
+                            <div class="text-sm font-medium text-[var(--ct-text)]">Background Colour</div>
+                            <div class="ct-hash text-xs text-[var(--ct-dim)]">{{ iconBackgroundColour }}</div>
                         </div>
                     </div>
 
                     <!-- icon colour -->
-                    <div class="p-2 flex space-x-2">
+                    <div class="flex space-x-2.5 p-2.5">
                         <div class="flex my-auto">
                             <ColourPickerDropdown v-model:colour="iconForegroundColour"/>
                         </div>
                         <div class="my-auto">
-                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Icon Colour</div>
-                            <div class="text-sm text-gray-900 dark:text-gray-100">{{ iconForegroundColour }}</div>
+                            <div class="text-sm font-medium text-[var(--ct-text)]">Icon Colour</div>
+                            <div class="ct-hash text-xs text-[var(--ct-dim)]">{{ iconForegroundColour }}</div>
                         </div>
                     </div>
 
@@ -48,21 +45,21 @@
             </div>
 
             <!-- search icons -->
-            <div class="bg-white dark:bg-zinc-800 rounded shadow">
-                <div class="flex border-b border-gray-300 dark:border-zinc-700 text-gray-700 dark:text-gray-200 p-2 font-semibold">Select your Icon</div>
-                <div class="divide-y divide-gray-300 dark:divide-zinc-700 text-gray-900 dark:text-gray-100">
-                    <div class="flex p-1">
-                        <input v-model="search" type="text" :placeholder="`Search ${iconNames.length} icons...`" class="bg-gray-50 dark:bg-zinc-700 border border-gray-300 dark:border-zinc-600 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-600 dark:focus:border-blue-600 block w-full p-2.5">
+            <div class="ct-card">
+                <div class="flex border-b border-[var(--ct-border)] p-2.5 font-semibold text-[var(--ct-text)]">Select your Icon</div>
+                <div class="divide-y divide-[var(--ct-border)]">
+                    <div class="flex p-2">
+                        <input v-model="search" type="text" :placeholder="`Search ${iconNames.length} icons...`" class="block w-full rounded-lg border p-2.5 text-sm">
                     </div>
-                    <div class="divide-y divide-gray-300 dark:divide-zinc-700">
-                        <div @click="onIconClick(mdiIconName)" v-for="mdiIconName of searchedIconNames" class="flex space-x-2 p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-zinc-700">
+                    <div class="divide-y divide-[var(--ct-border)]">
+                        <div @click="onIconClick(mdiIconName)" v-for="mdiIconName of searchedIconNames" class="flex cursor-pointer space-x-2.5 p-2 transition hover:bg-[rgba(255,255,255,0.05)]">
                             <div class="my-auto">
                                 <LxmfUserIcon :icon-name="mdiIconName" :icon-foreground-colour="iconForegroundColour" :icon-background-colour="iconBackgroundColour"/>
                             </div>
-                            <div class="my-auto">{{ mdiIconName }}</div>
+                            <div class="my-auto text-sm text-[var(--ct-muted)]">{{ mdiIconName }}</div>
                         </div>
-                        <div v-if="searchedIconNames.length === 0" class="p-1 text-sm text-gray-500">No icons match your search.</div>
-                        <div v-if="searchedIconNames.length === maxSearchResults" class="p-1 text-sm text-gray-500">A maximum of {{ maxSearchResults }} icons are shown.</div>
+                        <div v-if="searchedIconNames.length === 0" class="p-2.5 text-sm text-[var(--ct-dim)]">No icons match your search.</div>
+                        <div v-if="searchedIconNames.length === maxSearchResults" class="p-2.5 text-sm text-[var(--ct-dim)]">A maximum of {{ maxSearchResults }} icons are shown.</div>
                     </div>
                 </div>
             </div>
@@ -126,7 +123,7 @@ export default {
                 const response = await window.axios.patch("/api/v1/config", config);
                 this.config = response.data.config;
             } catch(e) {
-                alert("Failed to save config!");
+                DialogUtils.toast("Failed to save profile icon", "error");
                 console.log(e);
             }
         },
@@ -134,18 +131,18 @@ export default {
 
             // ensure foreground colour set
             if(this.iconForegroundColour == null){
-                DialogUtils.alert("Please select an icon colour first");
+                DialogUtils.toast("Select an icon colour first", "error");
                 return;
             }
 
             // ensure background colour set
             if(this.iconBackgroundColour == null){
-                DialogUtils.alert("Please select a background colour first");
+                DialogUtils.toast("Select a background colour first", "error");
                 return;
             }
 
             // confirm user wants to update their icon
-            if(!await DialogUtils.confirm("Are you sure you want to set this as your profile icon?")){
+            if(!await DialogUtils.confirm("Set this as your profile icon? It will be sent with your outgoing messages.", { title: "Update Profile Icon", confirmLabel: "Set Icon" })){
                 return;
             }
 
@@ -156,11 +153,13 @@ export default {
                 "lxmf_user_icon_background_colour": this.iconBackgroundColour,
             });
 
+            DialogUtils.toast("Profile icon updated", "success");
+
         },
         async removeProfileIcon() {
 
             // confirm user wants to remove their icon
-            if(!await DialogUtils.confirm("Are you sure you want to remove your profile icon? Anyone that has already received it will continue to see it until you send them a new icon.")){
+            if(!await DialogUtils.confirm("Remove your profile icon? Anyone that has already received it will continue to see it until you send them a new icon.", { title: "Remove Profile Icon", confirmLabel: "Remove", danger: true })){
                 return;
             }
 

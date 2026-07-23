@@ -4,30 +4,29 @@
     <div v-if="selectedPeer" class="flex flex-col h-full overflow-hidden sm:m-2 sm:border sm:rounded-xl sm:shadow bg-[rgba(8,9,15,0.96)] border-[var(--ct-border)]">
 
         <!-- header -->
-        <div class="flex p-2 border-b border-gray-300 dark:border-zinc-800">
+        <div class="flex p-2 border-b border-[var(--ct-border)] bg-[rgba(13,13,18,0.6)]">
 
             <!-- peer icon -->
             <div class="my-auto mr-2">
-                <div v-if="selectedPeer.lxmf_user_icon" class="p-2 rounded" :style="{ 'color': selectedPeer.lxmf_user_icon.foreground_colour, 'background-color': selectedPeer.lxmf_user_icon.background_colour }">
-                    <MaterialDesignIcon :icon-name="selectedPeer.lxmf_user_icon.icon_name" class="w-6 h-6"/>
-                </div>
-                <div v-else class="bg-gray-200 dark:bg-zinc-700 text-gray-500 dark:text-gray-400 p-2 rounded">
-                    <MaterialDesignIcon icon-name="account-outline" class="w-6 h-6"/>
-                </div>
+                <LxmfUserIcon
+                    :icon-name="selectedPeer.lxmf_user_icon?.icon_name"
+                    :icon-foreground-colour="selectedPeer.lxmf_user_icon?.foreground_colour"
+                    :icon-background-colour="selectedPeer.lxmf_user_icon?.background_colour"
+                    :destination-hash="selectedPeer.destination_hash"/>
             </div>
 
             <!-- peer info -->
             <div class="min-w-0">
                 <div @click="updateCustomDisplayName" class="flex cursor-pointer">
-                    <div v-if="selectedPeer.custom_display_name != null" class="my-auto mr-1 dark:text-white" title="Custom Display Name">
+                    <div v-if="selectedPeer.custom_display_name != null" class="my-auto mr-1 text-[var(--ct-text)]" title="Custom Display Name">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" />
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" />
                         </svg>
                     </div>
-                    <div class="my-auto font-semibold dark:text-white" :title="selectedPeer.display_name">{{ selectedPeer.custom_display_name ?? selectedPeer.display_name }}</div>
+                    <div class="my-auto font-semibold text-[var(--ct-text)]" :title="selectedPeer.display_name">{{ selectedPeer.custom_display_name ?? selectedPeer.display_name }}</div>
                 </div>
-                <div class="text-sm dark:text-zinc-300">
+                <div class="text-sm text-[var(--ct-dim)]">
 
                     <!-- destination hash -->
                     <div class="inline-flex max-w-full items-center gap-1 mr-1 align-middle">
@@ -113,7 +112,7 @@
                                 <!-- audio is not yet loaded -->
                                 <!-- min height to make sure audio player doesn't cause height increase after loading -->
                                 <div v-else style="min-height:54px;" class="flex">
-                                    <button @click="downloadFileFromBase64('audio.bin', chatItem.lxmf_message.fields.audio.audio_bytes)" type="button" class="my-auto flex border border-gray-300 dark:border-zinc-800 hover:bg-gray-100 rounded px-2 py-1 text-sm text-gray-700 font-semibold cursor-pointer space-x-2 bg-[#efefef]">
+                                    <button @click="downloadFileFromBase64('audio.bin', chatItem.lxmf_message.fields.audio.audio_bytes)" type="button" class="my-auto flex rounded-lg border border-[var(--ct-border-strong)] bg-[rgba(0,0,0,0.25)] px-2 py-1 text-sm font-semibold text-[var(--ct-text)] hover:bg-[rgba(0,0,0,0.4)] cursor-pointer space-x-2">
                                         <span class="my-auto">
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
                                               <path stroke-linecap="round" stroke-linejoin="round" d="m9 9 10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 0 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z" />
@@ -139,14 +138,14 @@
                                         v-if="isImageFileAttachment(fileAttachment)"
                                         @click.stop="openImage(fileAttachmentDataUrl(fileAttachment))"
                                         type="button"
-                                        class="block w-full overflow-hidden rounded-lg border border-black/10 bg-black/20 shadow-sm dark:border-white/10"
+                                        class="block w-full overflow-hidden rounded-lg border border-white/10 bg-black/20 shadow-sm"
                                         :title="`Open ${fileAttachment.file_name}`">
                                         <img
                                             :src="fileAttachmentDataUrl(fileAttachment)"
                                             :alt="fileAttachment.file_name"
                                             class="max-h-80 w-full object-contain"/>
                                     </button>
-                                    <a @click.stop :download="fileAttachment.file_name" :href="fileAttachmentDataUrl(fileAttachment)" class="flex border border-gray-300 dark:border-zinc-800 hover:bg-gray-100 rounded px-2 py-1 text-sm text-gray-700 font-semibold cursor-pointer space-x-2 bg-[#efefef]">
+                                    <a @click.stop :download="fileAttachment.file_name" :href="fileAttachmentDataUrl(fileAttachment)" class="flex rounded-lg border border-[var(--ct-border-strong)] bg-[rgba(0,0,0,0.25)] px-2 py-1 text-sm font-semibold text-[var(--ct-text)] hover:bg-[rgba(0,0,0,0.4)] cursor-pointer space-x-2">
                                         <div class="my-auto">
                                             <svg v-if="isImageFileAttachment(fileAttachment)" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
@@ -168,7 +167,7 @@
                         </div>
 
                         <!-- actions -->
-                        <div v-if="chatItem.is_actions_expanded" class="border-t p-1 bg-[#efefef] text-white">
+                        <div v-if="chatItem.is_actions_expanded" class="border-t border-[rgba(255,255,255,0.12)] bg-[rgba(0,0,0,0.25)] p-1">
 
                             <!-- delete message -->
                             <button @click.stop="deleteChatItem(chatItem)" type="button" class="inline-flex items-center gap-x-1 rounded-md bg-red-500 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500">
@@ -250,7 +249,7 @@
         </div>
 
         <!-- send message -->
-        <div class="w-full border-gray-300 dark:border-zinc-800 border-t p-2">
+        <div class="w-full border-t border-[var(--ct-border)] bg-[rgba(13,13,18,0.6)] p-2">
             <div class="mx-auto">
 
                 <!-- message composer -->
@@ -285,7 +284,7 @@
                     <!-- audio attachment -->
                     <div v-if="newMessageAudio" class="mb-2">
                         <div class="flex flex-wrap gap-1">
-                            <div class="flex border border-gray-300 dark:border-zinc-800 rounded text-gray-700 divide-x divide-gray-300 overflow-hidden">
+                            <div class="flex rounded-lg border border-[var(--ct-border-strong)] bg-[rgba(255,255,255,0.04)] text-[var(--ct-muted)] divide-x divide-[var(--ct-border)] overflow-hidden">
 
                                 <div class="flex p-1">
 
@@ -297,14 +296,14 @@
                                     </div>
 
                                     <!-- encoded file size -->
-                                    <div class="my-auto px-1 text-sm text-gray-500">
+                                    <div class="my-auto px-1 text-sm text-[var(--ct-dim)]">
                                         {{ formatBytes(newMessageAudio.audio_blob.size) }}
                                     </div>
 
                                 </div>
 
                                 <!-- remove audio attachment -->
-                                <div @click="removeAudioAttachment" class="flex my-auto text-sm text-gray-500 h-full px-1 hover:bg-gray-200 cursor-pointer">
+                                <div @click="removeAudioAttachment" class="flex my-auto text-sm text-[var(--ct-dim)] h-full px-1 hover:bg-[rgba(255,255,255,0.08)] cursor-pointer">
                                     <svg class="w-5 h-5 my-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
                                     </svg>
@@ -317,12 +316,12 @@
                     <!-- file attachments -->
                     <div v-if="newMessageFiles.length > 0" class="mb-2">
                         <div class="flex flex-wrap gap-1">
-                            <div v-for="file in newMessageFiles" class="flex border border-gray-300 dark:border-zinc-800 rounded text-gray-700 divide-x divide-gray-300 overflow-hidden dark:border-zinc-800">
-                                <div class="my-auto px-1">
-                                    <span class="mr-1">{{ file.name }}</span>
-                                    <span class="my-auto text-sm text-gray-500">{{ formatBytes(file.size) }}</span>
+                            <div v-for="file in newMessageFiles" class="flex rounded-lg border border-[var(--ct-border-strong)] bg-[rgba(255,255,255,0.04)] text-[var(--ct-muted)] divide-x divide-[var(--ct-border)] overflow-hidden">
+                                <div class="my-auto px-1.5 py-1">
+                                    <span class="mr-1 text-sm">{{ file.name }}</span>
+                                    <span class="my-auto text-xs text-[var(--ct-dim)]">{{ formatBytes(file.size) }}</span>
                                 </div>
-                                <div @click="removeFileAttachment(file)" class="flex my-auto text-sm text-gray-500 h-full px-1 hover:bg-gray-200 cursor-pointer">
+                                <div @click="removeFileAttachment(file)" class="flex my-auto text-sm text-[var(--ct-dim)] h-full px-1 hover:bg-[rgba(255,255,255,0.08)] cursor-pointer">
                                     <svg class="w-5 h-5 my-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
                                     </svg>
@@ -339,15 +338,15 @@
                         v-model="newMessageText"
                         @keydown.enter.exact.native.prevent="onEnterPressed"
                         @keydown.enter.shift.exact.native.prevent="onShiftEnterPressed"
-                        class="bg-gray-50 border border-gray-300 dark:border-zinc-800 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-zinc-800 dark:text-zinc-100 dark:border-zinc-900"
+                        class="block w-full rounded-xl border p-2.5 text-sm"
                         rows="3"
-                        placeholder="Send a message..."></textarea>
+                        placeholder="Send a message…"></textarea>
 
                     <!-- action button -->
                     <div class="flex mt-2">
 
                         <!-- add files -->
-                        <button @click="addFilesToMessage" type="button" class="my-auto mr-1 inline-flex items-center gap-x-1 rounded-md bg-gray-500 px-2.5 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700 dark:focus-visible:outline-zinc-500">
+                        <button @click="addFilesToMessage" type="button" class="my-auto mr-1 ct-secondary-button inline-flex items-center gap-x-1 rounded-md px-2.5 py-1.5 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
                                 <path fill-rule="evenodd" d="M5.625 1.5H9a3.75 3.75 0 0 1 3.75 3.75v1.875c0 1.036.84 1.875 1.875 1.875H16.5a3.75 3.75 0 0 1 3.75 3.75v7.875c0 1.035-.84 1.875-1.875 1.875H5.625a1.875 1.875 0 0 1-1.875-1.875V3.375c0-1.036.84-1.875 1.875-1.875ZM12.75 12a.75.75 0 0 0-1.5 0v2.25H9a.75.75 0 0 0 0 1.5h2.25V18a.75.75 0 0 0 1.5 0v-2.25H15a.75.75 0 0 0 0-1.5h-2.25V12Z" clip-rule="evenodd" />
                                 <path d="M14.25 5.25a5.23 5.23 0 0 0-1.279-3.434 9.768 9.768 0 0 1 6.963 6.963A5.23 5.23 0 0 0 16.5 7.5h-1.875a.375.375 0 0 1-.375-.375V5.25Z" />
@@ -393,21 +392,19 @@
     </div>
 
     <!-- no peer selected -->
-    <div v-else class="flex flex-col mx-auto my-auto text-center leading-5">
-        <div class="mx-auto mb-1 ">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 dark:text-white">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
-            </svg>
-        </div>
-        <div class="font-semibold dark:text-white">No Active Chat</div>
-        <div class='dark:text-zinc-300'>Select a Peer to start chatting!</div>
-        <div class="mx-auto mt-2">
-            <button @click.stop="openLXMFAddress" type="button"
-                    class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 px-2 py-1 text-sm font-semibold text-white shadow-sm hover:bg-gray-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500
-                dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700 dark:focus-visible:outline-zinc-500">
-                Enter an LXMF Address
-            </button>
-        </div>
+    <div v-else class="mx-auto my-auto">
+        <EmptyState title="No chat selected" description="Pick a conversation from the sidebar, discover peers on the Discover tab, or start a new chat with an LXMF address.">
+            <template v-slot:icon>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-7">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
+                </svg>
+            </template>
+            <template v-slot:action>
+                <button @click.stop="openLXMFAddress" type="button" class="ct-brand-button rounded-lg px-4 py-2 text-sm font-semibold text-white">
+                    New Chat with LXMF Address
+                </button>
+            </template>
+        </EmptyState>
     </div>
 
 </template>
@@ -427,6 +424,8 @@ import AddImageButton from "./AddImageButton.vue";
 import IconButton from "../IconButton.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import CopyButton from "../CopyButton.vue";
+import LxmfUserIcon from "../LxmfUserIcon.vue";
+import EmptyState from "../base/EmptyState.vue";
 
 export default {
     name: 'ConversationViewer',
@@ -438,6 +437,8 @@ export default {
         MaterialDesignIcon,
         SendMessageButton,
         AddAudioButton,
+        LxmfUserIcon,
+        EmptyState,
     },
     props: {
         myLxmfAddressHash: String,
@@ -758,7 +759,7 @@ export default {
             }
         },
         onDestinationPathClick(path) {
-            DialogUtils.alert(`${path.hops} ${ path.hops === 1 ? 'hop' : 'hops' } away via ${path.next_hop_interface}`);
+            DialogUtils.alert(`${path.hops} ${ path.hops === 1 ? 'hop' : 'hops' } away via ${path.next_hop_interface}`, { title: "Network Path" });
         },
         onStampInfoClick(stampInfo) {
 
@@ -792,7 +793,7 @@ export default {
                 estimatedTimeForStamp = `instant (ticket expires ${moment(outboundTicketExpiry * 1000).fromNow()})`;
             }
 
-            DialogUtils.alert(`This peer has enabled stamp security.\n\nYour device must have a ticket, or solve an automated proof of work task each time you send them a message.\n\nTime per message: ${estimatedTimeForStamp}`);
+            DialogUtils.alert(`This peer has enabled stamp security.\n\nYour device must have a ticket, or solve an automated proof of work task each time you send them a message.\n\nTime per message: ${estimatedTimeForStamp}`, { title: "Stamp Security" });
 
         },
         onSignalMetricsClick(signalMetrics) {
@@ -800,7 +801,7 @@ export default {
                 `Signal Quality: ${ signalMetrics.quality ?? '???' }%`,
                 `RSSI: ${ signalMetrics.rssi ?? '???' }dBm`,
                 `SNR: ${ signalMetrics.snr  ?? '???'}dB`,
-            ].join("\n"));
+            ].join("\n"), { title: "Signal Metrics" });
         },
         scrollMessagesToBottom: function() {
             // next tick waits for the ui to have the new elements added
@@ -840,7 +841,12 @@ export default {
             }
 
             // ask user for new display name
-            const displayName = await DialogUtils.prompt("Enter a custom display name");
+            const displayName = await DialogUtils.prompt("Choose a name to show for this peer. Only you will see it.", {
+                title: "Custom Display Name",
+                placeholder: "e.g. Alice",
+                defaultValue: this.selectedPeer.custom_display_name ?? "",
+                confirmLabel: "Save",
+            });
             if(displayName == null){
                 return;
             }
@@ -1039,7 +1045,7 @@ export default {
             try {
 
                 // ask user to confirm deleting message
-                if(shouldConfirm && !await DialogUtils.confirm("Are you sure you want to delete this message? This can not be undone!")){
+                if(shouldConfirm && !await DialogUtils.confirm("Are you sure you want to delete this message? This can not be undone!", { title: "Delete Message", danger: true, confirmLabel: "Delete" })){
                     return;
                 }
 
@@ -1549,7 +1555,7 @@ export default {
             }
 
             // show message info
-            DialogUtils.alert(info.join("\n"));
+            DialogUtils.alert(info.join("\n"), { title: "Message Info" });
 
         },
         getLxmfFailureExplanation(lxmfMessage) {
@@ -1655,7 +1661,7 @@ export default {
             }
 
             // show message info
-            DialogUtils.alert(info.join("\n"));
+            DialogUtils.alert(info.join("\n"), { title: "Message Info" });
 
         },
     },

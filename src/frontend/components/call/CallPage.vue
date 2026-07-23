@@ -1,11 +1,13 @@
 <template>
-    <div class="flex w-full h-full bg-gray-100 dark:bg-zinc-950" :class="{'dark': config?.theme === 'dark'}">
+    <div class="dark flex w-full h-full ct-shell">
+        <ModalHost/>
+        <ToastHost/>
         <div class="mx-auto my-auto w-full max-w-xl p-4">
 
             <!-- in active call -->
             <div v-if="isWebsocketConnected" class="w-full">
-                <div class="border rounded-xl bg-white shadow w-full">
-                    <div class="flex border-b border-gray-300 text-gray-700 p-2">
+                <div class="ct-card w-full overflow-hidden rounded-xl">
+                    <div class="flex border-b border-[var(--ct-border)] p-2.5 font-semibold text-[var(--ct-text)]">
                         <div class="my-auto mr-2">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
@@ -13,58 +15,58 @@
                         </div>
                         <div class="my-auto">Active Call</div>
                     </div>
-                    <div class="border-b border-gray-300 text-gray-700 p-2">
+                    <div class="border-b border-[var(--ct-border)] p-2.5 text-[var(--ct-muted)]">
 
                         <div class="mb-2">
-                            <div class="mb-1 flex items-center gap-1 text-sm font-medium text-gray-900">
+                            <div class="mb-1 flex items-center gap-1 text-sm font-medium text-[var(--ct-text)]">
                                 <span>Call Hash</span>
                                 <CopyButton class="ml-auto" :value="audioCall?.hash" label="Call Hash"/>
                             </div>
-                            <div class="break-all text-xs text-gray-600">{{ audioCall?.hash || "Unknown" }}</div>
+                            <div class="ct-hash break-all text-xs text-[var(--ct-dim)]">{{ audioCall?.hash || "Unknown" }}</div>
                         </div>
 
                         <div class="mb-2">
-                            <div class="mb-1 flex items-center gap-1 text-sm font-medium text-gray-900">
+                            <div class="mb-1 flex items-center gap-1 text-sm font-medium text-[var(--ct-text)]">
                                 <span>Remote Identity Hash</span>
                                 <CopyButton class="ml-auto" :value="audioCall?.remote_identity_hash" label="Remote Identity Hash"/>
                             </div>
-                            <div class="break-all text-xs text-gray-600">{{ audioCall?.remote_identity_hash || "Unknown" }}</div>
+                            <div class="ct-hash break-all text-xs text-[var(--ct-dim)]">{{ audioCall?.remote_identity_hash || "Unknown" }}</div>
                         </div>
 
                         <div class="mb-2">
-                            <div class="mb-1 flex items-center gap-1 text-sm font-medium text-gray-900">
+                            <div class="mb-1 flex items-center gap-1 text-sm font-medium text-[var(--ct-text)]">
                                 <span>Remote Destination Hash</span>
                                 <CopyButton class="ml-auto" :value="audioCall?.remote_destination_hash" label="Remote Destination Hash"/>
                             </div>
-                            <div class="break-all text-xs text-gray-600">{{ audioCall?.remote_destination_hash || "Unknown" }}</div>
+                            <div class="ct-hash break-all text-xs text-[var(--ct-dim)]">{{ audioCall?.remote_destination_hash || "Unknown" }}</div>
                         </div>
 
                         <div class="mb-2">
-                            <div class="mb-1 text-sm font-medium text-gray-900">Path</div>
-                            <div class="text-xs text-gray-600">
+                            <div class="mb-1 text-sm font-medium text-[var(--ct-text)]">Path</div>
+                            <div class="text-xs text-[var(--ct-dim)]">
                                 <span v-if="audioCall?.path">{{ audioCall.path.hops }} {{ audioCall.path.hops === 1 ? 'hop' : 'hops' }} away via {{ audioCall.path.next_hop_interface }}</span>
                                 <span v-else>Unknown</span>
                             </div>
                         </div>
 
                         <div class="mb-2">
-                            <div class="mb-1 text-sm font-medium text-gray-900">TX Bytes</div>
-                            <div class="text-xs text-gray-600">{{ formatBytes(txBytes) }}</div>
+                            <div class="mb-1 text-sm font-medium text-[var(--ct-text)]">TX Bytes</div>
+                            <div class="text-xs text-[var(--ct-dim)]">{{ formatBytes(txBytes) }}</div>
                         </div>
 
                         <div class="mb-2">
-                            <div class="mb-1 text-sm font-medium text-gray-900">RX Bytes</div>
-                            <div class="text-xs text-gray-600">{{ formatBytes(rxBytes) }}</div>
+                            <div class="mb-1 text-sm font-medium text-[var(--ct-text)]">RX Bytes</div>
+                            <div class="text-xs text-[var(--ct-dim)]">{{ formatBytes(rxBytes) }}</div>
                         </div>
 
                         <div class="mb-2">
-                            <div class="mb-1 text-sm font-medium text-gray-900">Incoming Audio</div>
-                            <div class="text-xs text-gray-600">{{ remoteAudioCodec || "Unknown" }}</div>
+                            <div class="mb-1 text-sm font-medium text-[var(--ct-text)]">Incoming Audio</div>
+                            <div class="text-xs text-[var(--ct-dim)]">{{ remoteAudioCodec || "Unknown" }}</div>
                         </div>
 
                         <div>
-                            <div class="mb-1 text-sm font-medium text-gray-900">Outgoing Audio</div>
-                            <select v-model="codecMode" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                            <div class="mb-1 text-sm font-medium text-[var(--ct-text)]">Outgoing Audio</div>
+                            <select v-model="codecMode" class="block w-full rounded-lg border p-2.5 text-sm">
                                 <option value="MODE_3200">Codec2 3200</option>
                                 <option value="MODE_2400">Codec2 2400</option>
                                 <option value="MODE_1600">Codec2 1600</option>
@@ -78,7 +80,7 @@
                         </div>
 
                     </div>
-                    <div class="flex text-gray-900 p-2">
+                    <div class="flex p-2.5">
 
                         <!-- toggle mic -->
                         <button @click="isMicMuted = !isMicMuted" type="button" :class="[ isMicMuted ? 'bg-red-500 hover:bg-red-400 focus-visible:outline-red-500' : 'bg-gray-500 hover:bg-gray-400 focus-visible:outline-gray-500' ]" class="my-auto inline-flex items-center gap-x-1 rounded-full p-2 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">
@@ -125,34 +127,34 @@
             <div v-else class="w-full space-y-2">
 
                 <!-- dialer -->
-                <div class="border rounded-xl bg-white shadow w-full overflow-hidden dark:border-zinc-900">
-                    <div class="flex border-b border-gray-300 text-gray-700 p-2 dark:bg-zinc-800 dark:text-white">
+                <div class="ct-card w-full overflow-hidden rounded-xl">
+                    <div class="flex border-b border-[var(--ct-border)] p-2.5 font-semibold text-[var(--ct-text)]">
                         <div class="my-auto mr-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 dark:text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
                             </svg>
                         </div>
                         <div class="my-auto">Start a new Call</div>
                     </div>
-                    <div class="flex border-b border-gray-300 text-gray-900 p-2 space-x-2 dark:bg-zinc-700 dark:text-zinc-100 dark:border-zinc-800">
+                    <div class="flex space-x-2 border-b border-[var(--ct-border)] p-2.5">
                         <div class="flex-1">
-                            <input v-model="destinationHash" type="text" placeholder="Enter Destination Hash" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100">
+                            <input v-model="destinationHash" type="text" placeholder="Enter Destination Hash" class="ct-hash block w-full rounded-lg border p-2">
                         </div>
-                        <button @click="initiateCall(destinationHash)" :disabled="isInitiatingCall" type="button" :class="[ isInitiatingCall ? 'bg-gray-400 focus-visible:outline-gray-500' : 'bg-green-500 hover:bg-green-400 focus-visible:outline-green-500' ]" class="my-auto inline-flex items-center gap-x-1 rounded-md p-2 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">
+                        <button @click="initiateCall(destinationHash)" :disabled="isInitiatingCall" type="button" :class="[ isInitiatingCall ? 'cursor-not-allowed bg-[rgba(255,255,255,0.12)] text-[var(--ct-dim)]' : 'bg-emerald-600 hover:bg-emerald-500' ]" class="my-auto inline-flex items-center gap-x-1 rounded-lg p-2 text-sm font-semibold text-white transition">
                         <span v-if="isInitiatingCall">
                             <span>Calling...</span>
                         </span>
                             <span v-else>Initiate Call</span>
                         </button>
                     </div>
-                    <div class="flex p-1 dark:bg-zinc-700 dark:border-zinc-600">
-                        <div>
-                            <div class='dark:text-white'>My Destination Hash</div>
-                            <div class="text-sm text-gray-700 dark:text-zinc-100">{{ myAudioCallAddressHash || "Unknown" }}</div>
+                    <div class="flex p-2.5">
+                        <div class="min-w-0">
+                            <div class="text-sm font-medium text-[var(--ct-text)]">My Destination Hash</div>
+                            <div class="ct-hash break-all text-xs text-[var(--ct-dim)]">{{ myAudioCallAddressHash || "Unknown" }}</div>
                         </div>
                         <div class="ml-auto my-auto mr-1">
                             <a @click="announce" href="javascript:void(0)" class="rounded-full">
-                                <div class="flex text-gray-700 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-full">
+                                <div class="flex rounded-full bg-[rgba(255,255,255,0.08)] px-2 py-1 text-[var(--ct-muted)] transition hover:bg-[rgba(255,255,255,0.14)] hover:text-[var(--ct-text)]">
                                     <div>
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M8.288 15.038a5.25 5.25 0 0 1 7.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 0 1 1.06 0Z" />
@@ -166,8 +168,8 @@
                 </div>
 
                 <!-- active calls -->
-                <div v-if="activeAudioCalls.length > 0" class="border rounded-xl bg-white shadow w-full overflow-hidden  dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100">
-                    <div class="flex border-b border-gray-300 text-gray-700 p-2 dark:text-zinc-100">
+                <div v-if="activeAudioCalls.length > 0" class="ct-card w-full overflow-hidden rounded-xl text-[var(--ct-muted)]">
+                    <div class="flex border-b border-[var(--ct-border)] p-2.5 font-semibold text-[var(--ct-text)]">
                         <div class="my-auto mr-2">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
@@ -175,10 +177,10 @@
                         </div>
                         <div class="my-auto">Active Calls</div>
                     </div>
-                    <div class="divide-y">
-                        <div v-for="audioCall in activeAudioCalls" class="flex p-2">
+                    <div class="divide-y divide-[var(--ct-border)]">
+                        <div v-for="audioCall in activeAudioCalls" class="flex p-2.5">
                             <div class="mr-2 my-auto">
-                                <div class="bg-gray-100 p-2 rounded-full">
+                                <div class="rounded-full bg-[rgba(255,255,255,0.08)] p-2">
                                     <svg v-if="audioCall.is_outbound" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
                                         <path d="M3.5 2A1.5 1.5 0 0 0 2 3.5V5c0 1.149.15 2.263.43 3.326a13.022 13.022 0 0 0 9.244 9.244c1.063.28 2.177.43 3.326.43h1.5a1.5 1.5 0 0 0 1.5-1.5v-1.148a1.5 1.5 0 0 0-1.175-1.465l-3.223-.716a1.5 1.5 0 0 0-1.767 1.052l-.267.933c-.117.41-.555.643-.95.48a11.542 11.542 0 0 1-6.254-6.254c-.163-.395.07-.833.48-.95l.933-.267a1.5 1.5 0 0 0 1.052-1.767l-.716-3.223A1.5 1.5 0 0 0 4.648 2H3.5ZM16.5 4.56l-3.22 3.22a.75.75 0 1 1-1.06-1.06l3.22-3.22h-2.69a.75.75 0 0 1 0-1.5h4.5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0V4.56Z" />
                                     </svg>
@@ -192,7 +194,7 @@
                                     <span class="min-w-0 break-all">{{ audioCall.remote_destination_hash || "Unknown" }}</span>
                                     <CopyButton :value="audioCall.remote_destination_hash" label="Remote Destination Hash"/>
                                 </div>
-                                <div class="text-sm text-gray-500 dark:text-zinc-100">
+                                <div class="text-sm text-[var(--ct-dim)]">
                                     <span v-if="audioCall.is_outbound">Outgoing Call...</span>
                                     <span v-else>Incoming Call...</span>
                                 </div>
@@ -219,8 +221,8 @@
                 </div>
 
                 <!-- call history -->
-                <div v-if="inactiveAudioCalls.length > 0" class="border rounded-xl bg-white shadow w-full overflow-hidden dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100">
-                    <div class="flex border-b border-gray-300 text-gray-700 p-2">
+                <div v-if="inactiveAudioCalls.length > 0" class="ct-card w-full overflow-hidden rounded-xl text-[var(--ct-muted)]">
+                    <div class="flex border-b border-[var(--ct-border)] p-2.5 font-semibold text-[var(--ct-text)]">
                         <div class="my-auto mr-2">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
@@ -228,15 +230,15 @@
                         </div>
                         <div class="my-auto">Call History</div>
                         <div class="ml-auto">
-                            <button @click="clearCallHistory" type="button" class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 px-2 py-1 text-sm font-semibold text-white shadow-sm hover:bg-gray-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500">
+                            <button @click="clearCallHistory" type="button" class="ct-secondary-button my-auto inline-flex items-center gap-x-1 rounded-lg px-2.5 py-1 text-sm font-semibold">
                                 Clear All
                             </button>
                         </div>
                     </div>
-                    <div class="divide-y">
-                        <div v-for="audioCall in inactiveAudioCalls" class="group flex p-2">
+                    <div class="divide-y divide-[var(--ct-border)]">
+                        <div v-for="audioCall in inactiveAudioCalls" class="group flex p-2.5">
                             <div class="mr-2 my-auto">
-                                <div class="bg-gray-100 p-2 rounded-full">
+                                <div class="rounded-full bg-[rgba(255,255,255,0.08)] p-2">
                                     <svg v-if="audioCall.is_outbound" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
                                         <path d="M3.5 2A1.5 1.5 0 0 0 2 3.5V5c0 1.149.15 2.263.43 3.326a13.022 13.022 0 0 0 9.244 9.244c1.063.28 2.177.43 3.326.43h1.5a1.5 1.5 0 0 0 1.5-1.5v-1.148a1.5 1.5 0 0 0-1.175-1.465l-3.223-.716a1.5 1.5 0 0 0-1.767 1.052l-.267.933c-.117.41-.555.643-.95.48a11.542 11.542 0 0 1-6.254-6.254c-.163-.395.07-.833.48-.95l.933-.267a1.5 1.5 0 0 0 1.052-1.767l-.716-3.223A1.5 1.5 0 0 0 4.648 2H3.5ZM16.5 4.56l-3.22 3.22a.75.75 0 1 1-1.06-1.06l3.22-3.22h-2.69a.75.75 0 0 1 0-1.5h4.5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0V4.56Z" />
                                     </svg>
@@ -250,7 +252,7 @@
                                     <span class="min-w-0 break-all">Destination: {{ audioCall.remote_destination_hash || "Unknown" }}</span>
                                     <CopyButton :value="audioCall.remote_destination_hash" label="Remote Destination Hash"/>
                                 </div>
-                                <div class="flex items-center gap-1 text-sm text-gray-500">
+                                <div class="flex items-center gap-1 text-sm text-[var(--ct-dim)]">
                                     <span class="min-w-0 break-all">Call Hash: {{ audioCall.hash }}</span>
                                     <CopyButton :value="audioCall.hash" label="Call Hash"/>
                                 </div>
@@ -258,7 +260,7 @@
                             <div class="hidden group-hover:flex space-x-2 ml-auto my-auto mx-2">
 
                                 <!-- delete call -->
-                                <button @click="deleteCall(audioCall.hash)" type="button" class="my-auto inline-flex items-center gap-x-1 rounded-full bg-gray-100 p-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500">
+                                <button @click="deleteCall(audioCall.hash)" type="button" class="my-auto inline-flex items-center gap-x-1 rounded-full bg-[rgba(255,255,255,0.08)] p-2 text-sm font-semibold text-[var(--ct-muted)] transition hover:bg-[rgba(255,59,87,0.2)] hover:text-[var(--ct-red)]">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
                                         <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
                                     </svg>
@@ -279,10 +281,14 @@
 import protobuf from "protobufjs";
 import DialogUtils from "../../js/DialogUtils";
 import CopyButton from "../CopyButton.vue";
+import ModalHost from "../overlays/ModalHost.vue";
+import ToastHost from "../overlays/ToastHost.vue";
 export default {
     name: 'CallPage',
     components: {
         CopyButton,
+        ModalHost,
+        ToastHost,
     },
     data() {
         return {
@@ -345,13 +351,13 @@ export default {
             // do nothing if already initiating call
             // todo: support cancelling in progress call initiation
             if(this.isInitiatingCall){
-                alert("Call is already initiating...");
+                DialogUtils.toast("A call is already being started", "info");
                 return;
             }
 
             // make sure call hash provided
             if(!destinationHash) {
-                alert("Enter destination hash to call.");
+                DialogUtils.toast("Enter a destination hash to call", "error");
                 return;
             }
 
@@ -378,8 +384,8 @@ export default {
                 console.log(e);
 
                 // show error message from response, or fallback to default
-                const message = e.response?.data?.message ?? "failed to initiate call";
-                alert(message);
+                const message = e.response?.data?.message ?? "Failed to start the call";
+                DialogUtils.toast(message, "error");
 
             } finally {
                 // hide loading
@@ -511,7 +517,7 @@ export default {
         async hangupCall(callHash) {
 
             // confirm user wants to hang up call
-            if(!await DialogUtils.confirm("Are you sure you want to hang up this call?")){
+            if(!await DialogUtils.confirm("Hang up this call?", { title: "Hang Up", confirmLabel: "Hang Up", danger: true })){
                 return;
             }
 
@@ -595,7 +601,7 @@ export default {
                 this.mediaStreamSource.connect(this.audioWorkletNode);
 
             } catch(e) {
-                alert(e);
+                DialogUtils.toast(`Microphone error: ${e}`, "error");
                 console.log(e);
             }
         },
@@ -704,7 +710,7 @@ export default {
         async deleteCall(callHash) {
 
             // confirm user wants to delete call
-            if(!await DialogUtils.confirm("Are you sure you want to delete this call?")){
+            if(!await DialogUtils.confirm("Delete this call from your history?", { title: "Delete Call", confirmLabel: "Delete", danger: true })){
                 return;
             }
 
@@ -724,7 +730,7 @@ export default {
         async clearCallHistory() {
 
             // confirm user wants to clear call history
-            if(!await DialogUtils.confirm("Are you sure you want to clear your call history?")){
+            if(!await DialogUtils.confirm("Clear your entire call history?", { title: "Clear Call History", confirmLabel: "Clear All", danger: true })){
                 return;
             }
 
@@ -745,7 +751,7 @@ export default {
             try {
                 await window.axios.get(`/api/v1/announce`);
             } catch(e) {
-                alert("failed to announce");
+                DialogUtils.toast("Failed to announce", "error");
                 console.log(e);
             }
         },

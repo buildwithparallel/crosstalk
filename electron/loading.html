@@ -4,31 +4,102 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <title>Crosstalk</title>
-    <script src="./assets/js/tailwindcss/tailwind-v3.4.3-forms-v0.5.7.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        body {
+            display: grid;
+            place-items: center;
+            color: #f7f8ff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background:
+                radial-gradient(circle at 50% 43%, rgba(0, 97, 253, 0.13), transparent 24rem),
+                linear-gradient(145deg, #0c101a, #07080d 70%);
+        }
+
+        .splash {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transform: translateY(-12px);
+        }
+
+        .logo {
+            width: 104px;
+            height: 104px;
+            object-fit: contain;
+            filter: drop-shadow(0 10px 30px rgba(0, 97, 253, 0.34));
+        }
+
+        .title {
+            margin-top: 18px;
+            font-size: 25px;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        .tagline {
+            margin-top: 5px;
+            color: #8b8fa8;
+            font-size: 14px;
+        }
+
+        .version {
+            margin-top: 8px;
+            color: #555a70;
+            font-size: 11px;
+            letter-spacing: 0.08em;
+        }
+
+        .loader {
+            position: relative;
+            width: 28px;
+            height: 28px;
+            margin-top: 28px;
+        }
+
+        .loader::before,
+        .loader::after {
+            position: absolute;
+            inset: 0;
+            border-radius: 999px;
+            content: "";
+        }
+
+        .loader::before {
+            border: 2px solid rgba(110, 168, 255, 0.15);
+        }
+
+        .loader::after {
+            border: 2px solid transparent;
+            border-top-color: #2f7fff;
+            animation: spin 0.8s linear infinite;
+            filter: drop-shadow(0 0 5px rgba(0, 97, 253, 0.65));
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
 </head>
-<body class="bg-gray-100 flex">
+<body>
 
-<div class="flex flex-col mx-auto my-auto">
-
-    <!-- logo -->
-    <div class="mx-auto my-auto">
-        <img class="w-24 h-24" src="./assets/images/logo.png"/>
-    </div>
-
-    <!-- about -->
-    <div class="mx-auto text-center mb-2">
-        <div class="font-bold">Crosstalk</div>
-        <div class="text-sm"><span id="app-version"></span> Reticulum mesh messaging</div>
-    </div>
-
-    <!-- loading spinner -->
-    <div class="mx-auto">
-        <svg class="animate-spin h-6 w-6 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-    </div>
-
+<div class="splash">
+    <img class="logo" src="./assets/images/crosstalk-mark.svg" alt="Crosstalk"/>
+    <div class="title">Crosstalk</div>
+    <div class="tagline">Talk to the World</div>
+    <div id="app-version" class="version"></div>
+    <div class="loader" aria-label="Starting Crosstalk"></div>
 </div>
 
 <script>
@@ -38,7 +109,7 @@
 
     async function showAppVersion() {
         const appVersion = await window.electron.appVersion();
-        document.getElementById("app-version").innerText = "v" + appVersion;
+        document.getElementById("app-version").innerText = "VERSION " + appVersion;
     }
 
     async function check() {
