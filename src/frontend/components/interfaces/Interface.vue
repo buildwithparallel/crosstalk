@@ -1,8 +1,8 @@
 <template>
-    <div class="ct-card ct-card-hover overflow-hidden" :class="{ 'opacity-70': !isInterfaceEnabled(iface) }">
+    <div class="ct-card ct-card-hover overflow-visible" :class="{ 'opacity-70': !isInterfaceEnabled(iface) }">
 
         <!-- IFAC info -->
-        <div v-if="iface._stats?.ifac_signature != null" class="border-b border-[var(--ct-border)] bg-[rgba(46,231,129,0.04)] p-1.5 text-sm text-[var(--ct-dim)] space-x-1">
+        <div v-if="iface._stats?.ifac_signature != null" class="rounded-t-[var(--ct-radius)] border-b border-[var(--ct-border)] bg-[rgba(46,231,129,0.04)] p-1.5 text-sm text-[var(--ct-dim)] space-x-1">
             <div class="flex min-w-0 items-center gap-1 text-sm">
                 <div class="my-auto">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4 text-green-500">
@@ -198,7 +198,7 @@
 
         </div>
 
-        <div class="flex flex-wrap items-center gap-x-1 border-t border-[var(--ct-border)] bg-[rgba(0,0,0,0.25)] p-1.5 text-sm text-[var(--ct-dim)]">
+        <div class="flex flex-wrap items-center gap-x-1 rounded-b-[var(--ct-radius)] border-t border-[var(--ct-border)] bg-[rgba(0,0,0,0.25)] p-1.5 text-sm text-[var(--ct-dim)]">
 
             <!-- status -->
             <div v-if="isInterfaceEnabled(iface) && iface._stats?.status === true" class="flex items-center gap-x-1.5 text-sm text-[#5df2a4]">

@@ -5,7 +5,7 @@
             <!-- page header -->
             <div class="flex flex-wrap items-center gap-2">
                 <div class="mr-auto">
-                    <div class="text-lg font-bold text-[var(--ct-text)]">Connections</div>
+                    <div class="text-lg font-bold text-[var(--ct-text)]">Network Interfaces</div>
                     <div class="text-sm text-[var(--ct-dim)]">Ways this device connects to the Reticulum network.</div>
                 </div>
 
@@ -31,7 +31,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                         </svg>
-                        <span>Add Connection</span>
+                        <span>Add Interface</span>
                     </button>
                 </RouterLink>
 

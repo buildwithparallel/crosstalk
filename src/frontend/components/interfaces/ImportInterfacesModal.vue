@@ -5,7 +5,7 @@
 
                 <!-- title -->
                 <div class="border-b border-[var(--ct-border)] p-4">
-                    <h3 class="text-lg font-semibold text-[var(--ct-text)]">Import Connections</h3>
+                    <h3 class="text-lg font-semibold text-[var(--ct-text)]">Import Interfaces</h3>
                 </div>
 
                 <!-- content -->
@@ -18,8 +18,8 @@
                         </div>
                         <div v-if="!selectedFile" class="mt-2 text-sm text-[var(--ct-dim)]">
                             <ul class="list-disc list-inside">
-                                <li>You can import connections from a ~/.reticulum/config file.</li>
-                                <li>You can import connections from an exported interfaces file.</li>
+                                <li>You can import interfaces from a ~/.reticulum/config file.</li>
+                                <li>You can import interfaces from an exported interfaces file.</li>
                             </ul>
                         </div>
                     </div>
@@ -27,7 +27,7 @@
                     <!-- select interfaces -->
                     <div v-if="importableInterfaces.length > 0" class="divide-y divide-[var(--ct-border)]">
                         <div class="flex p-3">
-                            <div class="my-auto mr-auto text-sm font-medium text-[var(--ct-text)]">Select Connections to Import</div>
+                            <div class="my-auto mr-auto text-sm font-medium text-[var(--ct-text)]">Select Interfaces to Import</div>
                             <div class="my-auto space-x-2">
                                 <button @click="selectAllInterfaces" class="text-sm text-[#7db0ff] hover:underline">Select All</button>
                                 <button @click="deselectAllInterfaces" class="text-sm text-[#7db0ff] hover:underline">Deselect All</button>
@@ -157,7 +157,7 @@ export default {
                 // ensure there are some interfaces available to import
                 if(!response.data.interfaces || response.data.interfaces.length === 0){
                     this.clearSelectedFile();
-                    DialogUtils.toast("No connections were found in the selected configuration file", "error");
+                    DialogUtils.toast("No interfaces were found in the selected configuration file", "error");
                     return;
                 }
 
@@ -209,7 +209,7 @@ export default {
 
             // ensure user selected some interfaces
             if(this.selectedInterfaces.length === 0){
-                DialogUtils.toast("Select at least one connection to import", "error");
+                DialogUtils.toast("Select at least one interface to import", "error");
                 return;
             }
 
@@ -228,7 +228,7 @@ export default {
                 return;
 
             } catch(e) {
-                const message = e.response?.data?.message || "Failed to import connections";
+                const message = e.response?.data?.message || "Failed to import interfaces";
                 DialogUtils.toast(message, "error");
                 console.error(e);
             }

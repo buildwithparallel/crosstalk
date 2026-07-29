@@ -6,18 +6,25 @@
             <slot name="button"/>
         </div>
 
-        <!-- drop down menu -->
-        <Transition
-            enter-active-class="transition ease-out duration-100"
-            enter-from-class="transform opacity-0 scale-95"
-            enter-to-class="transform opacity-100 scale-100"
-            leave-active-class="transition ease-in duration-75"
-            leave-from-class="transform opacity-100 scale-100"
-            leave-to-class="transform opacity-0 scale-95">
-            <div v-if="isShowingMenu" @click.stop="hideMenu" class="ct-panel absolute right-0 z-10 mr-4 w-56 overflow-hidden rounded-lg border border-[var(--ct-border)] focus:outline-none" :class="[ dropdownClass ]">
-                <slot name="items"/>
-            </div>
-        </Transition>
+        <!-- Render the menu at the document level so cards and scrolling panes cannot clip it. -->
+        <Teleport to="body">
+            <Transition
+                enter-active-class="transition ease-out duration-100"
+                enter-from-class="transform opacity-0 scale-95"
+                enter-to-class="transform opacity-100 scale-100"
+                leave-active-class="transition ease-in duration-75"
+                leave-from-class="transform opacity-100 scale-100"
+                leave-to-class="transform opacity-0 scale-95">
+                <div
+                    v-if="isShowingMenu"
+                    ref="dropdown-menu"
+                    @click.stop="hideMenu"
+                    class="ct-panel fixed z-50 w-56 overflow-hidden rounded-lg border border-[var(--ct-border)] focus:outline-none"
+                    :style="dropdownStyle">
+                    <slot name="items"/>
+                </div>
+            </Transition>
+        </Teleport>
 
     </div>
 </template>
@@ -28,8 +35,13 @@ export default {
     data() {
         return {
             isShowingMenu: false,
-            dropdownClass: null,
+            dropdownStyle: {
+                visibility: "hidden",
+            },
         };
+    },
+    beforeUnmount() {
+        this.removeViewportListeners();
     },
     methods: {
         toggleMenu() {
@@ -40,24 +52,41 @@ export default {
             }
         },
         showMenu() {
+            this.dropdownStyle = {
+                visibility: "hidden",
+            };
             this.isShowingMenu = true;
             this.adjustDropdownPosition();
+            this.addViewportListeners();
         },
         hideMenu() {
             this.isShowingMenu = false;
+            this.removeViewportListeners();
         },
         onClickOutsideMenu(event) {
             if(this.isShowingMenu){
+                const dropdown = this.$refs["dropdown-menu"];
+                if(dropdown && dropdown.contains(event.target)){
+                    return;
+                }
                 event.preventDefault();
                 this.hideMenu();
             }
+        },
+        addViewportListeners() {
+            window.addEventListener("resize", this.adjustDropdownPosition);
+            window.addEventListener("scroll", this.adjustDropdownPosition, true);
+        },
+        removeViewportListeners() {
+            window.removeEventListener("resize", this.adjustDropdownPosition);
+            window.removeEventListener("scroll", this.adjustDropdownPosition, true);
         },
         adjustDropdownPosition() {
             this.$nextTick(() => {
 
                 // find button and dropdown
                 const button = this.$refs["dropdown-button"];
-                const dropdown = button.nextElementSibling;
+                const dropdown = this.$refs["dropdown-menu"];
 
                 // do nothing if not found
                 if(!button || !dropdown){
@@ -72,19 +101,29 @@ export default {
                 const spaceBelowButton = window.innerHeight - buttonRect.bottom;
                 const spaceAboveButton = buttonRect.top;
 
-                // calculate if there is enough space available to show dropdown
-                const hasEnoughSpaceAboveButton = spaceAboveButton > dropdownRect.height;
-                const hasEnoughSpaceBelowButton = spaceBelowButton > dropdownRect.height;
+                const gap = 8;
+                const viewportPadding = 8;
+                const requiredHeight = dropdownRect.height + gap;
+                const openAbove = spaceAboveButton >= requiredHeight
+                    && spaceBelowButton < requiredHeight;
 
-                // show dropdown above button
-                if(hasEnoughSpaceAboveButton && !hasEnoughSpaceBelowButton){
-                    this.dropdownClass = "bottom-0 mb-12";
-                    return;
-                }
+                // Prefer below the button, then flip above when the lower viewport is too short.
+                const desiredTop = openAbove
+                    ? buttonRect.top - dropdownRect.height - gap
+                    : buttonRect.bottom + gap;
+                const maxTop = Math.max(viewportPadding, window.innerHeight - dropdownRect.height - viewportPadding);
+                const top = Math.min(Math.max(desiredTop, viewportPadding), maxTop);
 
-                // otherwise fallback to showing dropdown below button
-                this.dropdownClass = "top-0 mt-12";
+                // Align the right edges and keep the menu inside the viewport.
+                const desiredLeft = buttonRect.right - dropdownRect.width;
+                const maxLeft = Math.max(viewportPadding, window.innerWidth - dropdownRect.width - viewportPadding);
+                const left = Math.min(Math.max(desiredLeft, viewportPadding), maxLeft);
 
+                this.dropdownStyle = {
+                    left: `${Math.round(left)}px`,
+                    top: `${Math.round(top)}px`,
+                    visibility: "visible",
+                };
             });
         },
     },

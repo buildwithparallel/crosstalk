@@ -4,20 +4,20 @@
 
             <!-- page header -->
             <div class="flex items-center gap-x-2">
-                <RouterLink :to="{ name: 'interfaces' }" class="flex rounded-md p-1.5 text-[var(--ct-muted)] transition hover:bg-[rgba(255,255,255,0.08)] hover:text-[var(--ct-text)]" title="Back to Connections">
+                <RouterLink :to="{ name: 'interfaces' }" class="flex rounded-md p-1.5 text-[var(--ct-muted)] transition hover:bg-[rgba(255,255,255,0.08)] hover:text-[var(--ct-text)]" title="Back to Network Interfaces">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
                         <path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clip-rule="evenodd" />
                     </svg>
                 </RouterLink>
                 <div>
                     <div class="text-lg font-bold text-[var(--ct-text)]">
-                        <span v-if="isEditingInterface">Edit Connection</span>
-                        <span v-else>Add Connection</span>
+                        <span v-if="isEditingInterface">Edit Interface</span>
+                        <span v-else>Add Interface</span>
                     </div>
                     <div class="text-sm text-[var(--ct-dim)]">
                         <span v-if="isEditingInterface">Update how this device connects to the network.</span>
                         <span v-else-if="newInterfaceType == null">Choose how you want to connect to the Reticulum network.</span>
-                        <span v-else>Fill in the details for this connection.</span>
+                        <span v-else>Fill in the details for this interface.</span>
                     </div>
                 </div>
             </div>
@@ -99,7 +99,7 @@
                                v-model="newInterfaceName"
                                class="block w-full rounded-lg border p-2.5 text-sm"
                                :class="{ 'cursor-not-allowed opacity-60': isEditingInterface }">
-                        <FormSubLabel>Connection names must be unique.</FormSubLabel>
+                        <FormSubLabel>Interface names must be unique.</FormSubLabel>
                     </div>
 
                     <div v-if="newInterfaceType === 'PublicBackboneInterface'" class="rounded-lg border border-[rgba(110,168,255,0.34)] bg-[rgba(0,97,253,0.09)] p-3 text-sm text-[var(--ct-text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
@@ -281,7 +281,7 @@
                         <div class="flex-1">
                             <FormLabel class="mb-1">Coding Rate</FormLabel>
                             <select v-model="newInterfaceCodingRate" class="block w-full rounded-lg border p-2.5 text-sm">
-                                <option v-for="codingrate in RNodeInterfaceDefaults.codingrates" :value="codingrate">{{ codingrate }}</option>
+                                <option v-for="codingrate in RNodeInterfaceDefaults.codingrates" :value="codingrate">{{ codingrate }} (LoRa 4/{{ codingrate }})</option>
                             </select>
                         </div>
 
@@ -337,7 +337,7 @@
                                     <div class="flex-1">
                                         <FormLabel class="mb-1">Coding Rate</FormLabel>
                                         <select v-model.number="sub.codingrate" class="w-full rounded-lg border p-2.5 text-sm">
-                                            <option :key="cr" v-for="cr in RNodeInterfaceDefaults.codingrates" :value="cr">{{ cr }}</option>
+                                            <option :key="cr" v-for="cr in RNodeInterfaceDefaults.codingrates" :value="cr">{{ cr }} (LoRa 4/{{ cr }})</option>
                                         </select>
                                     </div>
                                 </div>
@@ -838,7 +838,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
                         <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                     </svg>
-                    <span>Save Connection</span>
+                    <span>Save Interface</span>
                 </button>
             </div>
 
@@ -1326,7 +1326,7 @@ export default {
                 return;
 
             } catch (e) {
-                const message = e.response?.data?.message ?? "Failed to save connection.";
+                const message = e.response?.data?.message ?? "Failed to save interface.";
                 DialogUtils.alert(message, { title: "Could Not Save" });
                 console.log(e);
             }

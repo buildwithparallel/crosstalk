@@ -8,10 +8,10 @@
                 <div class="max-w-4xl">
                     <h1 class="font-semibold text-blue-100">Nearby Reticulum infrastructure</h1>
                     <p class="mt-1 text-sm leading-5 text-[var(--ct-muted)]">
-                        This tab shows signed advertisements from routers, transport relays, gateways and radio access points that help move Reticulum traffic but do not provide an LXMF messaging contact. Devices that also announce an LXMF delivery address appear under Messages instead and are excluded here.
+                        Some Reticulum devices exist only to relay network traffic. They do not have an LXMF delivery address, so you cannot message them and they do not appear in Contacts. Crosstalk classifies these relay-only devices—including routers, transport nodes, gateways and radio access points—as infrastructure. You can observe them here.
                     </p>
                     <p class="mt-1 text-sm leading-5 text-[var(--ct-muted)]">
-                        Use this view to understand what network infrastructure is around you, how many hops away it is, whether it can transport traffic, whether its radio settings are compatible, and when Crosstalk last heard it. This is an infrastructure map—not a contacts list.
+                        This view shows which infrastructure devices are visible to Crosstalk, how many hops away they are, their transport and radio details, and when they were last heard. Devices that can receive LXMF messages appear in Contacts instead.
                     </p>
                 </div>
             </div>
@@ -42,7 +42,14 @@
             <div v-if="filteredInterfaces.length" class="grid grid-cols-1 gap-2 p-2 xl:grid-cols-2">
                 <article v-for="iface in filteredInterfaces" :key="iface.discovery_hash" class="ct-elevated-surface overflow-hidden rounded-lg border border-[var(--ct-border)]">
                     <div class="flex items-start gap-3 p-3">
-                        <span class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full" :class="statusDotClass(iface.status)"></span>
+                        <div class="relative shrink-0">
+                            <img
+                                :src="infrastructureIconDataUri(iface)"
+                                :alt="`${friendlyType(iface.type)} icon`"
+                                class="size-11 rounded-xl border border-white/15 shadow-lg"
+                            >
+                            <span class="absolute -bottom-1 -right-1 h-3 w-3 rounded-full ring-2 ring-[#11131c]" :class="statusDotClass(iface.status)"></span>
+                        </div>
                         <div class="min-w-0 flex-1">
                             <div class="flex flex-wrap items-center gap-2">
                                 <h2 class="break-all font-semibold text-[var(--ct-text)]">{{ iface.name || "Unnamed infrastructure" }}</h2>
@@ -122,6 +129,7 @@
 
 <script>
 import Utils from "../../js/Utils";
+import { infrastructureIconDataUri } from "../../js/InfrastructureIcons";
 import CopyButton from "../CopyButton.vue";
 
 export default {
@@ -142,6 +150,7 @@ export default {
         clearInterval(this.refreshInterval);
     },
     methods: {
+        infrastructureIconDataUri,
         async loadInfrastructure() {
             try {
                 const response = await window.axios.get("/api/v1/discovered-interfaces");

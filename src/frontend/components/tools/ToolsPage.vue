@@ -4,7 +4,7 @@
 
             <!-- page header -->
             <div>
-                <div class="text-lg font-bold text-[var(--ct-text)]">Tools</div>
+                <div class="text-lg font-bold text-[var(--ct-text)]">Diagnostics</div>
                 <div class="text-sm text-[var(--ct-dim)]">Useful utilities for testing and diagnosing your network.</div>
             </div>
 

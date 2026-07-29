@@ -1,50 +1,128 @@
 <template>
-    <div class="flex-1 h-full min-w-full sm:min-w-[500px] relative bg-[rgba(5,6,10,0.86)]">
+    <div class="network-map relative h-full min-w-full flex-1 overflow-hidden sm:min-w-[500px]">
+        <div class="network-map-grid pointer-events-none absolute inset-0"></div>
+
         <!-- network -->
-        <div id="network" class="w-full h-full"></div>
-        <!-- controls -->
-        <div class="absolute flex bottom-0 left-0 p-2">
-            <div class="ct-elevated-surface rounded-lg min-w-52 overflow-hidden">
-                <div @click="isShowingControls = !isShowingControls" class="flex text-[var(--ct-muted)] p-2 cursor-pointer">
-                    <div class="my-auto">Reticulum Network</div>
-                    <div class="flex ml-auto">
-                        <button 
-                            @click.stop="update" 
-                            type="button" 
-                            class="my-auto inline-flex items-center gap-x-1 rounded-md ct-secondary-button px-1 py-0.5 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5 text-white">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-                            </svg>
-                        </button>
+        <div id="network" class="relative z-0 h-full w-full"></div>
+
+        <!-- title, status and controls -->
+        <div class="pointer-events-none absolute inset-x-0 top-0 z-10 p-3">
+            <div class="network-toolbar pointer-events-auto mx-auto flex max-w-6xl flex-wrap items-center gap-3 rounded-2xl border border-white/10 px-3 py-2.5 shadow-2xl">
+                <div class="flex min-w-52 items-center gap-2.5">
+                    <div class="flex size-9 shrink-0 items-center justify-center rounded-xl border border-blue-400/25 bg-blue-500/10 text-[#7db0ff] shadow-[0_0_24px_rgba(0,97,253,0.16)]">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor" class="size-5">
+                            <path d="M200,152a31.84,31.84,0,0,0-19.53,6.68l-23.11-18A31.65,31.65,0,0,0,160,128c0-.74,0-1.48-.08-2.21l13.23-4.41A32,32,0,1,0,168,104c0,.74,0,1.48.08,2.21l-13.23,4.41A32,32,0,0,0,128,96a32.59,32.59,0,0,0-5.27.44L115.89,81A32,32,0,1,0,96,88a32.59,32.59,0,0,0,5.27-.44l6.84,15.4a31.92,31.92,0,0,0-8.57,39.64L73.83,165.44a32.06,32.06,0,1,0,10.63,12l25.71-22.84a31.91,31.91,0,0,0,37.36-1.24l23.11,18A31.65,31.65,0,0,0,168,184a32,32,0,1,0,32-32Z"/>
+                        </svg>
                     </div>
-                </div>
-                <div v-if="isShowingControls" class="divide-y divide-[var(--ct-border)] text-[var(--ct-text)] border-t border-[var(--ct-border)]">
-                    <div class="px-1 py-2">
-                        <div class="flex items-start">
-                            <div class="flex items-center h-5">
-                                <input 
-                                    v-model="autoReload" 
-                                    type="checkbox" 
-                                    class="w-4 h-4 border border-[var(--ct-border-strong)] rounded bg-[rgba(255,255,255,0.06)] focus:ring-3 focus:ring-blue-800"
-                                >
-                            </div>
-                            <label class="ml-2 text-sm font-medium text-[var(--ct-text)]">Auto Update (5 sec)</label>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-sm font-bold tracking-wide text-[var(--ct-text)]">Network Map</h1>
+                            <span class="inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-300">
+                                <span class="size-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.8)]"></span>
+                                Live
+                            </span>
                         </div>
-                    </div>
-                    <div class="p-2">
-                        <div class="text-sm font-medium text-[var(--ct-text)]">Connections</div>
-                        <div class="text-sm text-[var(--ct-muted)]">{{ onlineInterfaces.length }} Online, {{ offlineInterfaces.length }} Offline</div>
-                    </div>
-                    <div class="space-y-1 p-2 text-xs text-[var(--ct-muted)]">
-                        <div class="ct-section-label mb-1.5">Legend</div>
-                        <div class="flex items-center gap-2"><span class="size-2.5 rounded-full bg-[#2ee781] shadow-[0_0_8px_rgba(46,231,129,0.8)]"></span>Online connection</div>
-                        <div class="flex items-center gap-2"><span class="size-2.5 rounded-full bg-[#ff3b57]"></span>Offline connection</div>
-                        <div class="flex items-center gap-2"><span class="size-2.5 rounded-full bg-[#0061fd]"></span>Person (double-click to chat)</div>
-                        <div class="flex items-center gap-2"><span class="size-2.5 rounded-full bg-[#b779ff]"></span>Nomad node (double-click to browse)</div>
-                        <div class="flex items-center gap-2"><span class="size-2.5 rounded-full bg-[#52525b]"></span>Infrastructure</div>
+                        <div class="text-xs text-[var(--ct-dim)]">Reticulum topology visible to this device</div>
                     </div>
                 </div>
+
+                <div class="flex flex-1 flex-wrap items-center gap-1.5 md:justify-center">
+                    <div class="network-stat">
+                        <span class="size-1.5 rounded-full bg-[#2ee781]"></span>
+                        <strong>{{ onlineInterfaces.length }}</strong>
+                        <span>online</span>
+                    </div>
+                    <div v-if="offlineInterfaces.length > 0" class="network-stat">
+                        <span class="size-1.5 rounded-full bg-[#ff5c72]"></span>
+                        <strong>{{ offlineInterfaces.length }}</strong>
+                        <span>offline</span>
+                    </div>
+                    <div class="network-stat">
+                        <strong>{{ peopleCount }}</strong>
+                        <span>people</span>
+                    </div>
+                    <div class="network-stat">
+                        <strong>{{ nomadNodeCount }}</strong>
+                        <span>pages</span>
+                    </div>
+                    <div class="network-stat">
+                        <strong>{{ discoveredInterfaces.length }}</strong>
+                        <span>infrastructure</span>
+                    </div>
+                </div>
+
+                <div class="ml-auto flex items-center gap-1.5">
+                    <button
+                        @click="autoReload = !autoReload"
+                        type="button"
+                        class="network-control gap-1.5 px-2.5"
+                        :class="autoReload ? 'border-blue-400/35 bg-blue-500/15 text-[#9cc2ff]' : ''"
+                        :title="autoReload ? 'Turn off automatic refresh' : 'Refresh automatically every 5 seconds'">
+                        <span class="relative flex h-2 w-2">
+                            <span v-if="autoReload" class="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-300 opacity-50"></span>
+                            <span class="relative inline-flex h-2 w-2 rounded-full" :class="autoReload ? 'bg-blue-300' : 'bg-[var(--ct-dim)]'"></span>
+                        </span>
+                        <span class="hidden text-xs font-semibold lg:inline">Auto</span>
+                    </button>
+                    <button @click="zoomOut" type="button" class="network-control" title="Zoom out" aria-label="Zoom out">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="size-4">
+                            <path stroke-linecap="round" d="M5 12h14"/>
+                        </svg>
+                    </button>
+                    <button @click="fitNetwork" type="button" class="network-control" title="Fit network to view" aria-label="Fit network to view">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" class="size-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 3.75h-3a1.5 1.5 0 0 0-1.5 1.5v3m16.5 0v-3a1.5 1.5 0 0 0-1.5-1.5h-3m0 16.5h3a1.5 1.5 0 0 0 1.5-1.5v-3m-16.5 0v3a1.5 1.5 0 0 0 1.5 1.5h3"/>
+                        </svg>
+                    </button>
+                    <button @click="zoomIn" type="button" class="network-control" title="Zoom in" aria-label="Zoom in">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="size-4">
+                            <path stroke-linecap="round" d="M12 5v14M5 12h14"/>
+                        </svg>
+                    </button>
+                    <button @click="refresh" type="button" class="network-control ml-1 border-blue-400/30 bg-blue-500/10 text-[#9cc2ff]" title="Refresh network" aria-label="Refresh network">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" class="size-4" :class="{ 'animate-spin': isUpdating }">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- compact legend -->
+        <div class="pointer-events-none absolute bottom-0 left-0 z-10 p-3">
+            <div class="network-toolbar pointer-events-auto overflow-hidden rounded-xl border border-white/10 shadow-2xl">
+                <button @click="isShowingControls = !isShowingControls" type="button" class="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-[var(--ct-muted)] transition hover:bg-white/5 hover:text-[var(--ct-text)]">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" class="size-4 text-[var(--ct-dim)]">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3.745c.831-1.436 2.903-1.436 3.734 0l.058.1a2.16 2.16 0 0 0 2.854.826l.102-.054c1.463-.78 3.148.427 3.033 2.08l-.008.115a2.16 2.16 0 0 0 1.765 2.39l.113.021c1.63.304 2.265 2.275 1.143 3.496l-.078.085a2.16 2.16 0 0 0 0 2.972l.078.085c1.122 1.22.487 3.192-1.143 3.496l-.113.021a2.16 2.16 0 0 0-1.765 2.39l.008.115c.115 1.653-1.57 2.86-3.033 2.08l-.102-.054a2.16 2.16 0 0 0-2.854.826l-.058.1c-.831 1.436-2.903 1.436-3.734 0l-.058-.1a2.16 2.16 0 0 0-2.854-.826l-.102.054c-1.463.78-3.148-.427-3.033-2.08l.008-.115a2.16 2.16 0 0 0-1.765-2.39l-.113-.021c-1.63-.304-2.265-2.275-1.143-3.496l.078-.085a2.16 2.16 0 0 0 0-2.972l-.078-.085C-.547 11.5.088 9.527 1.718 9.223l.113-.021a2.16 2.16 0 0 0 1.765-2.39l-.008-.115c-.115-1.653 1.57-2.86 3.033-2.08l.102.054a2.16 2.16 0 0 0 2.854-.826l.058-.1Z" opacity=".45"/>
+                        <circle cx="12" cy="12" r="3.25"/>
+                    </svg>
+                    <span>Legend</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="ml-auto size-4 transition" :class="{ 'rotate-180': isShowingControls }">
+                        <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+                <div v-if="isShowingControls" class="grid grid-cols-2 gap-x-4 gap-y-2 border-t border-white/10 px-3 py-2.5 text-[11px] text-[var(--ct-muted)] sm:grid-cols-3">
+                    <div class="flex items-center gap-2"><span class="size-2 rounded-full bg-[#2ee781] shadow-[0_0_8px_rgba(46,231,129,0.7)]"></span>Online interface</div>
+                    <div class="flex items-center gap-2"><span class="size-2 rounded-full bg-[#ff5c72]"></span>Offline interface</div>
+                    <div class="flex items-center gap-2"><span class="size-2 rounded-full bg-[#397cff]"></span>Person</div>
+                    <div class="flex items-center gap-2"><span class="size-2 rounded-full bg-[#b779ff]"></span>Nomad page</div>
+                    <div class="flex items-center gap-2"><span class="size-2 rounded-full border border-[#93c5fd] bg-[#475569]"></span>Infrastructure</div>
+                    <div class="flex items-center gap-2"><span class="h-px w-4 border-t border-dashed border-blue-400/70"></span>Advertised route</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pointer-events-none absolute bottom-0 right-0 z-10 hidden p-3 text-[10px] text-[var(--ct-dim)] md:block">
+            Drag to pan · Scroll to zoom · Double-click people or pages to open
+        </div>
+
+        <div v-if="isUpdating && nodes.length === 0" class="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+            <div class="network-toolbar flex items-center gap-2 rounded-full border border-white/10 px-3 py-2 text-xs text-[var(--ct-muted)] shadow-xl">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="size-4 animate-spin text-[#7db0ff]">
+                    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" opacity=".25"/>
+                    <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                Mapping the network…
             </div>
         </div>
     </div>
@@ -55,6 +133,7 @@ import "vis-network/styles/vis-network.css";
 import { Network } from "vis-network";
 import { DataSet } from "vis-data";
 import Utils from "../../js/Utils";
+import { infrastructureIconDataUri } from "../../js/InfrastructureIcons";
 export default {
     name: 'NetworkVisualiser',
     data() {
@@ -63,6 +142,7 @@ export default {
             autoReload: false,
             reloadInterval: null,
             isShowingControls: true,
+            isUpdating: false,
             interfaces: [],
             discoveredInterfaces: [],
             pathTable: [],
@@ -140,14 +220,14 @@ export default {
             return dataUri;
 
         },
-        graphLabelFont(size = 18) {
+        graphLabelFont(size = 13) {
             return {
-                color: "#f8fafc",
-                background: "rgba(9, 12, 22, 0.86)",
-                strokeWidth: 4,
-                strokeColor: "rgba(0, 0, 0, 0.9)",
+                color: "#e8eaf4",
+                background: "rgba(5, 6, 10, 0.78)",
+                strokeWidth: 0,
                 size,
                 face: "CrosstalkRoboto",
+                vadjust: -1,
             };
         },
         async getInterfaceStats() {
@@ -209,18 +289,27 @@ export default {
             }, {
                 interaction: {
                     tooltipDelay: 0, // show tooltip instantly on hover
+                    hover: true,
+                    hoverConnectedEdges: true,
+                    keyboard: {
+                        enabled: false,
+                    },
+                    zoomSpeed: 0.65,
                 },
                 edges: {
                     color: {
-                        color: "rgba(148, 163, 184, 0.62)",
-                        highlight: "#6ea8ff",
-                        hover: "#6ea8ff",
+                        color: "rgba(148, 163, 184, 0.34)",
+                        highlight: "rgba(125, 176, 255, 0.9)",
+                        hover: "rgba(125, 176, 255, 0.75)",
                     },
                     smooth: {
                         enabled: true,
-                        type: "dynamic",
+                        type: "continuous",
+                        roundness: 0.12,
                     },
-                    width: 1.4,
+                    width: 1,
+                    hoverWidth: 0.6,
+                    selectionWidth: 1,
                 },
                 layout: {
                     // always layout nodes the same way across reloads if nothing changed
@@ -228,22 +317,35 @@ export default {
                 },
                 nodes: {
                     color: {
-                        border: "#111827",
+                        border: "#363856",
                         highlight: {
                             border: "#6ea8ff",
                         },
+                        hover: {
+                            border: "#7db0ff",
+                        },
                     },
-                    font: this.graphLabelFont(16),
+                    font: this.graphLabelFont(),
+                    borderWidth: 1.5,
+                    borderWidthSelected: 2,
                 },
                 physics: {
                     barnesHut: {
-                        gravitationalConstant: -5000,
-                        // centralGravity: 0,
-                        // springConstant: 0.1,
-                        // damping: 0.15,
+                        gravitationalConstant: -3400,
+                        centralGravity: 0.08,
+                        springLength: 165,
+                        springConstant: 0.035,
+                        damping: 0.28,
+                        avoidOverlap: 0.55,
                     },
-                    // maxVelocity: 150,
-                    // minVelocity: 0.25,
+                    maxVelocity: 70,
+                    minVelocity: 0.35,
+                    stabilization: {
+                        enabled: true,
+                        iterations: 320,
+                        updateInterval: 40,
+                        fit: true,
+                    },
                 },
                 groups: {
                     "me": {
@@ -318,13 +420,11 @@ export default {
             });
 
             // update network
-            await this.update();
+            await this.refresh();
 
             // fit network after initial load
             setTimeout(() => {
-                this.network.fit({
-                    animation: true,
-                });
+                this.fitNetwork();
             }, 2000);
 
             // auto reload
@@ -343,14 +443,49 @@ export default {
                 return;
             }
 
-            // auto reload
+            await this.refresh();
+
+        },
+        async refresh() {
+            if(this.isUpdating){
+                return;
+            }
+
             try {
                 this.isUpdating = true;
                 await this.update();
             } finally {
                 this.isUpdating = false;
             }
-
+        },
+        fitNetwork() {
+            if(!this.network){
+                return;
+            }
+            this.network.fit({
+                animation: {
+                    duration: 450,
+                    easingFunction: "easeInOutQuad",
+                },
+            });
+        },
+        zoomIn() {
+            this.zoomNetworkBy(1.2);
+        },
+        zoomOut() {
+            this.zoomNetworkBy(1 / 1.2);
+        },
+        zoomNetworkBy(multiplier) {
+            if(!this.network){
+                return;
+            }
+            this.network.moveTo({
+                scale: this.network.getScale() * multiplier,
+                animation: {
+                    duration: 180,
+                    easingFunction: "easeInOutQuad",
+                },
+            });
         },
         async update() {
 
@@ -367,13 +502,20 @@ export default {
             nodes.push({
                 id: "me",
                 group: "me",
-                size: 60,
+                size: 44,
                 label: this.config?.display_name ?? "This Device",
                 title: [
                     `${this.config?.display_name ?? 'This Device'}`,
                     `Identity: ${this.config?.identity_hash ?? 'Unknown'}`,
                 ].join("\n"),
-                font: this.graphLabelFont(18),
+                font: this.graphLabelFont(14),
+                shadow: {
+                    enabled: true,
+                    color: "rgba(0, 97, 253, 0.3)",
+                    size: 24,
+                    x: 0,
+                    y: 0,
+                },
             });
 
             // add interfaces
@@ -399,11 +541,11 @@ export default {
                         `TX: ${this.formatBytes(entry.txb)}`,
                         `RX: ${this.formatBytes(entry.rxb)}`,
                     ].join("\n"),
-                    size: 30,
-                    font: this.graphLabelFont(16),
+                    size: 23,
+                    font: this.graphLabelFont(13),
                     shape: "circularImage",
                     image: entry.status ? "/assets/images/network-visualiser/interface_connected.png" : "/assets/images/network-visualiser/interface_disconnected.png",
-                    shadow: entry.status ? { enabled: true, color: "rgba(46, 231, 129, 0.45)", size: 22, x: 0, y: 0 } : { enabled: false },
+                    shadow: entry.status ? { enabled: true, color: "rgba(46, 231, 129, 0.3)", size: 16, x: 0, y: 0 } : { enabled: false },
                 };
 
                 // add interface node
@@ -416,12 +558,13 @@ export default {
                         id: `${entry.parent_interface_name}~${entry.name}`,
                         from: entry.parent_interface_name,
                         to: entry.name,
-                        color: "transparent",
-                        length: 300,
-                        background: {
-                            enabled: true,
-                            color: entry.status ? "#2ee781" : "#ff3b57",
+                        color: {
+                            color: entry.status ? "rgba(46, 231, 129, 0.72)" : "rgba(255, 92, 114, 0.62)",
+                            highlight: entry.status ? "#6ef0a9" : "#ff8298",
                         },
+                        dashes: !entry.status,
+                        width: entry.status ? 2.4 : 1.5,
+                        length: 180,
                     });
                 } else {
                     // add edge from me to interface
@@ -429,12 +572,13 @@ export default {
                         id: `me~${entry.name}`,
                         from: "me",
                         to: entry.name,
-                        color: "transparent",
-                        length: 300,
-                        background: {
-                            enabled: true,
-                            color: entry.status ? "#2ee781" : "#ff3b57",
+                        color: {
+                            color: entry.status ? "rgba(46, 231, 129, 0.72)" : "rgba(255, 92, 114, 0.62)",
+                            highlight: entry.status ? "#6ef0a9" : "#ff8298",
                         },
+                        dashes: !entry.status,
+                        width: entry.status ? 2.4 : 1.5,
+                        length: 180,
                     });
                 }
 
@@ -471,15 +615,20 @@ export default {
                         `Path: ${pathDescription}`,
                         ...radio,
                     ].join("\n"),
-                    size: 24,
-                    shape: "dot",
+                    size: 20,
+                    shape: "circularImage",
+                    image: infrastructureIconDataUri(infrastructure),
                     color: {
-                        background: path && infrastructure.status === "available" ? "#2563eb" : "#52525b",
-                        border: infrastructure.transport ? "#93c5fd" : "#a1a1aa",
-                        highlight: { background: "#3b82f6", border: "#dbeafe" },
+                        border: infrastructure.status === "available"
+                            ? (infrastructure.transport ? "#93c5fd" : "#60a5fa")
+                            : infrastructure.status === "unknown" ? "#fbbf24" : "#71717a",
+                        highlight: { border: "#dbeafe" },
                     },
-                    borderWidth: 2,
-                    font: this.graphLabelFont(16),
+                    borderWidth: infrastructure.status === "available" ? 2 : 1.5,
+                    shadow: path && infrastructure.status === "available"
+                        ? { enabled: true, color: "rgba(96, 165, 250, 0.24)", size: 12, x: 0, y: 0 }
+                        : false,
+                    font: this.graphLabelFont(12),
                     _infrastructure: infrastructure,
                 });
 
@@ -489,10 +638,11 @@ export default {
                     to: infrastructure.destination_hash,
                     dashes: !path,
                     color: {
-                        color: "rgba(96, 165, 250, 0.72)",
+                        color: path ? "rgba(96, 165, 250, 0.42)" : "rgba(96, 165, 250, 0.28)",
                         highlight: "#93c5fd",
                         hover: "#93c5fd",
                     },
+                    width: path ? 1.1 : 0.8,
                 });
             }
 
@@ -519,7 +669,8 @@ export default {
                 const node = {
                     id: entry.hash,
                     group: "announce",
-                    size: 20,
+                    size: 17,
+                    font: this.graphLabelFont(12),
                 };
 
                 if(announce.aspect === "lxmf.delivery"){
@@ -529,9 +680,9 @@ export default {
                     node.shape = "circularImage";
                     node.image = this.identiconDataUri(announce.destination_hash);
                     node.color = { border: entry.hops === 1 ? "#2ee781" : "#363856", highlight: { border: "#6ea8ff" } };
-                    node.borderWidth = 2;
+                    node.borderWidth = 1.5;
                     if(entry.hops === 1){
-                        node.shadow = { enabled: true, color: "rgba(0, 97, 253, 0.4)", size: 18, x: 0, y: 0 };
+                        node.shadow = { enabled: true, color: "rgba(0, 97, 253, 0.32)", size: 14, x: 0, y: 0 };
                     }
 
                     node.label = name;
@@ -554,9 +705,9 @@ export default {
                     node.shape = "circularImage";
                     node.image = this.identiconDataUri(announce.destination_hash);
                     node.color = { border: entry.hops === 1 ? "#b779ff" : "#363856", highlight: { border: "#6ea8ff" } };
-                    node.borderWidth = 2;
+                    node.borderWidth = 1.5;
                     if(entry.hops === 1){
-                        node.shadow = { enabled: true, color: "rgba(183, 121, 255, 0.35)", size: 18, x: 0, y: 0 };
+                        node.shadow = { enabled: true, color: "rgba(183, 121, 255, 0.3)", size: 14, x: 0, y: 0 };
                     }
 
                     node.label = name;
@@ -584,10 +735,11 @@ export default {
                     from: entry.interface,
                     to: entry.hash,
                     color: {
-                        color: "rgba(148, 163, 184, 0.62)",
+                        color: "rgba(148, 163, 184, 0.32)",
                         highlight: "#6ea8ff",
                         hover: "#6ea8ff",
                     },
+                    width: 0.9,
                 });
 
             }
@@ -668,6 +820,89 @@ export default {
                 return !iface.status;
             });
         },
+        peopleCount() {
+            return Object.values(this.announces).filter((announce) => {
+                return announce.aspect === "lxmf.delivery";
+            }).length;
+        },
+        nomadNodeCount() {
+            return Object.values(this.announces).filter((announce) => {
+                return announce.aspect === "nomadnetwork.node";
+            }).length;
+        },
     },
 }
 </script>
+
+<style scoped>
+.network-map {
+    background:
+        radial-gradient(circle at 50% 42%, rgba(0, 97, 253, 0.1), transparent 34%),
+        radial-gradient(circle at 78% 70%, rgba(46, 231, 129, 0.045), transparent 26%),
+        linear-gradient(180deg, #08090e 0%, #05060a 100%);
+}
+
+.network-map-grid {
+    background-image:
+        linear-gradient(rgba(125, 176, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(125, 176, 255, 0.035) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: radial-gradient(circle at center, black 0%, rgba(0, 0, 0, 0.55) 48%, transparent 88%);
+    opacity: 0.55;
+}
+
+.network-toolbar {
+    background: linear-gradient(180deg, rgba(24, 25, 36, 0.9), rgba(13, 14, 21, 0.88));
+    box-shadow:
+        0 18px 60px rgba(0, 0, 0, 0.34),
+        inset 0 1px 0 rgba(255, 255, 255, 0.045);
+    backdrop-filter: blur(22px) saturate(135%);
+}
+
+.network-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-height: 1.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.075);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.035);
+    padding: 0.25rem 0.55rem;
+    color: var(--ct-dim);
+    font-size: 0.6875rem;
+    line-height: 1;
+}
+
+.network-stat strong {
+    color: var(--ct-text);
+    font-size: 0.75rem;
+}
+
+.network-control {
+    display: inline-flex;
+    height: 2rem;
+    min-width: 2rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 0.65rem;
+    background: rgba(255, 255, 255, 0.045);
+    color: var(--ct-muted);
+    transition: 140ms ease;
+}
+
+.network-control:hover {
+    border-color: rgba(125, 176, 255, 0.32);
+    background: rgba(125, 176, 255, 0.1);
+    color: var(--ct-text);
+}
+
+.network-control:focus-visible {
+    outline: 2px solid rgba(110, 168, 255, 0.75);
+    outline-offset: 2px;
+}
+
+:deep(.vis-network:focus) {
+    outline: none;
+}
+</style>
