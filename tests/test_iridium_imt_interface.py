@@ -5,6 +5,7 @@ from pathlib import Path
 from src.backend.interfaces.IridiumIMTInterface import (
     DurablePacketQueue,
     IridiumIMTCodec,
+    IridiumIMTInterface,
 )
 
 
@@ -54,6 +55,58 @@ class DurablePacketQueueTest(unittest.TestCase):
             queue.retry(packet_id, delay=60, error="no signal")
             self.assertIsNone(queue.next_ready(now=0))
             self.assertEqual(queue.count(), 1)
+
+
+class IridiumIMTReceiveTest(unittest.TestCase):
+
+    class FakeOwner:
+        def __init__(self):
+            self.received = []
+
+        def inbound(self, packet, interface):
+            self.received.append((packet, interface))
+
+    class FakeModem:
+        def __init__(self, message):
+            self.message = message
+            self.acknowledged = False
+
+        def receive_message_async(self):
+            return self.message
+
+        def acknowledge_receive_head_async(self):
+            self.acknowledged = True
+            return True
+
+    def make_interface(self, message):
+        interface = object.__new__(IridiumIMTInterface)
+        interface.name = "Test Iridium"
+        interface.port = "/dev/test"
+        interface.owner = self.FakeOwner()
+        interface.modem = self.FakeModem(message)
+        interface.mt_message_ready = True
+        interface.rxb = 0
+        return interface
+
+    def test_incoming_frame_is_injected_and_acknowledged(self):
+        packet = b"\x01native-reticulum-packet"
+        interface = self.make_interface(IridiumIMTCodec.encode(packet))
+
+        interface._drain_incoming()
+
+        self.assertEqual(interface.owner.received, [(packet, interface)])
+        self.assertEqual(interface.rxb, len(packet))
+        self.assertTrue(interface.modem.acknowledged)
+        self.assertFalse(interface.mt_message_ready)
+
+    def test_invalid_frame_is_not_injected_but_is_acknowledged(self):
+        interface = self.make_interface(b"not-a-native-frame")
+
+        interface._drain_incoming()
+
+        self.assertEqual(interface.owner.received, [])
+        self.assertEqual(interface.rxb, 0)
+        self.assertTrue(interface.modem.acknowledged)
 
 
 if __name__ == "__main__":

@@ -90,3 +90,88 @@ sudo systemctl status crosstalk.service
 You should now be able to access Crosstalk via your Pi's IP address.
 
 > Note: Don't forget to include the default port `8000`
+
+## RockBLOCK 9704 / Iridium IMT
+
+Crosstalk includes an optional native Reticulum interface for a USB-connected
+RockBLOCK 9704. It sends complete encrypted Reticulum packets as Iridium
+Messaging Transport (IMT) RAW messages; it does not translate LXMF into a
+different application protocol.
+
+The RockBLOCK dependency is deliberately optional, so desktop and macOS
+installations without satellite hardware continue to work normally.
+
+### Install the device-side dependencies
+
+Connect the RockBLOCK over USB and identify its serial port:
+
+```sh
+ls -l /dev/ttyUSB*
+```
+
+Install Ground Control's Python driver in the same Python environment used to
+run Crosstalk:
+
+```sh
+python -m pip install rockblock9704
+```
+
+On an original Raspberry Pi Zero, build the Vue frontend on a more capable
+computer and copy the resulting `public` directory to the Pi. The headless
+runtime only needs Crosstalk's runtime Python packages; `cx_Freeze` is not
+needed:
+
+```sh
+python -m pip install aiohttp lxmf peewee rns websockets rockblock9704
+```
+
+### Configure the interface
+
+The interface can be added in Crosstalk under **Interfaces → Add Interface →
+RockBLOCK 9704 (Iridium)**. A ready-to-edit configuration is also available at
+[`docs/examples/iridium-imt-device.config`](./examples/iridium-imt-device.config).
+
+The important settings are:
+
+- `port`: the RockBLOCK serial port, normally `/dev/ttyUSB0`
+- `topic`: the IMT RAW topic used by both ends, default `244`
+- `maximum_queued_packets`: the maximum number of packets retained on disk
+- `retry_interval`: how soon a failed mobile-originated message is retried
+
+At startup, Crosstalk installs the bundled external interface module into the
+selected Reticulum configuration directory. Outbound packets are stored in a
+SQLite queue under the Reticulum storage directory and survive process restarts
+or periods without satellite coverage.
+
+Use an antenna position with a broad, unobstructed view of the sky. The
+Interfaces screen displays current signal bars and the number of packets
+waiting for transmission.
+
+### Run as a service
+
+Copy and edit
+[`docs/examples/crosstalk-iridium.service`](./examples/crosstalk-iridium.service),
+then install it:
+
+```sh
+sudo cp docs/examples/crosstalk-iridium.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now crosstalk-iridium.service
+```
+
+Open `http://PI_ADDRESS:8000` from a phone or computer on the same Wi-Fi
+network.
+
+On a metered satellite link, announce only the LXMF delivery identity instead
+of also announcing Crosstalk's audio-call destination:
+
+```sh
+curl http://127.0.0.1:8000/api/v1/announce/lxmf
+```
+
+Every Reticulum packet is framed with the five-byte prefix `RNSI` plus version
+`1` before being submitted as a RAW IMT message. The remote Cloudloop gateway
+must remove that frame and inject the untouched packet into its Reticulum
+instance. The reverse path applies the same frame before submitting an IMT
+mobile-terminated message. That server-side Cloudloop gateway is separate from
+this device-side interface.

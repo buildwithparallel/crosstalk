@@ -26,6 +26,7 @@ A simple mesh network communications app powered by the [Reticulum Network Stack
 - Supports sending and receiving messages between [Crosstalk](https://github.com/buildwithparallel/crosstalk), [Sideband](https://github.com/markqvist/Sideband/) and [Nomadnet](https://github.com/markqvist/nomadnet).
 - Supports receiving and saving images and attachments sent from Sideband.
 - Supports sending images, voice recordings and file attachments.
+- Supports optional native Reticulum packet transport through a USB-connected RockBLOCK 9704 and Iridium IMT.
 - Supports saving inbound and outbound messages to a local database.
 - Supports sending an announce to the network.
 - Supports setting a custom display name to send in your announce.

@@ -38,7 +38,7 @@
                         v-model="promptValue"
                         type="text"
                         :placeholder="modal.placeholder"
-                        class="block w-full rounded-lg border p-2.5 text-sm"
+                        class="block w-full rounded-lg border border-[rgba(130,143,180,0.34)] bg-[rgba(15,18,29,0.94)] p-2.5 text-sm text-[var(--ct-text)] placeholder:text-[#9aa1b8] focus:border-[var(--ct-border-focus)] focus:outline-none focus:ring-0"
                     >
                 </div>
 
