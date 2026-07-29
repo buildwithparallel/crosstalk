@@ -29,6 +29,10 @@
                     <path d="M128,88a40,40,0,1,0,40,40A40,40,0,0,0,128,88Zm0,64a24,24,0,1,1,24-24A24,24,0,0,1,128,152Zm73.71,7.14a80,80,0,0,1-14.08,22.2,8,8,0,0,1-11.92-10.67,63.95,63.95,0,0,0,0-85.33,8,8,0,1,1,11.92-10.67,80.08,80.08,0,0,1,14.08,84.47ZM69,103.09a64,64,0,0,0,11.26,67.58,8,8,0,0,1-11.92,10.67,79.93,79.93,0,0,1,0-106.67A8,8,0,1,1,80.29,85.34,63.77,63.77,0,0,0,69,103.09ZM248,128a119.58,119.58,0,0,1-34.29,84,8,8,0,1,1-11.42-11.2,103.9,103.9,0,0,0,0-145.56A8,8,0,1,1,213.71,44,119.58,119.58,0,0,1,248,128ZM53.71,200.78A8,8,0,1,1,42.29,212a119.87,119.87,0,0,1,0-168,8,8,0,1,1,11.42,11.2,103.9,103.9,0,0,0,0,145.56Z"></path>
                 </svg>
 
+                <svg v-else-if="iface.type === 'IridiumIMTInterface'" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 256 256" class="size-5">
+                    <path d="M236.44,80a50.74,50.74,0,0,0-60.65-8.61L144,39.61V16a8,8,0,0,0-16,0V39.61L96.21,71.39A50.74,50.74,0,0,0,35.56,80a51.79,51.79,0,0,0,0,72,50.74,50.74,0,0,0,60.65,8.61L128,192.39V240a8,8,0,0,0,16,0V192.39l31.79-31.78A50.74,50.74,0,0,0,236.44,152,51.79,51.79,0,0,0,236.44,80ZM128,169.77l-20.47-20.46A51.65,51.65,0,0,0,108,80.69L128,60.69Zm-81.13-28.6a35.82,35.82,0,0,1,0-50.34,34.83,34.83,0,0,1,49.49,0,35.82,35.82,0,0,1,0,50.34A34.83,34.83,0,0,1,46.87,141.17Zm178.26,0a34.83,34.83,0,0,1-49.49,0,35.82,35.82,0,0,1,0-50.34,34.83,34.83,0,0,1,49.49,0A35.82,35.82,0,0,1,225.13,141.17Z"></path>
+                </svg>
+
                 <svg v-else-if="iface.type === 'TCPClientInterface' || iface.type === 'TCPServerInterface' || iface.type === 'UDPInterface'" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 256 256" class="size-5">
                     <path d="M128,24h0A104,104,0,1,0,232,128,104.12,104.12,0,0,0,128,24Zm88,104a87.61,87.61,0,0,1-3.33,24H174.16a157.44,157.44,0,0,0,0-48h38.51A87.61,87.61,0,0,1,216,128ZM102,168H154a115.11,115.11,0,0,1-26,45A115.27,115.27,0,0,1,102,168Zm-3.9-16a140.84,140.84,0,0,1,0-48h59.88a140.84,140.84,0,0,1,0,48ZM40,128a87.61,87.61,0,0,1,3.33-24H81.84a157.44,157.44,0,0,0,0,48H43.33A87.61,87.61,0,0,1,40,128ZM154,88H102a115.11,115.11,0,0,1,26-45A115.27,115.27,0,0,1,154,88Zm52.33,0H170.71a135.28,135.28,0,0,0-22.3-45.6A88.29,88.29,0,0,1,206.37,88ZM107.59,42.4A135.28,135.28,0,0,0,85.29,88H49.63A88.29,88.29,0,0,1,107.59,42.4ZM49.63,168H85.29a135.28,135.28,0,0,0,22.3,45.6A88.29,88.29,0,0,1,49.63,168Zm98.78,45.6a135.28,135.28,0,0,0,22.3-45.6h35.66A88.29,88.29,0,0,1,148.41,213.6Z"></path>
                 </svg>
@@ -71,6 +75,11 @@
                     <div v-else-if="iface.type === 'TCPServerInterface'" class="inline-flex min-w-0 items-center gap-1">
                         <span class="min-w-0 break-all">{{ iface.type }} • {{ iface.listen_ip }}:{{ iface.listen_port }}</span>
                         <CopyButton :value="`${iface.listen_ip}:${iface.listen_port}`" label="Interface Endpoint"/>
+                    </div>
+
+                    <!-- Iridium IMT interface -->
+                    <div v-else-if="iface.type === 'IridiumIMTInterface'">
+                        RockBLOCK 9704 • {{ iface.port }} • Topic {{ iface.topic }}
                     </div>
 
                     <!-- other interface types -->
@@ -178,7 +187,7 @@
         </div>
 
         <!-- extra interface details -->
-        <div v-if="['UDPInterface', 'RNodeInterface'].includes(iface.type)" class="border-t border-[var(--ct-border)] p-1.5 text-sm text-[var(--ct-muted)]">
+        <div v-if="['UDPInterface', 'RNodeInterface', 'IridiumIMTInterface'].includes(iface.type)" class="border-t border-[var(--ct-border)] p-1.5 text-sm text-[var(--ct-muted)]">
 
             <!-- udp interface -->
             <div v-if="iface.type === 'UDPInterface'">
@@ -194,6 +203,12 @@
                 <div>Spreading Factor: {{ iface.spreadingfactor }}</div>
                 <div>Coding Rate: {{ iface.codingrate }}</div>
                 <div>Transmit Power: {{ iface.txpower }}dBm</div>
+            </div>
+
+            <!-- Iridium IMT interface details -->
+            <div v-else-if="iface.type === 'IridiumIMTInterface'">
+                <div>Satellite signal: {{ formatSatelliteSignal(iface._stats?.signal_bars) }}</div>
+                <div>Messages waiting for transmission: {{ iface._stats?.queued_packets ?? 0 }}</div>
             </div>
 
         </div>
@@ -214,6 +229,8 @@
             <div>• Bitrate: {{ formatBitsPerSecond(iface._stats?.bitrate ?? 0) }}</div>
             <div>• TX: {{ formatBytes(iface._stats?.txb ?? 0) }}</div>
             <div>• RX: {{ formatBytes(iface._stats?.rxb ?? 0) }}</div>
+            <div v-if="iface.type === 'IridiumIMTInterface'">• Signal: {{ formatSatelliteSignal(iface._stats?.signal_bars) }}</div>
+            <div v-if="iface.type === 'IridiumIMTInterface'">• Queue: {{ iface._stats?.queued_packets ?? 0 }}</div>
             <div v-if="iface.type === 'RNodeInterface'">• Noise Floor: {{
                 iface._stats?.noise_floor
               }} dBm
@@ -279,6 +296,11 @@ export default {
         },
         formatFrequency(hz) {
             return Utils.formatFrequency(hz);
+        },
+        formatSatelliteSignal(signalBars) {
+            return Number.isInteger(signalBars) && signalBars >= 0
+                ? `${signalBars}/5`
+                : "Waiting";
         },
     },
 }

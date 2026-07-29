@@ -1,0 +1,18 @@
+[Unit]
+Description=Crosstalk with RockBLOCK 9704 Iridium IMT
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=parallel
+Group=parallel
+WorkingDirectory=/home/parallel/pi-zero-iridium-reticulum/crosstalk
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/parallel/pi-zero-iridium-reticulum/.venv/bin/python /home/parallel/pi-zero-iridium-reticulum/crosstalk/crosstalk.py --headless --host 0.0.0.0 --port 8000 --reticulum-config-dir /home/parallel/pi-zero-iridium-reticulum/crosstalk-reticulum --storage-dir /home/parallel/pi-zero-iridium-reticulum/crosstalk-storage
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+

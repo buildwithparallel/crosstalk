@@ -5,6 +5,7 @@ import io
 import json
 import os
 import platform
+import shutil
 import sys
 import threading
 import time
@@ -95,6 +96,70 @@ def get_file_path(filename):
     return os.path.join(datadir, filename)
 
 
+def resolve_reticulum_config_dir(config_dir):
+    """Match Reticulum's config-directory selection before RNS starts."""
+    if config_dir:
+        return os.path.abspath(os.path.expanduser(config_dir))
+
+    if (
+        os.path.isdir("/etc/reticulum")
+        and os.path.isfile("/etc/reticulum/config")
+    ):
+        return "/etc/reticulum"
+
+    xdg_config_dir = os.path.expanduser("~/.config/reticulum")
+    if (
+        os.path.isdir(xdg_config_dir)
+        and os.path.isfile(os.path.join(xdg_config_dir, "config"))
+    ):
+        return xdg_config_dir
+
+    return os.path.expanduser("~/.reticulum")
+
+
+def ensure_bundled_reticulum_interfaces(config_dir):
+    """Install app-managed external RNS interfaces into the active config."""
+    interface_names = ("IridiumIMTInterface.py",)
+    interface_dir = os.path.join(
+        resolve_reticulum_config_dir(config_dir),
+        "interfaces",
+    )
+
+    try:
+        os.makedirs(interface_dir, exist_ok=True)
+        for interface_name in interface_names:
+            source_path = get_file_path(
+                os.path.join(
+                    "src",
+                    "backend",
+                    "interfaces",
+                    interface_name,
+                )
+            )
+            destination_path = os.path.join(interface_dir, interface_name)
+
+            with open(source_path, "rb") as source_file:
+                source_bytes = source_file.read()
+
+            destination_bytes = None
+            if os.path.isfile(destination_path):
+                with open(destination_path, "rb") as destination_file:
+                    destination_bytes = destination_file.read()
+
+            if source_bytes != destination_bytes:
+                shutil.copyfile(source_path, destination_path)
+                print(
+                    "Installed bundled Reticulum interface: "
+                    f"{destination_path}"
+                )
+    except OSError as error:
+        # Optional interfaces must never stop otherwise-normal Crosstalk use.
+        print(
+            "Warning: could not install bundled Reticulum interfaces "
+            f"into {interface_dir}: {error}"
+        )
+
+
 class Crosstalk:
 
     def __init__(self, identity: RNS.Identity, storage_dir, reticulum_config_dir):
@@ -161,6 +226,7 @@ class Crosstalk:
          .orwhere(database.LxmfMessage.state == "sending").execute())
 
         # init reticulum
+        ensure_bundled_reticulum_interfaces(reticulum_config_dir)
         ensure_dedicated_reticulum_instance(reticulum_config_dir)
         self.reticulum = RNS.Reticulum(reticulum_config_dir)
         # Always collect signed interface advertisements so Crosstalk can show
@@ -810,6 +876,21 @@ class Crosstalk:
                     InterfaceEditor.update_value(interface_details, data, "callsign")
                     InterfaceEditor.update_value(interface_details, data, "ssid")
 
+            # handle the native RockBLOCK 9704 / Iridium IMT interface
+            if interface_type == "IridiumIMTInterface":
+
+                interface_port = data.get("port")
+                if interface_port is None or interface_port == "":
+                    return web.json_response({
+                        "message": "Port is required",
+                    }, status=422)
+
+                interface_details["port"] = interface_port
+                InterfaceEditor.update_value(interface_details, data, "topic")
+                InterfaceEditor.update_value(interface_details, data, "poll_interval")
+                InterfaceEditor.update_value(interface_details, data, "retry_interval")
+                InterfaceEditor.update_value(interface_details, data, "maximum_queued_packets")
+
             # FIXME: move to own sections
             # RNode Airtime limits and station ID
             InterfaceEditor.update_value(interface_details, data, "callsign")
@@ -1282,6 +1363,17 @@ class Crosstalk:
 
             return web.json_response({
                 "message": "announcing",
+            })
+
+        # Announce only the LXMF delivery identity. On metered interfaces this
+        # avoids also transmitting the separate audio-call destination.
+        @routes.get("/api/v1/announce/lxmf")
+        async def index(request):
+
+            await self.announce_lxmf()
+
+            return web.json_response({
+                "message": "announcing LXMF identity",
             })
 
         # serve announces
@@ -1830,6 +1922,39 @@ class Crosstalk:
                     interface["interface_name"] = interface["short_name"]
 
                 interface_name = interface.get("short_name")
+
+                # Reticulum's standard interface statistics intentionally only
+                # contain transport-level fields. Add the small amount of
+                # operational state a RockBLOCK user needs while in the field.
+                # Match by configured name so this remains independent of the
+                # external interface module's import location.
+                if interface.get("type") == "IridiumIMTInterface":
+                    for live_interface in RNS.Transport.interfaces:
+                        if getattr(live_interface, "name", None) != interface_name:
+                            continue
+
+                        interface["signal_bars"] = getattr(
+                            live_interface,
+                            "signal_bars",
+                            -1,
+                        )
+                        interface["queued_packets"] = (
+                            live_interface.packet_queue.count()
+                            if hasattr(live_interface, "packet_queue")
+                            else 0
+                        )
+                        interface["topic"] = getattr(
+                            live_interface,
+                            "topic",
+                            None,
+                        )
+                        interface["port"] = getattr(
+                            live_interface,
+                            "port",
+                            None,
+                        )
+                        break
+
                 if interface_name in configured_interfaces and not is_interface_config_enabled(configured_interfaces[interface_name]):
                     interface["status"] = False
                     interface["bitrate"] = 0
@@ -2220,12 +2345,7 @@ class Crosstalk:
     # handle announcing
     async def announce(self):
 
-        # update last announced at timestamp
-        self.config.last_announced_at.set(int(time.time()))
-
-        # send announce for lxmf (ensuring name is updated before announcing)
-        self.local_lxmf_destination.display_name = self.config.display_name.get()
-        self.message_router.announce(destination_hash=self.local_lxmf_destination.hash)
+        await self.announce_lxmf(notify_websocket_clients=False)
 
         # send announce for local propagation node (if enabled)
         if self.config.lxmf_local_propagation_node_enabled.get():
@@ -2236,6 +2356,20 @@ class Crosstalk:
 
         # tell websocket clients we just announced
         await self.send_announced_to_websocket_clients()
+
+    async def announce_lxmf(self, notify_websocket_clients=True):
+
+        # update last announced at timestamp
+        self.config.last_announced_at.set(int(time.time()))
+
+        # send announce for lxmf (ensuring name is updated before announcing)
+        self.local_lxmf_destination.display_name = self.config.display_name.get()
+        self.message_router.announce(
+            destination_hash=self.local_lxmf_destination.hash
+        )
+
+        if notify_websocket_clients:
+            await self.send_announced_to_websocket_clients()
 
     # handle syncing propagation nodes
     async def sync_propagation_nodes(self):

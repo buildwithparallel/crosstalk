@@ -27,6 +27,10 @@ setup(
             'include_files': [
                 'package.json', # used to determine app version from python
                 'public/', # static files served by web server
+                (
+                    'src/backend/interfaces/IridiumIMTInterface.py',
+                    'src/backend/interfaces/IridiumIMTInterface.py',
+                ),
             ],
             # slim down the build by excluding these unused libs
             'excludes': [

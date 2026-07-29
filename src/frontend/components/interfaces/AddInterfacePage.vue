@@ -214,6 +214,46 @@
                         </FormSubLabel>
                     </div>
 
+                    <!-- IridiumIMTInterface -->
+                    <div v-if="newInterfaceType === 'IridiumIMTInterface'" class="space-y-3">
+                        <div class="rounded-lg border border-[rgba(110,168,255,0.34)] bg-[rgba(0,97,253,0.09)] p-3 text-sm text-[var(--ct-text)]">
+                            <div class="font-bold">Native Reticulum over Iridium IMT</div>
+                            <div class="mt-1 text-[var(--ct-muted)]">
+                                Carries complete encrypted Reticulum packets through a USB-connected RockBLOCK 9704. This optional interface requires Ground Control's <code>rockblock9704</code> Python package.
+                            </div>
+                        </div>
+
+                        <div>
+                            <FormLabel class="mb-1">RockBLOCK Serial Port</FormLabel>
+                            <select v-model="newInterfacePort" class="block w-full rounded-lg border p-2.5 text-sm">
+                                <option v-for="comport of comports" :value="comport.device">{{ comport.device }} (Product: {{ comport.product ?? '?' }}, Serial: {{ comport.serial ?? '?' }})</option>
+                            </select>
+                            <FormSubLabel>
+                                <div @click="loadComports" class="text-blue-500 underline cursor-pointer">Reload Ports</div>
+                            </FormSubLabel>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <div>
+                                <FormLabel class="mb-1">Cloudloop IMT Topic</FormLabel>
+                                <input v-model.number="iridiumIMTSettings.topic" type="number" class="block w-full rounded-lg border p-2.5 text-sm">
+                                <FormSubLabel>RAW messaging uses topic 244.</FormSubLabel>
+                            </div>
+                            <div>
+                                <FormLabel class="mb-1">Maximum Queued Packets</FormLabel>
+                                <input v-model.number="iridiumIMTSettings.maximumQueuedPackets" type="number" min="1" class="block w-full rounded-lg border p-2.5 text-sm">
+                            </div>
+                            <div>
+                                <FormLabel class="mb-1">Modem Poll Interval (seconds)</FormLabel>
+                                <input v-model.number="iridiumIMTSettings.pollInterval" type="number" min="0.01" step="0.01" class="block w-full rounded-lg border p-2.5 text-sm">
+                            </div>
+                            <div>
+                                <FormLabel class="mb-1">Retry Interval (seconds)</FormLabel>
+                                <input v-model.number="iridiumIMTSettings.retryInterval" type="number" min="1" class="block w-full rounded-lg border p-2.5 text-sm">
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- interface Frequency -->
                     <div v-if="newInterfaceType === 'RNodeInterface'" class="mb-2">
                         <FormLabel class="mb-1">
@@ -886,6 +926,7 @@ export default {
                     options: [
                         { type: "RNodeInterface", name: "RNode (LoRa Radio)", icon: "radio-tower", description: "Long-range, off-grid communication using an RNode LoRa radio device." },
                         { type: "RNodeMultiInterface", name: "RNode Multi", icon: "radio-tower", description: "For devices with multiple LoRa transceivers, such as the openCom XL." },
+                        { type: "IridiumIMTInterface", name: "RockBLOCK 9704 (Iridium)", icon: "satellite-variant", description: "Carry native Reticulum packets through Iridium Messaging Transport." },
                         { type: "SerialInterface", name: "Serial Port", icon: "usb-port", description: "Connect through a raw serial port to custom hardware." },
                         { type: "KISSInterface", name: "KISS / Packet Radio", icon: "antenna", description: "Connect through KISS-compatible TNCs and packet radio modems." },
                     ],
@@ -942,6 +983,13 @@ export default {
             RNodeMultiInterface: {
                 port: null,
                 subInterfaces: [],
+            },
+
+            iridiumIMTSettings: {
+                topic: 244,
+                pollInterval: 0.01,
+                retryInterval: 30,
+                maximumQueuedPackets: 512,
             },
 
             newInterfacePort: null,
@@ -1173,6 +1221,12 @@ export default {
                 // Port (For RNode, Serial, and KISS)
                 this.newInterfacePort = iface.port;
 
+                // RockBLOCK 9704 / Iridium IMT
+                this.iridiumIMTSettings.topic = iface.topic ?? 244;
+                this.iridiumIMTSettings.pollInterval = iface.poll_interval ?? 0.01;
+                this.iridiumIMTSettings.retryInterval = iface.retry_interval ?? 30;
+                this.iridiumIMTSettings.maximumQueuedPackets = iface.maximum_queued_packets ?? 512;
+
                 // RNode Interface
                 this.newInterfaceFrequency = iface.frequency;
                 this.RNodeGHzValue = Math.floor(iface.frequency / 1e9);
@@ -1285,6 +1339,12 @@ export default {
                     txpower: this.newInterfaceTxpower,
                     spreadingfactor: this.newInterfaceSpreadingFactor,
                     codingrate: this.newInterfaceCodingRate,
+
+                    // RockBLOCK 9704 / Iridium IMT
+                    topic: this.iridiumIMTSettings.topic,
+                    poll_interval: this.iridiumIMTSettings.pollInterval,
+                    retry_interval: this.iridiumIMTSettings.retryInterval,
+                    maximum_queued_packets: this.iridiumIMTSettings.maximumQueuedPackets,
 
                     // RNode Multi Interface
                     sub_interfaces: subInterfacesData,
