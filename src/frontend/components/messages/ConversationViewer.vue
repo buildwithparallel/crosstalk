@@ -1,10 +1,19 @@
 <template>
 
     <!-- peer selected -->
-    <div v-if="selectedPeer" class="flex flex-col h-full overflow-hidden sm:m-2 sm:border sm:rounded-xl sm:shadow bg-[rgba(8,9,15,0.96)] border-[var(--ct-border)]">
+    <div v-if="selectedPeer" class="flex flex-col h-full min-h-0 overflow-hidden sm:m-2 sm:border sm:rounded-xl sm:shadow bg-[rgba(8,9,15,0.96)] border-[var(--ct-border)]">
 
         <!-- header -->
-        <div class="flex p-2 border-b border-[var(--ct-border)] bg-[rgba(13,13,18,0.6)]">
+        <div class="ct-conversation-header flex min-h-14 shrink-0 items-center border-b border-[var(--ct-border)] bg-[rgba(13,13,18,0.92)] p-2">
+
+            <!-- mobile back button -->
+            <div class="mr-1 sm:hidden">
+                <IconButton @click="close" aria-label="Back to conversations">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                    </svg>
+                </IconButton>
+            </div>
 
             <!-- peer icon -->
             <div class="my-auto mr-2">
@@ -16,7 +25,7 @@
             </div>
 
             <!-- peer info -->
-            <div class="min-w-0">
+            <div class="min-w-0 flex-1">
                 <div @click="updateCustomDisplayName" class="flex cursor-pointer">
                     <div v-if="selectedPeer.custom_display_name != null" class="my-auto mr-1 text-[var(--ct-text)]" title="Custom Display Name">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
@@ -29,7 +38,7 @@
                 <div class="text-sm text-[var(--ct-dim)]">
 
                     <!-- destination hash -->
-                    <div class="inline-flex max-w-full items-center gap-1 mr-1 align-middle">
+                    <div class="hidden max-w-full items-center gap-1 mr-1 align-middle sm:inline-flex">
                         <div class="ct-mono min-w-0 break-all">&lt;{{ selectedPeer.destination_hash }}&gt;</div>
                         <CopyButton :value="selectedPeer.destination_hash" label="Peer LXMF Address"/>
                     </div>
@@ -63,7 +72,7 @@
 
             <!-- satellite modem signal -->
             <div v-if="satelliteSignalBars !== null"
-                class="ml-auto my-auto flex items-center space-x-1.5 rounded-full border px-2.5 py-1"
+                class="ml-1 my-auto flex shrink-0 items-center space-x-1.5 rounded-full border px-2 py-1"
                 :class="satelliteSignalTheme.pill"
                 :title="`${satelliteSignalInterfaceName ?? 'Satellite'} signal: ${Math.max(satelliteSignalBars, 0)}/5 — ${satelliteSignalTheme.hint}`">
                 <div class="flex items-end space-x-0.5">
@@ -71,13 +80,13 @@
                         class="w-1 rounded-sm"
                         :class="[satelliteSignalBarHeights[bar - 1], bar <= satelliteSignalBars ? satelliteSignalTheme.bar : 'bg-[rgba(255,255,255,0.15)]']"></div>
                 </div>
-                <div class="text-xs font-semibold whitespace-nowrap" :class="satelliteSignalTheme.text">
+                <div class="hidden text-xs font-semibold whitespace-nowrap sm:block" :class="satelliteSignalTheme.text">
                     {{ satelliteSignalBars >= 0 ? `${satelliteSignalBars}/5` : "–/5" }}
                 </div>
             </div>
 
             <!-- dropdown menu -->
-            <div class="my-auto mx-2" :class="{ 'ml-auto': satelliteSignalBars === null }">
+            <div class="my-auto ml-1 sm:mx-2" :class="{ 'sm:ml-auto': satelliteSignalBars === null }">
                 <ConversationDropDownMenu
                     v-if="selectedPeer"
                     :peer="selectedPeer"
@@ -86,7 +95,7 @@
             </div>
 
             <!-- close button -->
-            <div class="my-auto mr-2">
+            <div class="my-auto mr-2 hidden sm:block">
                 <IconButton @click="close">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
                         <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
@@ -97,11 +106,11 @@
         </div>
 
         <!-- chat items -->
-        <div @scroll="onMessagesScroll" id="messages" class="h-full overflow-y-scroll">
+        <div @scroll="onMessagesScroll" id="messages" class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
 
-            <div v-if="selectedPeerChatItems.length > 0" class="flex flex-col flex-col-reverse p-3">
+            <div v-if="selectedPeerChatItems.length > 0" class="flex flex-col flex-col-reverse p-2.5 sm:p-3">
 
-                <div v-for="chatItem of selectedPeerChatItemsReversed" :key="chatItem.lxmf_message.hash" class="flex flex-col max-w-xl mt-3" :class="{ 'ml-auto pl-4 md:pl-16 items-end': chatItem.is_outbound, 'mr-auto pr-4 md:pr-16 items-start': !chatItem.is_outbound }">
+                <div v-for="chatItem of selectedPeerChatItemsReversed" :key="chatItem.lxmf_message.hash" class="flex flex-col max-w-[88%] sm:max-w-xl mt-3" :class="{ 'ml-auto items-end': chatItem.is_outbound, 'mr-auto items-start': !chatItem.is_outbound }">
 
                     <!-- message content -->
                     <div @click="onChatItemClick(chatItem)" class="border rounded-xl shadow overflow-hidden" :class="[ ['cancelled', 'failed'].includes(chatItem.lxmf_message.state) ? 'bg-red-500 text-white border-red-400' : chatItem.is_outbound ? 'bg-[var(--ct-blue)] text-white border-blue-400/40' : 'bg-[rgba(255,255,255,0.08)] text-[var(--ct-text)] border-[var(--ct-border-strong)]' ]">
@@ -206,8 +215,8 @@
                                     <span v-if="chatItem.lxmf_message.state === 'sent' && chatItem.lxmf_message.method === 'propagated'">to propagation node</span>
                                     <span v-if="chatItem.lxmf_message.state === 'sending'">{{ chatItem.lxmf_message.progress.toFixed(0) }}%</span>
                                 </span>
-                                <a v-if="chatItem.lxmf_message.state === 'outbound' || chatItem.lxmf_message.state === 'sending' || chatItem.lxmf_message.state === 'sent'" @click="cancelSendingMessage(chatItem)" class="ml-1 cursor-pointer underline text-blue-500">cancel?</a>
-                                <a v-if="chatItem.lxmf_message.state === 'failed'" @click="retrySendingMessage(chatItem)" class="ml-1 cursor-pointer underline text-blue-500">retry?</a>
+                                <button v-if="chatItem.lxmf_message.state === 'outbound' || chatItem.lxmf_message.state === 'sending' || chatItem.lxmf_message.state === 'sent'" type="button" @click="cancelSendingMessage(chatItem)" class="ml-1 min-h-9 cursor-pointer rounded px-1.5 underline text-blue-400">Cancel</button>
+                                <button v-if="chatItem.lxmf_message.state === 'failed'" type="button" @click="retrySendingMessage(chatItem)" class="ml-1 min-h-9 cursor-pointer rounded px-1.5 underline text-blue-400">Retry</button>
                             </div>
 
                             <!-- delivered icon -->
@@ -264,7 +273,7 @@
         </div>
 
         <!-- send message -->
-        <div class="w-full border-t border-[var(--ct-border)] bg-[rgba(13,13,18,0.6)] p-2">
+        <div class="ct-message-composer w-full shrink-0 border-t border-[var(--ct-border)] bg-[rgba(13,13,18,0.96)] p-2">
             <div class="mx-auto">
 
                 <!-- message composer -->
@@ -353,15 +362,15 @@
                         v-model="newMessageText"
                         @keydown.enter.exact.native.prevent="onEnterPressed"
                         @keydown.enter.shift.exact.native.prevent="onShiftEnterPressed"
-                        class="block w-full rounded-xl border p-2.5 text-sm"
-                        rows="3"
+                        class="ct-message-input block w-full resize-none rounded-xl border p-2.5 text-base sm:text-sm"
+                        rows="2"
                         placeholder="Send a message…"></textarea>
 
                     <!-- action button -->
-                    <div class="flex mt-2">
+                    <div class="flex items-center mt-2">
 
                         <!-- add files -->
-                        <button @click="addFilesToMessage" type="button" class="my-auto mr-1 ct-secondary-button inline-flex items-center gap-x-1 rounded-md px-2.5 py-1.5 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500">
+                        <button @click="addFilesToMessage" type="button" aria-label="Add files" class="my-auto mr-1 ct-secondary-button inline-flex min-h-11 min-w-11 items-center justify-center gap-x-1 rounded-lg px-2.5 py-1.5 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 sm:min-h-0 sm:min-w-0 sm:rounded-md">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
                                 <path fill-rule="evenodd" d="M5.625 1.5H9a3.75 3.75 0 0 1 3.75 3.75v1.875c0 1.036.84 1.875 1.875 1.875H16.5a3.75 3.75 0 0 1 3.75 3.75v7.875c0 1.035-.84 1.875-1.875 1.875H5.625a1.875 1.875 0 0 1-1.875-1.875V3.375c0-1.036.84-1.875 1.875-1.875ZM12.75 12a.75.75 0 0 0-1.5 0v2.25H9a.75.75 0 0 0 0 1.5h2.25V18a.75.75 0 0 0 1.5 0v-2.25H15a.75.75 0 0 0 0-1.5h-2.25V12Z" clip-rule="evenodd" />
                                 <path d="M14.25 5.25a5.23 5.23 0 0 0-1.279-3.434 9.768 9.768 0 0 1 6.963 6.963A5.23 5.23 0 0 0 16.5 7.5h-1.875a.375.375 0 0 1-.375-.375V5.25Z" />

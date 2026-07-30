@@ -1,5 +1,5 @@
 <template>
-    <div class="flex flex-col w-80 min-w-80 bg-[rgba(10,10,16,0.94)]">
+    <div class="flex-col h-full w-full min-w-0 bg-[rgba(10,10,16,0.94)] sm:w-80 sm:min-w-80">
 
         <!-- tabs -->
         <div class="border-b border-r border-[var(--ct-border)] bg-[rgba(11,12,20,0.96)] p-1.5">
@@ -25,7 +25,7 @@
             <!-- conversation list -->
             <div class="flex h-full overflow-y-auto">
                 <div v-if="searchedConversations.length > 0" class="w-full py-1">
-                    <div @click="onConversationClick(conversation)" v-for="conversation of searchedConversations" :key="conversation.destination_hash" class="mx-1.5 my-0.5 flex cursor-pointer items-center rounded-lg p-2 transition" :class="[ conversation.destination_hash === selectedDestinationHash ? 'bg-[rgba(0,97,253,0.18)] ring-1 ring-inset ring-[rgba(0,97,253,0.4)]' : 'hover:bg-[rgba(255,255,255,0.05)]' ]">
+                    <button @click="onConversationClick(conversation)" v-for="conversation of searchedConversations" :key="conversation.destination_hash" type="button" class="mx-1.5 my-0.5 flex min-h-14 w-[calc(100%-0.75rem)] cursor-pointer items-center rounded-lg p-2 text-left transition" :class="[ conversation.destination_hash === selectedDestinationHash ? 'bg-[rgba(0,97,253,0.18)] ring-1 ring-inset ring-[rgba(0,97,253,0.4)]' : 'hover:bg-[rgba(255,255,255,0.05)]' ]">
                         <div class="mr-2.5 shrink-0">
                             <LxmfUserIcon
                                 :icon-name="conversation.lxmf_user_icon?.icon_name"
@@ -43,7 +43,7 @@
                         <div v-else-if="conversation.failed_messages_count" class="ml-2 shrink-0" title="Some messages failed to send">
                             <div class="size-2.5 rounded-full bg-[var(--ct-red)] shadow-[0_0_8px_rgba(255,59,87,0.6)]"></div>
                         </div>
-                    </div>
+                    </button>
                 </div>
                 <div v-else class="mx-auto my-auto w-full">
 
@@ -84,7 +84,7 @@
             <!-- peers -->
             <div class="flex h-full overflow-y-auto">
                 <div v-if="searchedPeers.length > 0" class="w-full py-1">
-                    <div @click="onPeerClick(peer)" v-for="peer of searchedPeers" :key="peer.destination_hash" class="mx-1.5 my-0.5 flex cursor-pointer items-center rounded-lg p-2 transition" :class="[ peer.destination_hash === selectedDestinationHash ? 'bg-[rgba(0,97,253,0.18)] ring-1 ring-inset ring-[rgba(0,97,253,0.4)]' : 'hover:bg-[rgba(255,255,255,0.05)]' ]">
+                    <button @click="onPeerClick(peer)" v-for="peer of searchedPeers" :key="peer.destination_hash" type="button" class="mx-1.5 my-0.5 flex min-h-14 w-[calc(100%-0.75rem)] cursor-pointer items-center rounded-lg p-2 text-left transition" :class="[ peer.destination_hash === selectedDestinationHash ? 'bg-[rgba(0,97,253,0.18)] ring-1 ring-inset ring-[rgba(0,97,253,0.4)]' : 'hover:bg-[rgba(255,255,255,0.05)]' ]">
                         <div class="mr-2.5 shrink-0">
                             <LxmfUserIcon
                                 :icon-name="peer.lxmf_user_icon?.icon_name"
@@ -116,7 +116,7 @@
 
                             </div>
                         </div>
-                    </div>
+                    </button>
                 </div>
                 <div v-else class="mx-auto my-auto w-full">
 

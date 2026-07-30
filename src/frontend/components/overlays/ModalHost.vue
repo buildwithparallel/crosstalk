@@ -1,11 +1,11 @@
 <template>
     <Teleport to="body">
-        <div v-if="modal" class="ct-anim-fade-in fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" @mousedown.self="onCancel">
+        <div v-if="modal" class="ct-anim-fade-in fixed inset-0 z-[100] flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center" @mousedown.self="onCancel">
             <div
                 ref="dialog"
                 role="dialog"
                 aria-modal="true"
-                class="ct-anim-pop-in mx-4 w-full max-w-md rounded-2xl border border-[var(--ct-border-strong)] bg-[var(--ct-overlay)] p-5 shadow-[0_24px_90px_rgba(0,0,0,0.6)]"
+                class="ct-mobile-modal ct-anim-pop-in max-h-[90dvh] w-full overflow-y-auto rounded-t-2xl border border-[var(--ct-border-strong)] bg-[var(--ct-overlay)] p-4 shadow-[0_24px_90px_rgba(0,0,0,0.6)] sm:mx-4 sm:max-w-md sm:rounded-2xl sm:p-5"
                 @keydown.esc.prevent="onCancel"
                 @keydown.enter.prevent="onEnter"
             >
@@ -38,7 +38,7 @@
                         v-model="promptValue"
                         type="text"
                         :placeholder="modal.placeholder"
-                        class="block w-full rounded-lg border border-[rgba(130,143,180,0.34)] bg-[rgba(15,18,29,0.94)] p-2.5 text-sm text-[var(--ct-text)] placeholder:text-[#9aa1b8] focus:border-[var(--ct-border-focus)] focus:outline-none focus:ring-0"
+                        class="block w-full rounded-lg border border-[rgba(130,143,180,0.34)] bg-[rgba(15,18,29,0.94)] p-3 text-base text-[var(--ct-text)] placeholder:text-[#9aa1b8] focus:border-[var(--ct-border-focus)] focus:outline-none focus:ring-0 sm:p-2.5 sm:text-sm"
                     >
                 </div>
 
@@ -47,13 +47,13 @@
                     <button
                         v-if="modal.type !== 'alert'"
                         type="button"
-                        class="ct-secondary-button rounded-lg px-3.5 py-2 text-sm font-semibold"
+                        class="ct-secondary-button min-h-11 flex-1 rounded-lg px-3.5 py-2 text-sm font-semibold sm:flex-none"
                         @click="onCancel"
                     >{{ modal.cancelLabel }}</button>
                     <button
                         ref="confirmButton"
                         type="button"
-                        class="rounded-lg px-3.5 py-2 text-sm font-semibold"
+                        class="min-h-11 flex-1 rounded-lg px-3.5 py-2 text-sm font-semibold sm:flex-none"
                         :class="modal.danger ? 'ct-danger-button' : 'ct-brand-button'"
                         @click="onConfirm"
                     >{{ modal.confirmLabel }}</button>

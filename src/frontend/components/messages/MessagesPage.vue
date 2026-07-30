@@ -1,13 +1,16 @@
 <template>
 
     <MessagesSidebar
+        :class="selectedPeer ? 'hidden sm:flex' : 'flex'"
         :conversations="conversations"
         :peers="peers"
         :selected-destination-hash="selectedPeer?.destination_hash"
         @conversation-click="onConversationClick"
         @peer-click="onPeerClick"/>
 
-    <div class="flex flex-col flex-1 overflow-hidden min-w-full sm:min-w-[500px]">
+    <div
+        class="flex-col flex-1 min-w-0 w-full overflow-hidden sm:flex sm:min-w-[500px]"
+        :class="selectedPeer ? 'flex' : 'hidden'">
 
         <!-- messages tab -->
         <ConversationViewer

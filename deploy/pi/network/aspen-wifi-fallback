@@ -4,6 +4,14 @@ set -uo pipefail
 readonly WIFI_INTERFACE="${WIFI_INTERFACE:-wlan0}"
 readonly FALLBACK_PROFILE="${FALLBACK_PROFILE:-aspen-iridium-hotspot}"
 readonly FALLBACK_ADDRESS_PREFIX="${FALLBACK_ADDRESS_PREFIX:-10.42.0.1/}"
+readonly HOTSPOT_SSID="${HOTSPOT_SSID:-Aspen-Iridium-Pi}"
+readonly HOTSPOT_CHANNEL="${HOTSPOT_CHANNEL:-6}"
+readonly HOTSPOT_COUNTRY="${HOTSPOT_COUNTRY:-US}"
+readonly HOTSPOT_RUN_DIRECTORY="${HOTSPOT_RUN_DIRECTORY:-/run/aspen-hotspot}"
+readonly HOSTAPD_CONFIG="${HOTSPOT_RUN_DIRECTORY}/hostapd.conf"
+readonly HOSTAPD_PID_FILE="${HOTSPOT_RUN_DIRECTORY}/hostapd.pid"
+readonly DNSMASQ_CONFIG="${HOTSPOT_RUN_DIRECTORY}/dnsmasq.conf"
+readonly DNSMASQ_PID_FILE="${HOTSPOT_RUN_DIRECTORY}/dnsmasq.pid"
 readonly STARTUP_GRACE_SECONDS="${STARTUP_GRACE_SECONDS:-60}"
 readonly CONNECTION_LOSS_GRACE_SECONDS="${CONNECTION_LOSS_GRACE_SECONDS:-60}"
 readonly POLL_SECONDS="${POLL_SECONDS:-10}"
@@ -33,9 +41,12 @@ ipv4_address() {
 }
 
 hotspot_is_active() {
-    [[ "$(active_connection)" == "${FALLBACK_PROFILE}" ]] &&
-        [[ "$(device_state_code)" == "100" ]] &&
-        [[ "$(ipv4_address)" == "${FALLBACK_ADDRESS_PREFIX}"* ]]
+    [[ -s "${HOSTAPD_PID_FILE}" ]] &&
+        kill -0 "$(cat "${HOSTAPD_PID_FILE}")" 2>/dev/null &&
+        [[ -s "${DNSMASQ_PID_FILE}" ]] &&
+        kill -0 "$(cat "${DNSMASQ_PID_FILE}")" 2>/dev/null &&
+        ip -o -4 address show dev "${WIFI_INTERFACE}" |
+            grep -q " ${FALLBACK_ADDRESS_PREFIX}"
 }
 
 station_is_usable() {
@@ -58,15 +69,84 @@ station_is_usable() {
 activate_fallback() {
     log "Starting fallback hotspot"
 
-    nmcli radio wifi on
+    if ! command -v hostapd >/dev/null || ! command -v dnsmasq >/dev/null; then
+        log "hostapd and dnsmasq are required for fallback hotspot"
+        return 1
+    fi
+
+    local hotspot_password
+    hotspot_password="$(
+        nmcli --show-secrets \
+            --get-values 802-11-wireless-security.psk \
+            connection show "${FALLBACK_PROFILE}" 2>/dev/null
+    )"
+    if (( ${#hotspot_password} < 8 || ${#hotspot_password} > 63 )); then
+        log "Fallback hotspot password is missing or invalid"
+        return 1
+    fi
+
+    install -d -m 0700 "${HOTSPOT_RUN_DIRECTORY}"
+
+    umask 077
+    {
+        printf 'interface=%s\n' "${WIFI_INTERFACE}"
+        printf 'driver=nl80211\n'
+        printf 'ssid=%s\n' "${HOTSPOT_SSID}"
+        printf 'country_code=%s\n' "${HOTSPOT_COUNTRY}"
+        printf 'hw_mode=g\n'
+        printf 'channel=%s\n' "${HOTSPOT_CHANNEL}"
+        printf 'ieee80211d=1\n'
+        printf 'wmm_enabled=1\n'
+        printf 'auth_algs=1\n'
+        printf 'ignore_broadcast_ssid=0\n'
+        printf 'wpa=2\n'
+        printf 'wpa_key_mgmt=WPA-PSK\n'
+        printf 'rsn_pairwise=CCMP\n'
+        printf 'ieee80211w=0\n'
+        printf 'wpa_passphrase=%s\n' "${hotspot_password}"
+    } > "${HOSTAPD_CONFIG}"
+    unset hotspot_password
+
+    {
+        printf 'interface=%s\n' "${WIFI_INTERFACE}"
+        printf 'bind-interfaces\n'
+        printf 'dhcp-range=10.42.0.10,10.42.0.254,255.255.255.0,1h\n'
+        printf 'dhcp-option=3,10.42.0.1\n'
+        printf 'dhcp-option=6,10.42.0.1\n'
+        printf 'no-resolv\n'
+        printf 'domain-needed\n'
+        printf 'bogus-priv\n'
+    } > "${DNSMASQ_CONFIG}"
 
     # A saved station profile can remain named on wlan0 while NetworkManager
     # is stuck in a connecting state. Explicitly disconnect the device before
-    # bringing up the AP so that activation cannot race station autoconnect.
+    # handing it to hostapd so station autoconnect cannot race AP activation.
+    nmcli radio wifi on
     nmcli device disconnect "${WIFI_INTERFACE}" >/dev/null 2>&1 || true
 
-    if ! nmcli connection up "${FALLBACK_PROFILE}" ifname "${WIFI_INTERFACE}"; then
-        log "Could not start fallback hotspot; will retry"
+    # This Pi Zero firmware fails client authentication when NetworkManager's
+    # supplicant advertises mixed WPA key-management modes. Use hostapd for a
+    # strict WPA2-PSK/CCMP AP, while retaining NetworkManager for station mode.
+    systemctl stop NetworkManager.service
+
+    ip link set "${WIFI_INTERFACE}" down
+    ip address flush dev "${WIFI_INTERFACE}"
+    ip link set "${WIFI_INTERFACE}" up
+    ip address add 10.42.0.1/24 dev "${WIFI_INTERFACE}"
+
+    rm -f "${HOSTAPD_PID_FILE}" "${DNSMASQ_PID_FILE}"
+    if ! hostapd -B -P "${HOSTAPD_PID_FILE}" "${HOSTAPD_CONFIG}"; then
+        log "Could not start hostapd; restoring NetworkManager"
+        systemctl start NetworkManager.service
+        return 1
+    fi
+
+    if ! dnsmasq \
+        --conf-file="${DNSMASQ_CONFIG}" \
+        --pid-file="${DNSMASQ_PID_FILE}"; then
+        log "Could not start hotspot DHCP; restoring NetworkManager"
+        kill "$(cat "${HOSTAPD_PID_FILE}")" 2>/dev/null || true
+        systemctl start NetworkManager.service
         return 1
     fi
 
@@ -81,7 +161,9 @@ activate_fallback() {
     done
 
     log "Fallback profile activated but did not obtain 10.42.0.1; will retry"
-    nmcli connection down "${FALLBACK_PROFILE}" >/dev/null 2>&1 || true
+    kill "$(cat "${DNSMASQ_PID_FILE}")" 2>/dev/null || true
+    kill "$(cat "${HOSTAPD_PID_FILE}")" 2>/dev/null || true
+    systemctl start NetworkManager.service
     return 1
 }
 
