@@ -180,7 +180,10 @@ class IridiumIMTInterface(Interface):
 
         self.topic = int(interface_config.get("topic", 244))
         self.poll_interval = float(interface_config.get("poll_interval", 0.01))
-        self.retry_interval = float(interface_config.get("retry_interval", 30))
+        self.retry_interval = float(interface_config.get("retry_interval", 600))
+        self.maximum_modem_attempts = int(
+            interface_config.get("maximum_modem_attempts", 1)
+        )
         self.bitrate = int(interface_config.get("bitrate", 300))
         self.HW_MTU = RNS.Reticulum.MTU
         self.IN = True
@@ -332,6 +335,16 @@ class IridiumIMTInterface(Interface):
             return
 
         packet_id, payload, attempts = queued_packet
+        if attempts >= self.maximum_modem_attempts:
+            self.packet_queue.complete(packet_id)
+            RNS.log(
+                f"{self} discarded packet {packet_id} after "
+                f"{attempts} failed modem attempt(s); LXMF controls any "
+                "end-to-end satellite retry",
+                RNS.LOG_WARNING,
+            )
+            return
+
         with self.state_lock:
             self.current_packet = queued_packet
 

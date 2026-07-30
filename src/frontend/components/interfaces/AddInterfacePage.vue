@@ -248,8 +248,30 @@
                                 <input v-model.number="iridiumIMTSettings.pollInterval" type="number" min="0.01" step="0.01" class="block w-full rounded-lg border p-2.5 text-sm">
                             </div>
                             <div>
-                                <FormLabel class="mb-1">Retry Interval (seconds)</FormLabel>
-                                <input v-model.number="iridiumIMTSettings.retryInterval" type="number" min="1" class="block w-full rounded-lg border p-2.5 text-sm">
+                                <FormLabel class="mb-1">Modem Failure Retry (seconds)</FormLabel>
+                                <input v-model.number="iridiumIMTSettings.retryInterval" type="number" min="480" step="60" class="block w-full rounded-lg border p-2.5 text-sm">
+                                <FormSubLabel>Minimum 480 seconds; applies only to a failed IMT submission.</FormSubLabel>
+                            </div>
+                            <div>
+                                <FormLabel class="mb-1">Modem Attempts Per Packet</FormLabel>
+                                <select v-model.number="iridiumIMTSettings.maximumModemAttempts" class="block w-full rounded-lg border p-2.5 text-sm">
+                                    <option :value="1">1 — recommended</option>
+                                    <option :value="2">2 — advanced</option>
+                                </select>
+                                <FormSubLabel>Keep this at one when LXMF retries are enabled.</FormSubLabel>
+                            </div>
+                            <div>
+                                <FormLabel class="mb-1">LXMF Proof/Retry Window (seconds)</FormLabel>
+                                <input v-model.number="iridiumIMTSettings.lxmfRetryInterval" type="number" min="480" step="60" class="block w-full rounded-lg border p-2.5 text-sm">
+                                <FormSubLabel>Minimum 480 seconds; 600 seconds is recommended for Iridium.</FormSubLabel>
+                            </div>
+                            <div>
+                                <FormLabel class="mb-1">Maximum Satellite Attempts</FormLabel>
+                                <select v-model.number="iridiumIMTSettings.lxmfMaxAttempts" class="block w-full rounded-lg border p-2.5 text-sm">
+                                    <option :value="1">1 — controlled testing</option>
+                                    <option :value="2">2 — one delayed retry</option>
+                                </select>
+                                <FormSubLabel>A proof immediately cancels any remaining retry.</FormSubLabel>
                             </div>
                         </div>
                     </div>
@@ -988,8 +1010,11 @@ export default {
             iridiumIMTSettings: {
                 topic: 244,
                 pollInterval: 0.01,
-                retryInterval: 30,
+                retryInterval: 600,
                 maximumQueuedPackets: 512,
+                maximumModemAttempts: 1,
+                lxmfRetryInterval: 600,
+                lxmfMaxAttempts: 1,
             },
 
             newInterfacePort: null,
@@ -1224,8 +1249,11 @@ export default {
                 // RockBLOCK 9704 / Iridium IMT
                 this.iridiumIMTSettings.topic = iface.topic ?? 244;
                 this.iridiumIMTSettings.pollInterval = iface.poll_interval ?? 0.01;
-                this.iridiumIMTSettings.retryInterval = iface.retry_interval ?? 30;
+                this.iridiumIMTSettings.retryInterval = iface.retry_interval ?? 600;
                 this.iridiumIMTSettings.maximumQueuedPackets = iface.maximum_queued_packets ?? 512;
+                this.iridiumIMTSettings.maximumModemAttempts = iface.maximum_modem_attempts ?? 1;
+                this.iridiumIMTSettings.lxmfRetryInterval = iface.lxmf_retry_interval ?? 600;
+                this.iridiumIMTSettings.lxmfMaxAttempts = iface.lxmf_max_attempts ?? 1;
 
                 // RNode Interface
                 this.newInterfaceFrequency = iface.frequency;
@@ -1345,6 +1373,9 @@ export default {
                     poll_interval: this.iridiumIMTSettings.pollInterval,
                     retry_interval: this.iridiumIMTSettings.retryInterval,
                     maximum_queued_packets: this.iridiumIMTSettings.maximumQueuedPackets,
+                    maximum_modem_attempts: this.iridiumIMTSettings.maximumModemAttempts,
+                    lxmf_retry_interval: this.iridiumIMTSettings.lxmfRetryInterval,
+                    lxmf_max_attempts: this.iridiumIMTSettings.lxmfMaxAttempts,
 
                     // RNode Multi Interface
                     sub_interfaces: subInterfacesData,

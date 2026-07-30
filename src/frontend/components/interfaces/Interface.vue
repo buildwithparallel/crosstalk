@@ -79,7 +79,10 @@
 
                     <!-- Iridium IMT interface -->
                     <div v-else-if="iface.type === 'IridiumIMTInterface'">
-                        RockBLOCK 9704 • {{ iface.port }} • Topic {{ iface.topic }}
+                        RockBLOCK 9704 • {{ iface.port }} • Topic {{ iface.topic }} •
+                        {{ iface.lxmf_max_attempts ?? 1 }} attempt<span v-if="(iface.lxmf_max_attempts ?? 1) !== 1">s</span>
+                        / {{ iface.lxmf_retry_interval ?? 600 }}s •
+                        {{ iface.maximum_modem_attempts ?? 1 }} modem attempt/packet
                     </div>
 
                     <!-- other interface types -->

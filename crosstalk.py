@@ -36,6 +36,7 @@ from src.backend.interface_config_parser import InterfaceConfigParser
 from src.backend.interface_editor import InterfaceEditor
 from src.backend.lxmf_message_fields import LxmfImageField, LxmfFileAttachmentsField, LxmfFileAttachment, LxmfAudioField
 from src.backend.audio_call_manager import AudioCall, AudioCallManager
+from src.backend.satellite_retry_policy import SatelliteRetryPolicy
 from src.backend.sideband_commands import SidebandCommands
 
 
@@ -235,6 +236,22 @@ class Crosstalk:
         RNS.Transport.discover_interfaces()
         self.ensure_default_public_interfaces()
         self.identity = identity
+
+        # Paid, high-latency satellite links must never inherit LXMF's
+        # seconds-long retry loop. This policy is only present when an enabled
+        # Iridium interface exists, leaving normal TCP/radio installations
+        # unchanged.
+        self.satellite_retry_policy = (
+            SatelliteRetryPolicy.from_reticulum_config(self.reticulum.config)
+        )
+        if self.satellite_retry_policy is not None:
+            print(
+                "Satellite LXMF policy enabled for "
+                f"[{self.satellite_retry_policy.interface_name}]: "
+                f"{self.satellite_retry_policy.max_attempts} attempt(s), "
+                f"{self.satellite_retry_policy.retry_delay_seconds:.0f}s "
+                "proof/retry window"
+            )
 
         # init lxmf router
         self.message_router = LXMF.LXMRouter(identity=self.identity, storagepath=lxmf_router_path)
@@ -888,8 +905,42 @@ class Crosstalk:
                 interface_details["port"] = interface_port
                 InterfaceEditor.update_value(interface_details, data, "topic")
                 InterfaceEditor.update_value(interface_details, data, "poll_interval")
-                InterfaceEditor.update_value(interface_details, data, "retry_interval")
                 InterfaceEditor.update_value(interface_details, data, "maximum_queued_packets")
+
+                try:
+                    modem_retry_interval = int(data.get("retry_interval", 600))
+                    maximum_modem_attempts = int(data.get("maximum_modem_attempts", 1))
+                    lxmf_retry_interval = int(data.get("lxmf_retry_interval", 600))
+                    lxmf_max_attempts = int(data.get("lxmf_max_attempts", 1))
+                except (TypeError, ValueError):
+                    return web.json_response({
+                        "message": "Satellite retry settings must be whole numbers.",
+                    }, status=422)
+
+                if modem_retry_interval < 480:
+                    return web.json_response({
+                        "message": "Modem retry interval must be at least 480 seconds.",
+                    }, status=422)
+
+                if maximum_modem_attempts < 1 or maximum_modem_attempts > 2:
+                    return web.json_response({
+                        "message": "Modem attempts per packet must be either 1 or 2.",
+                    }, status=422)
+
+                if lxmf_retry_interval < 480:
+                    return web.json_response({
+                        "message": "Satellite LXMF retry interval must be at least 480 seconds.",
+                    }, status=422)
+
+                if lxmf_max_attempts < 1 or lxmf_max_attempts > 2:
+                    return web.json_response({
+                        "message": "Satellite LXMF attempts must be either 1 or 2.",
+                    }, status=422)
+
+                interface_details["retry_interval"] = modem_retry_interval
+                interface_details["maximum_modem_attempts"] = maximum_modem_attempts
+                interface_details["lxmf_retry_interval"] = lxmf_retry_interval
+                interface_details["lxmf_max_attempts"] = lxmf_max_attempts
 
             # FIXME: move to own sections
             # RNode Airtime limits and station ID
@@ -3226,6 +3277,13 @@ class Crosstalk:
                 # we will only do this if an encryption ratchet is available, so single packet delivery is more secure
                 desired_delivery_method = LXMF.LXMessage.OPPORTUNISTIC
 
+        # A small satellite chat message should use one packet instead of
+        # constructing a multi-packet direct link. Explicit user selections
+        # are retained, but automatic method selection favours opportunistic
+        # delivery whenever the Iridium policy is active.
+        if self.satellite_retry_policy is not None and delivery_method is None:
+            desired_delivery_method = LXMF.LXMessage.OPPORTUNISTIC
+
         # create lxmf message
         lxmf_message = LXMF.LXMessage(lxmf_destination, self.local_lxmf_destination, content, desired_method=desired_delivery_method)
         lxmf_message.try_propagation_on_fail = self.config.auto_send_failed_messages_to_propagation_node.get()
@@ -3276,6 +3334,12 @@ class Crosstalk:
         # register delivery callbacks
         lxmf_message.register_delivery_callback(self.on_lxmf_sending_state_updated)
         lxmf_message.register_failed_callback(self.on_lxmf_sending_failed)
+
+        if self.satellite_retry_policy is not None:
+            self.satellite_retry_policy.guard_message(
+                lxmf_message,
+                self.message_router,
+            )
 
         # send lxmf message to be routed to destination
         self.message_router.handle_outbound(lxmf_message)

@@ -146,5 +146,44 @@ class IridiumIMTReceiveTest(unittest.TestCase):
         self.assertTrue(interface.modem.acknowledged)
 
 
+class IridiumIMTTransmitLimitTest(unittest.TestCase):
+
+    class FakeQueue:
+        def __init__(self, packet):
+            self.packet = packet
+            self.completed = []
+
+        def next_ready(self):
+            return self.packet
+
+        def complete(self, packet_id):
+            self.completed.append(packet_id)
+
+    class FakeModem:
+        def __init__(self):
+            self.sent = []
+
+        def send_message_async(self, payload, topic):
+            self.sent.append((payload, topic))
+            return True
+
+    def test_packet_is_not_resubmitted_after_modem_attempt_cap(self):
+        interface = object.__new__(IridiumIMTInterface)
+        interface.name = "Test Iridium"
+        interface.port = "/dev/test"
+        interface.modem = self.FakeModem()
+        interface.packet_queue = self.FakeQueue((9, b"framed", 1))
+        interface.maximum_modem_attempts = 1
+        interface.current_packet = None
+        interface.state_lock = threading.Lock()
+        interface.topic = 244
+
+        interface._start_next_outbound()
+
+        self.assertEqual(interface.packet_queue.completed, [9])
+        self.assertEqual(interface.modem.sent, [])
+        self.assertIsNone(interface.current_packet)
+
+
 if __name__ == "__main__":
     unittest.main()
