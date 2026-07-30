@@ -1,0 +1,14 @@
+[Unit]
+Description=Aspen Pi Wi-Fi fallback hotspot
+After=NetworkManager.service
+Wants=NetworkManager.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/aspen-wifi-fallback
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

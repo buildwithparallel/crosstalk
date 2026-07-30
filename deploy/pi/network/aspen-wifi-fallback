@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+readonly WIFI_INTERFACE="${WIFI_INTERFACE:-wlan0}"
+readonly FALLBACK_PROFILE="${FALLBACK_PROFILE:-aspen-iridium-hotspot}"
+readonly FALLBACK_ADDRESS_PREFIX="${FALLBACK_ADDRESS_PREFIX:-10.42.0.1/}"
+readonly STARTUP_GRACE_SECONDS="${STARTUP_GRACE_SECONDS:-60}"
+readonly CONNECTION_LOSS_GRACE_SECONDS="${CONNECTION_LOSS_GRACE_SECONDS:-60}"
+readonly POLL_SECONDS="${POLL_SECONDS:-10}"
+readonly ACTIVATION_VERIFY_SECONDS="${ACTIVATION_VERIFY_SECONDS:-15}"
+
+log() {
+    printf '%s\n' "$*"
+}
+
+device_property() {
+    local property="$1"
+    nmcli --get-values "${property}" device show "${WIFI_INTERFACE}" 2>/dev/null |
+        head -n 1
+}
+
+active_connection() {
+    device_property GENERAL.CONNECTION
+}
+
+device_state_code() {
+    device_property GENERAL.STATE |
+        sed -E 's/^([0-9]+).*/\1/'
+}
+
+ipv4_address() {
+    device_property IP4.ADDRESS
+}
+
+hotspot_is_active() {
+    [[ "$(active_connection)" == "${FALLBACK_PROFILE}" ]] &&
+        [[ "$(device_state_code)" == "100" ]] &&
+        [[ "$(ipv4_address)" == "${FALLBACK_ADDRESS_PREFIX}"* ]]
+}
+
+station_is_usable() {
+    local connection
+    local state
+    local address
+
+    connection="$(active_connection)"
+    state="$(device_state_code)"
+    address="$(ipv4_address)"
+
+    [[ -n "${connection}" ]] &&
+        [[ "${connection}" != "--" ]] &&
+        [[ "${connection}" != "${FALLBACK_PROFILE}" ]] &&
+        [[ "${state}" == "100" ]] &&
+        [[ -n "${address}" ]] &&
+        [[ "${address}" != "--" ]]
+}
+
+activate_fallback() {
+    log "Starting fallback hotspot"
+
+    nmcli radio wifi on
+
+    # A saved station profile can remain named on wlan0 while NetworkManager
+    # is stuck in a connecting state. Explicitly disconnect the device before
+    # bringing up the AP so that activation cannot race station autoconnect.
+    nmcli device disconnect "${WIFI_INTERFACE}" >/dev/null 2>&1 || true
+
+    if ! nmcli connection up "${FALLBACK_PROFILE}" ifname "${WIFI_INTERFACE}"; then
+        log "Could not start fallback hotspot; will retry"
+        return 1
+    fi
+
+    local waited=0
+    while (( waited < ACTIVATION_VERIFY_SECONDS )); do
+        if hotspot_is_active; then
+            log "Fallback hotspot is active at 10.42.0.1"
+            return 0
+        fi
+        sleep 1
+        waited=$((waited + 1))
+    done
+
+    log "Fallback profile activated but did not obtain 10.42.0.1; will retry"
+    nmcli connection down "${FALLBACK_PROFILE}" >/dev/null 2>&1 || true
+    return 1
+}
+
+log "Waiting ${STARTUP_GRACE_SECONDS}s for a saved Wi-Fi network"
+sleep "${STARTUP_GRACE_SECONDS}"
+
+disconnected_since=0
+last_status=""
+
+while true; do
+    if hotspot_is_active; then
+        disconnected_since=0
+        if [[ "${last_status}" != "hotspot" ]]; then
+            log "Fallback hotspot remains active at 10.42.0.1"
+            last_status="hotspot"
+        fi
+    elif station_is_usable; then
+        disconnected_since=0
+        connection="$(active_connection)"
+        address="$(ipv4_address)"
+        status="station:${connection}:${address}"
+        if [[ "${status}" != "${last_status}" ]]; then
+            log "Usable Wi-Fi connection: ${connection} at ${address}"
+            last_status="${status}"
+        fi
+    else
+        now="$(date +%s)"
+        connection="$(active_connection)"
+        state="$(device_state_code)"
+        address="$(ipv4_address)"
+
+        if (( disconnected_since == 0 )); then
+            disconnected_since="${now}"
+            last_status="waiting"
+            log "No usable Wi-Fi (connection=${connection:---}, state=${state:---}, address=${address:---}); allowing ${CONNECTION_LOSS_GRACE_SECONDS}s for recovery"
+        elif (( now - disconnected_since >= CONNECTION_LOSS_GRACE_SECONDS )); then
+            if activate_fallback; then
+                disconnected_since=0
+                last_status="hotspot"
+            else
+                disconnected_since="${now}"
+                last_status="waiting"
+            fi
+        fi
+    fi
+
+    sleep "${POLL_SECONDS}"
+done
