@@ -1,11 +1,14 @@
 import tempfile
+import threading
 import unittest
+from collections import deque
 from pathlib import Path
 
 from src.backend.interfaces.IridiumIMTInterface import (
     DurablePacketQueue,
     IridiumIMTCodec,
     IridiumIMTInterface,
+    RecentInboundPacketCache,
 )
 
 
@@ -57,6 +60,25 @@ class DurablePacketQueueTest(unittest.TestCase):
             self.assertEqual(queue.count(), 1)
 
 
+class RecentInboundPacketCacheTest(unittest.TestCase):
+
+    def test_suppresses_exact_duplicates_within_ttl(self):
+        cache = RecentInboundPacketCache(ttl=10, maximum_packets=2)
+
+        self.assertFalse(cache.check_and_record(b"first", now=1)[0])
+        self.assertTrue(cache.check_and_record(b"first", now=2)[0])
+        self.assertFalse(cache.check_and_record(b"first", now=12.1)[0])
+
+    def test_evicts_oldest_packet_at_capacity(self):
+        cache = RecentInboundPacketCache(ttl=100, maximum_packets=2)
+
+        cache.check_and_record(b"first", now=1)
+        cache.check_and_record(b"second", now=2)
+        cache.check_and_record(b"third", now=3)
+
+        self.assertFalse(cache.check_and_record(b"first", now=4)[0])
+
+
 class IridiumIMTReceiveTest(unittest.TestCase):
 
     class FakeOwner:
@@ -84,7 +106,9 @@ class IridiumIMTReceiveTest(unittest.TestCase):
         interface.port = "/dev/test"
         interface.owner = self.FakeOwner()
         interface.modem = self.FakeModem(message)
-        interface.mt_message_ready = True
+        interface.mt_message_ids = deque([7])
+        interface.recent_inbound_packets = RecentInboundPacketCache()
+        interface.state_lock = threading.Lock()
         interface.rxb = 0
         return interface
 
@@ -97,7 +121,7 @@ class IridiumIMTReceiveTest(unittest.TestCase):
         self.assertEqual(interface.owner.received, [(packet, interface)])
         self.assertEqual(interface.rxb, len(packet))
         self.assertTrue(interface.modem.acknowledged)
-        self.assertFalse(interface.mt_message_ready)
+        self.assertEqual(list(interface.mt_message_ids), [])
 
     def test_invalid_frame_is_not_injected_but_is_acknowledged(self):
         interface = self.make_interface(b"not-a-native-frame")
@@ -106,6 +130,19 @@ class IridiumIMTReceiveTest(unittest.TestCase):
 
         self.assertEqual(interface.owner.received, [])
         self.assertEqual(interface.rxb, 0)
+        self.assertTrue(interface.modem.acknowledged)
+
+    def test_duplicate_frame_is_acknowledged_but_only_injected_once(self):
+        packet = b"\x01native-reticulum-packet"
+        interface = self.make_interface(IridiumIMTCodec.encode(packet))
+
+        interface._drain_incoming()
+        interface.mt_message_ids.append(8)
+        interface.modem.acknowledged = False
+        interface._drain_incoming()
+
+        self.assertEqual(interface.owner.received, [(packet, interface)])
+        self.assertEqual(interface.rxb, len(packet))
         self.assertTrue(interface.modem.acknowledged)
 
 

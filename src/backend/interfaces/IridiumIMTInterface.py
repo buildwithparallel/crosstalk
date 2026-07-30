@@ -9,10 +9,12 @@ This module is loaded by Reticulum as an external interface. The optional
 so normal Crosstalk installations are unaffected.
 """
 
+import hashlib
 import os
 import sqlite3
 import threading
 import time
+from collections import OrderedDict, deque
 
 import RNS
 from RNS.Interfaces.Interface import Interface
@@ -126,6 +128,36 @@ class DurablePacketQueue:
             ).fetchone()[0]
 
 
+class RecentInboundPacketCache:
+    """Bounded replay cache for exact IMT frame duplicates."""
+
+    def __init__(self, ttl=600, maximum_packets=1024):
+        self.ttl = float(ttl)
+        self.maximum_packets = int(maximum_packets)
+        self.packets = OrderedDict()
+
+    def check_and_record(self, payload, now=None):
+        now = time.monotonic() if now is None else float(now)
+        digest = hashlib.sha256(bytes(payload)).hexdigest()
+        cutoff = now - self.ttl
+
+        while self.packets:
+            _, oldest_seen_at = next(iter(self.packets.items()))
+            if oldest_seen_at >= cutoff:
+                break
+            self.packets.popitem(last=False)
+
+        duplicate = digest in self.packets
+        if duplicate:
+            self.packets.move_to_end(digest)
+        self.packets[digest] = now
+
+        while len(self.packets) > self.maximum_packets:
+            self.packets.popitem(last=False)
+
+        return duplicate, digest
+
+
 class IridiumIMTInterface(Interface):
     """Reticulum interface backed by a RockBLOCK 9704 serial device."""
 
@@ -180,7 +212,8 @@ class IridiumIMTInterface(Interface):
         self.rockblock_class = RockBlock9704
         self.modem = None
         self.current_packet = None
-        self.mt_message_ready = False
+        self.mt_message_ids = deque()
+        self.recent_inbound_packets = RecentInboundPacketCache()
         self.signal_bars = -1
         self.stop_event = threading.Event()
         self.state_lock = threading.Lock()
@@ -279,6 +312,9 @@ class IridiumIMTInterface(Interface):
         if retry_current:
             self._retry_current(error)
 
+        with self.state_lock:
+            self.mt_message_ids.clear()
+
         modem = self.modem
         self.modem = None
         if modem is not None:
@@ -367,10 +403,11 @@ class IridiumIMTInterface(Interface):
 
     def _on_mt_complete(self, message_id, status):
         if status == 1:
-            self.mt_message_ready = True
+            with self.state_lock:
+                self.mt_message_ids.append(message_id)
             RNS.log(
                 f"{self} received mobile-terminated message {message_id}",
-                RNS.LOG_DEBUG,
+                RNS.LOG_NOTICE,
             )
         else:
             RNS.log(
@@ -393,32 +430,61 @@ class IridiumIMTInterface(Interface):
             )
 
     def _drain_incoming(self):
-        if not self.mt_message_ready or self.modem is None:
+        if self.modem is None:
             return
 
-        # Read and acknowledge one message at a time. The asynchronous modem
-        # API must be polled after an acknowledgement before its queue head is
-        # guaranteed to advance.
-        self.mt_message_ready = False
+        with self.state_lock:
+            if not self.mt_message_ids:
+                return
+            message_id = self.mt_message_ids.popleft()
+
         message = self.modem.receive_message_async()
         if message is None:
+            with self.state_lock:
+                self.mt_message_ids.appendleft(message_id)
             return
+
+        duplicate, digest = self.recent_inbound_packets.check_and_record(message)
+        short_digest = digest[:16]
 
         try:
             packet = IridiumIMTCodec.decode(message)
-            self.owner.inbound(packet, self)
-            self.rxb += len(packet)
-            RNS.log(
-                f"{self} injected {len(packet)} byte packet into Reticulum",
-                RNS.LOG_NOTICE,
-            )
+            if duplicate:
+                RNS.log(
+                    f"{self} suppressed duplicate MT message {message_id} "
+                    f"with SHA-256 {short_digest}",
+                    RNS.LOG_NOTICE,
+                )
+            else:
+                self.owner.inbound(packet, self)
+                self.rxb += len(packet)
+                RNS.log(
+                    f"{self} injected {len(packet)} byte packet from MT "
+                    f"message {message_id} with SHA-256 {short_digest}",
+                    RNS.LOG_NOTICE,
+                )
         except Exception as error:
             RNS.log(
-                f"{self} discarded invalid IMT payload: {error}",
+                f"{self} discarded invalid MT message {message_id} "
+                f"with SHA-256 {short_digest}: {error}",
                 RNS.LOG_ERROR,
             )
         finally:
-            self.modem.acknowledge_receive_head_async()
+            acknowledged = bool(
+                self.modem.acknowledge_receive_head_async()
+            )
+            if acknowledged:
+                RNS.log(
+                    f"{self} acknowledged MT message {message_id} "
+                    f"with SHA-256 {short_digest}",
+                    RNS.LOG_NOTICE,
+                )
+            else:
+                RNS.log(
+                    f"{self} could not acknowledge MT message {message_id} "
+                    f"with SHA-256 {short_digest}",
+                    RNS.LOG_WARNING,
+                )
 
     def detach(self):
         self.detached = True
