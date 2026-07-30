@@ -2174,8 +2174,21 @@ class Crosstalk:
             # convert hash to bytes
             hash_as_bytes = bytes.fromhex(hash)
 
-            # cancel outbound message by lxmf message hash
-            self.message_router.cancel_outbound(hash_as_bytes)
+            # Satellite messages are deliberately removed from LXMF's normal
+            # fast-retry queue after their first attempt. Cancel them through
+            # the satellite supervisor first so the proof wait and any
+            # bounded retry are stopped as well.
+            cancelled_lxmf_message = None
+            if self.satellite_retry_policy is not None:
+                cancelled_lxmf_message = self.satellite_retry_policy.cancel_message(
+                    hash_as_bytes,
+                    self.message_router,
+                )
+
+            if cancelled_lxmf_message is None:
+                self.message_router.cancel_outbound(hash_as_bytes)
+            else:
+                self.db_upsert_lxmf_message(cancelled_lxmf_message)
 
             # get lxmf message from database
             lxmf_message = None
@@ -3232,18 +3245,34 @@ class Crosstalk:
         # convert destination hash to bytes
         destination_hash = bytes.fromhex(destination_hash)
 
-        # determine when to timeout finding path
-        timeout_after_seconds = time.time() + 10
+        # Every packet on a paid satellite link is billable, so refuse
+        # anything that cannot travel as a single opportunistic packet, and
+        # never emit automatic path requests. A route must already exist
+        # (seeded by a relayed announce from the peer).
+        if self.satellite_retry_policy is not None:
+            self.satellite_retry_policy.validate_outbound(
+                content=content,
+                has_attachments=(
+                    image_field is not None
+                    or audio_field is not None
+                    or file_attachments_field is not None
+                ),
+                has_path=RNS.Transport.has_path(destination_hash),
+            )
+        else:
 
-        # check if we have a path to the destination
-        if not RNS.Transport.has_path(destination_hash):
+            # determine when to timeout finding path
+            timeout_after_seconds = time.time() + 10
 
-            # we don't have a path, so we need to request it
-            RNS.Transport.request_path(destination_hash)
+            # check if we have a path to the destination
+            if not RNS.Transport.has_path(destination_hash):
 
-            # wait until we have a path, or give up after the configured timeout
-            while not RNS.Transport.has_path(destination_hash) and time.time() < timeout_after_seconds:
-                await asyncio.sleep(0.1)
+                # we don't have a path, so we need to request it
+                RNS.Transport.request_path(destination_hash)
+
+                # wait until we have a path, or give up after the configured timeout
+                while not RNS.Transport.has_path(destination_hash) and time.time() < timeout_after_seconds:
+                    await asyncio.sleep(0.1)
 
         # find destination identity from hash
         destination_identity = RNS.Identity.recall(destination_hash)
@@ -3277,11 +3306,18 @@ class Crosstalk:
                 # we will only do this if an encryption ratchet is available, so single packet delivery is more secure
                 desired_delivery_method = LXMF.LXMessage.OPPORTUNISTIC
 
-        # A small satellite chat message should use one packet instead of
-        # constructing a multi-packet direct link. Explicit user selections
-        # are retained, but automatic method selection favours opportunistic
-        # delivery whenever the Iridium policy is active.
-        if self.satellite_retry_policy is not None and delivery_method is None:
+        # A small satellite chat message must use one packet instead of a
+        # multi-packet direct link: RNS link establishment times out in
+        # seconds while satellite round trips take minutes, so a direct
+        # link can never activate and every attempt bills several packets.
+        # This overrides explicit Direct/Propagated selections as well.
+        if self.satellite_retry_policy is not None:
+            if desired_delivery_method != LXMF.LXMessage.OPPORTUNISTIC:
+                RNS.log(
+                    "Satellite policy forcing opportunistic delivery for "
+                    f"message to {destination_hash.hex()}",
+                    RNS.LOG_NOTICE,
+                )
             desired_delivery_method = LXMF.LXMessage.OPPORTUNISTIC
 
         # create lxmf message

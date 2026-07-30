@@ -5,6 +5,11 @@ import time
 
 import LXMF
 import RNS
+import RNS.vendor.umsgpack as msgpack
+
+
+class SatelliteMessageRejected(ValueError):
+    """Raised when a message must not be sent over a paid satellite link."""
 
 
 class SatelliteRetryPolicy:
@@ -15,6 +20,11 @@ class SatelliteRetryPolicy:
     DEFAULT_MAX_ATTEMPTS = 1
     MAXIMUM_ATTEMPTS = 2
     POLL_INTERVAL_SECONDS = 1
+
+    # A message whose packed content exceeds this fits only in a multi-packet
+    # direct-link transfer, which cannot work over minutes-long satellite
+    # round trips and would create several billable packets.
+    SINGLE_PACKET_CONTENT_LIMIT = LXMF.LXMessage.ENCRYPTED_PACKET_MAX_CONTENT
 
     def __init__(
         self,
@@ -34,6 +44,8 @@ class SatelliteRetryPolicy:
         )
         self.interface_name = interface_name
         self.poll_interval_seconds = float(poll_interval_seconds)
+        self._guarded_messages = {}
+        self._guarded_messages_lock = threading.Lock()
 
     @staticmethod
     def _interface_is_enabled(interface_config):
@@ -68,6 +80,48 @@ class SatelliteRetryPolicy:
 
         return None
 
+    @classmethod
+    def packed_content_size(cls, content, fields=None, title=""):
+        """Mirror LXMF.LXMessage.pack() sizing without creating a message."""
+
+        if isinstance(content, str):
+            content = content.encode("utf-8")
+        if isinstance(title, str):
+            title = title.encode("utf-8")
+
+        payload = [time.time(), title, content, fields or {}]
+        packed_payload = msgpack.packb(payload)
+        return (
+            len(packed_payload)
+            - LXMF.LXMessage.TIMESTAMP_SIZE
+            - LXMF.LXMessage.STRUCT_OVERHEAD
+        )
+
+    def validate_outbound(self, content, has_attachments, has_path):
+        """Reject messages that cannot travel as one opportunistic packet."""
+
+        if has_attachments:
+            raise SatelliteMessageRejected(
+                "Attachments are disabled over the satellite link because "
+                "they require multi-packet direct transfers."
+            )
+
+        content_size = self.packed_content_size(content)
+        if content_size > self.SINGLE_PACKET_CONTENT_LIMIT:
+            raise SatelliteMessageRejected(
+                f"Message is too large for one satellite packet "
+                f"({content_size} > {self.SINGLE_PACKET_CONTENT_LIMIT} "
+                "bytes). Shorten the message."
+            )
+
+        if not has_path:
+            raise SatelliteMessageRejected(
+                "No Reticulum route to this peer over the satellite link "
+                "yet. Ask the peer to announce (for example tap Announce "
+                "in Columba), wait for the announce to arrive, then send "
+                "again."
+            )
+
     @staticmethod
     def _is_terminal(lxmessage):
         return lxmessage.state in (
@@ -86,40 +140,81 @@ class SatelliteRetryPolicy:
             time.sleep(min(self.poll_interval_seconds, max(remaining, 0)))
         return self._is_terminal(lxmessage)
 
+    def _register_message(self, lxmessage):
+        message_id = getattr(lxmessage, "message_id", None)
+        if message_id is None:
+            return
+
+        with self._guarded_messages_lock:
+            self._guarded_messages[message_id] = lxmessage
+
+    def _forget_message(self, lxmessage):
+        message_id = getattr(lxmessage, "message_id", None)
+        if message_id is None:
+            return
+
+        with self._guarded_messages_lock:
+            if self._guarded_messages.get(message_id) is lxmessage:
+                del self._guarded_messages[message_id]
+
+    def cancel_message(self, message_id, message_router):
+        """Cancel a guarded message after it has left LXMF's fast queue."""
+
+        with self._guarded_messages_lock:
+            lxmessage = self._guarded_messages.get(message_id)
+
+        if lxmessage is None:
+            return None
+
+        # Let LXMF cancel any representation that is still in its queue.
+        message_router.cancel_outbound(message_id)
+
+        # Opportunistic satellite messages are removed from pending_outbound
+        # immediately after their first send. Marking the retained object is
+        # therefore required to stop the proof wait and any bounded retry.
+        if not self._is_terminal(lxmessage):
+            lxmessage.state = LXMF.LXMessage.CANCELLED
+
+        self._forget_message(lxmessage)
+        return lxmessage
+
     def supervise(self, lxmessage, message_router, original_send):
-        while lxmessage._satellite_send_attempts < self.max_attempts:
+        try:
+            while lxmessage._satellite_send_attempts < self.max_attempts:
+                if self._wait_for_terminal_state(lxmessage):
+                    return
+
+                try:
+                    lxmessage._satellite_send_attempts += 1
+                    lxmessage.delivery_attempts = max(
+                        lxmessage.delivery_attempts,
+                        lxmessage._satellite_send_attempts,
+                    )
+                    RNS.log(
+                        "Satellite LXMF retry "
+                        f"{lxmessage._satellite_send_attempts}/"
+                        f"{self.max_attempts} for {lxmessage}",
+                        RNS.LOG_NOTICE,
+                    )
+                    original_send()
+                except Exception as error:
+                    RNS.log(
+                        f"Satellite LXMF retry failed for {lxmessage}: {error}",
+                        RNS.LOG_ERROR,
+                    )
+                    break
+
             if self._wait_for_terminal_state(lxmessage):
                 return
 
-            try:
-                lxmessage._satellite_send_attempts += 1
-                lxmessage.delivery_attempts = max(
-                    lxmessage.delivery_attempts,
-                    lxmessage._satellite_send_attempts,
-                )
-                RNS.log(
-                    "Satellite LXMF retry "
-                    f"{lxmessage._satellite_send_attempts}/"
-                    f"{self.max_attempts} for {lxmessage}",
-                    RNS.LOG_NOTICE,
-                )
-                original_send()
-            except Exception as error:
-                RNS.log(
-                    f"Satellite LXMF retry failed for {lxmessage}: {error}",
-                    RNS.LOG_ERROR,
-                )
-                break
-
-        if self._wait_for_terminal_state(lxmessage):
-            return
-
-        RNS.log(
-            "Satellite LXMF proof window expired after "
-            f"{lxmessage._satellite_send_attempts} attempt(s) for {lxmessage}",
-            RNS.LOG_WARNING,
-        )
-        message_router.fail_message(lxmessage)
+            RNS.log(
+                "Satellite LXMF proof window expired after "
+                f"{lxmessage._satellite_send_attempts} attempt(s) for {lxmessage}",
+                RNS.LOG_WARNING,
+            )
+            message_router.fail_message(lxmessage)
+        finally:
+            self._forget_message(lxmessage)
 
     def guard_message(self, lxmessage, message_router):
         """Replace this message's fast router retries with bounded retries."""
@@ -150,6 +245,8 @@ class SatelliteRetryPolicy:
                 )
                 message_router.fail_message(lxmessage)
                 return None
+
+            self._register_message(lxmessage)
 
             # LXMF normally leaves opportunistic messages in its outbound
             # queue and retries them after only a few seconds. The receipt's

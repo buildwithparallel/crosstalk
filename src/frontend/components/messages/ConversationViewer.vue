@@ -61,8 +61,23 @@
                 </div>
             </div>
 
+            <!-- satellite modem signal -->
+            <div v-if="satelliteSignalBars !== null"
+                class="ml-auto my-auto flex items-center space-x-1.5 rounded-full border px-2.5 py-1"
+                :class="satelliteSignalTheme.pill"
+                :title="`${satelliteSignalInterfaceName ?? 'Satellite'} signal: ${Math.max(satelliteSignalBars, 0)}/5 — ${satelliteSignalTheme.hint}`">
+                <div class="flex items-end space-x-0.5">
+                    <div v-for="bar in 5" :key="bar"
+                        class="w-1 rounded-sm"
+                        :class="[satelliteSignalBarHeights[bar - 1], bar <= satelliteSignalBars ? satelliteSignalTheme.bar : 'bg-[rgba(255,255,255,0.15)]']"></div>
+                </div>
+                <div class="text-xs font-semibold whitespace-nowrap" :class="satelliteSignalTheme.text">
+                    {{ satelliteSignalBars >= 0 ? `${satelliteSignalBars}/5` : "–/5" }}
+                </div>
+            </div>
+
             <!-- dropdown menu -->
-            <div class="ml-auto my-auto mx-2">
+            <div class="my-auto mx-2" :class="{ 'ml-auto': satelliteSignalBars === null }">
                 <ConversationDropDownMenu
                     v-if="selectedPeer"
                     :peer="selectedPeer"
@@ -452,6 +467,11 @@ export default {
             selectedPeerLxmfStampInfo: null,
             selectedPeerSignalMetrics: null,
 
+            satelliteSignalBars: null,
+            satelliteSignalInterfaceName: null,
+            satelliteSignalTimer: null,
+            satelliteSignalBarHeights: ["h-1.5", "h-2", "h-2.5", "h-3", "h-3.5"],
+
             lxmfMessagesRequestSequence: 0,
             chatItems: [],
 
@@ -492,16 +512,44 @@ export default {
     beforeUnmount() {
         // stop listening for websocket messages
         WebSocketConnection.off("message", this.onWebsocketMessage);
+
+        // stop polling satellite signal
+        clearInterval(this.satelliteSignalTimer);
+
     },
     mounted() {
 
         // listen for websocket messages
         WebSocketConnection.on("message", this.onWebsocketMessage);
 
+        // poll satellite modem signal so the user knows when to attempt sends
+        this.updateSatelliteSignal();
+        this.satelliteSignalTimer = setInterval(this.updateSatelliteSignal, 5000);
+
     },
     methods: {
         close() {
             this.$emit("close");
+        },
+        async updateSatelliteSignal() {
+            try {
+
+                const response = await window.axios.get("/api/v1/interface-stats");
+                const interfaces = response.data.interface_stats?.interfaces ?? [];
+
+                // only IridiumIMTInterface entries carry signal_bars
+                const satelliteInterface = interfaces.find((iface) => iface.signal_bars !== undefined);
+                if(satelliteInterface){
+                    this.satelliteSignalBars = satelliteInterface.signal_bars;
+                    this.satelliteSignalInterfaceName = satelliteInterface.interface_name;
+                } else {
+                    this.satelliteSignalBars = null;
+                }
+
+            } catch(e) {
+                // hide the indicator rather than show a stale reading
+                this.satelliteSignalBars = null;
+            }
         },
         onMessagesScroll(event) {
 
@@ -1666,6 +1714,30 @@ export default {
         },
     },
     computed: {
+        satelliteSignalTheme() {
+            if(this.satelliteSignalBars >= 3){
+                return {
+                    pill: "border-green-400/40 bg-green-500/10",
+                    bar: "bg-green-400",
+                    text: "text-green-300",
+                    hint: "good window, send now",
+                };
+            }
+            if(this.satelliteSignalBars === 2){
+                return {
+                    pill: "border-yellow-400/40 bg-yellow-500/10",
+                    bar: "bg-yellow-400",
+                    text: "text-yellow-300",
+                    hint: "marginal, sends may be delayed",
+                };
+            }
+            return {
+                pill: "border-red-400/40 bg-red-500/10",
+                bar: "bg-red-400",
+                text: "text-red-300",
+                hint: "no usable signal, wait for the next window",
+            };
+        },
         isMobile() {
             return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         },
