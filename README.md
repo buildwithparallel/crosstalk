@@ -66,7 +66,8 @@ Other supported setups:
 
 - [Docker](./docs/crosstalk_on_docker.md)
 - [Raspberry Pi](./docs/crosstalk_on_raspberry_pi.md)
-- [Android with Termux](./docs/crosstalk_on_android_with_termux.md)
+- [Android companion + Termux](./android/README.md)
+- [Android with Termux (manual browser setup)](./docs/crosstalk_on_android_with_termux.md)
 
 To run from source, install Python 3 and Node.js 22.12 or newer, then:
 

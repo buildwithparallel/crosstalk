@@ -51,3 +51,30 @@ jobs:
 
       - name: Build frontend
         run: npm run build-frontend
+
+  android-build:
+    name: Android companion
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-29" "build-tools;35.0.1"
+
+      - name: Build Android APK
+        run: ./android/build-apk.sh
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: crosstalk-android-debug
+          path: android/build/Crosstalk-Android.apk
+          if-no-files-found: error
+          retention-days: 7
