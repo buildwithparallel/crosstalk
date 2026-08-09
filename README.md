@@ -87,6 +87,7 @@ Open <http://localhost:8000>. Run `python3 crosstalk.py --help` for server, iden
 python3 -m pip install -r requirements.txt
 npm install
 npm run build-frontend
+python3 -m unittest discover -s tests -v
 python3 crosstalk.py --headless
 ```
 
