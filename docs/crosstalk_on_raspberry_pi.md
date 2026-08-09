@@ -137,6 +137,17 @@ The important settings are:
 - `topic`: the IMT RAW topic used by both ends, default `244`
 - `maximum_queued_packets`: the maximum number of packets retained on disk
 - `retry_interval`: how soon a failed mobile-originated message is retried
+- `persistent_destinations`: optional comma-separated destination hashes whose
+  authenticated paths should be restored after a restart
+- `persistent_path_max_age`: maximum age in seconds for a restored path;
+  defaults to seven days
+
+Path persistence is deliberately allowlisted. It does not enable Reticulum
+transport and therefore does not turn the satellite device into a router for
+other users. A path is cached only after Reticulum has accepted it through the
+Iridium interface, and restoring it is a local operation that sends no IMT
+message. The first authenticated announce must still arrive normally before a
+destination can be cached.
 
 At startup, Crosstalk installs the bundled external interface module into the
 selected Reticulum configuration directory. Outbound packets are stored in a

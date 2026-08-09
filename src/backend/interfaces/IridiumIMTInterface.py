@@ -10,6 +10,7 @@ so normal Crosstalk installations are unaffected.
 """
 
 import hashlib
+import json
 import os
 import sqlite3
 import threading
@@ -128,6 +129,104 @@ class DurablePacketQueue:
             ).fetchone()[0]
 
 
+class DurablePathCache:
+    """Allowlisted Reticulum paths that can be rebound after a restart.
+
+    Reticulum only persists its complete path table when transport is enabled.
+    A paid edge interface must remain a non-transport instance, so this cache
+    stores only destinations explicitly configured by the operator.
+    """
+
+    def __init__(self, path):
+        self.path = os.path.abspath(os.path.expanduser(path))
+        self.lock = threading.Lock()
+        os.makedirs(os.path.dirname(self.path), exist_ok=True)
+        with self._connect() as connection:
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS persistent_paths (
+                    destination_hash BLOB PRIMARY KEY,
+                    timestamp REAL NOT NULL,
+                    next_hop BLOB NOT NULL,
+                    hops INTEGER NOT NULL,
+                    expires REAL NOT NULL,
+                    random_blobs TEXT NOT NULL,
+                    packet_hash BLOB NOT NULL,
+                    recorded_at REAL NOT NULL
+                )
+                """
+            )
+
+    def _connect(self):
+        return sqlite3.connect(self.path, timeout=10)
+
+    def save(self, destination_hash, path_entry, recorded_at=None):
+        recorded_at = time.time() if recorded_at is None else float(recorded_at)
+        random_blobs = json.dumps(
+            [bytes(blob).hex() for blob in path_entry[4]],
+            separators=(",", ":"),
+        )
+        with self.lock, self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO persistent_paths (
+                    destination_hash, timestamp, next_hop, hops, expires,
+                    random_blobs, packet_hash, recorded_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(destination_hash) DO UPDATE SET
+                    timestamp = excluded.timestamp,
+                    next_hop = excluded.next_hop,
+                    hops = excluded.hops,
+                    expires = excluded.expires,
+                    random_blobs = excluded.random_blobs,
+                    packet_hash = excluded.packet_hash,
+                    recorded_at = excluded.recorded_at
+                """,
+                (
+                    sqlite3.Binary(bytes(destination_hash)),
+                    float(path_entry[0]),
+                    sqlite3.Binary(bytes(path_entry[1])),
+                    int(path_entry[2]),
+                    float(path_entry[3]),
+                    random_blobs,
+                    sqlite3.Binary(bytes(path_entry[6])),
+                    recorded_at,
+                ),
+            )
+
+    def load(self, destination_hash):
+        with self.lock, self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT timestamp, next_hop, hops, expires, random_blobs,
+                       packet_hash, recorded_at
+                FROM persistent_paths
+                WHERE destination_hash = ?
+                """,
+                (sqlite3.Binary(bytes(destination_hash)),),
+            ).fetchone()
+
+        if row is None:
+            return None
+
+        return {
+            "timestamp": float(row[0]),
+            "next_hop": bytes(row[1]),
+            "hops": int(row[2]),
+            "expires": float(row[3]),
+            "random_blobs": [bytes.fromhex(blob) for blob in json.loads(row[4])],
+            "packet_hash": bytes(row[5]),
+            "recorded_at": float(row[6]),
+        }
+
+    def delete(self, destination_hash):
+        with self.lock, self._connect() as connection:
+            connection.execute(
+                "DELETE FROM persistent_paths WHERE destination_hash = ?",
+                (sqlite3.Binary(bytes(destination_hash)),),
+            )
+
+
 class RecentInboundPacketCache:
     """Bounded replay cache for exact IMT frame duplicates."""
 
@@ -203,6 +302,24 @@ class IridiumIMTInterface(Interface):
             maximum_packets=maximum_queued_packets,
         )
 
+        self.persistent_destination_hashes = self._parse_destination_hashes(
+            interface_config.get("persistent_destinations", "")
+        )
+        self.persistent_path_max_age = float(
+            interface_config.get("persistent_path_max_age", 60 * 60 * 24 * 7)
+        )
+        self.persistent_path_cache = None
+        if self.persistent_destination_hashes:
+            default_path_cache_path = os.path.join(
+                RNS.Reticulum.storagepath,
+                "iridium_imt",
+                "persistent_paths.sqlite3",
+            )
+            self.persistent_path_cache = DurablePathCache(
+                interface_config.get("persistent_path_cache", default_path_cache_path)
+            )
+        self.persistent_paths_restored = False
+
         try:
             from rockblock9704 import RockBlock9704
         except ImportError as error:
@@ -227,6 +344,121 @@ class IridiumIMTInterface(Interface):
             daemon=True,
         )
         self.worker.start()
+
+    @staticmethod
+    def _parse_destination_hashes(value):
+        if value is None:
+            return set()
+
+        values = value if isinstance(value, (list, tuple)) else [value]
+        tokens = []
+        for item in values:
+            tokens.extend(str(item).replace(",", " ").split())
+
+        expected_length = RNS.Reticulum.TRUNCATED_HASHLENGTH // 8
+        destination_hashes = set()
+        for token in tokens:
+            try:
+                destination_hash = bytes.fromhex(token)
+            except ValueError:
+                RNS.log(
+                    f"Ignoring invalid persistent Iridium destination {token!r}",
+                    RNS.LOG_WARNING,
+                )
+                continue
+
+            if len(destination_hash) != expected_length:
+                RNS.log(
+                    f"Ignoring persistent Iridium destination {token!r}; "
+                    f"expected {expected_length * 2} hexadecimal characters",
+                    RNS.LOG_WARNING,
+                )
+                continue
+            destination_hashes.add(destination_hash)
+
+        return destination_hashes
+
+    def _capture_persistent_paths(self):
+        if self.persistent_path_cache is None:
+            return
+
+        try:
+            with RNS.Transport.path_table_lock:
+                paths = {
+                    destination_hash: list(RNS.Transport.path_table[destination_hash])
+                    for destination_hash in self.persistent_destination_hashes
+                    if destination_hash in RNS.Transport.path_table
+                    and RNS.Transport.path_table[destination_hash][5] is self
+                }
+
+            for destination_hash, path_entry in paths.items():
+                self.persistent_path_cache.save(destination_hash, path_entry)
+                RNS.log(
+                    f"{self} saved allowlisted path to "
+                    f"{RNS.prettyhexrep(destination_hash)}",
+                    RNS.LOG_DEBUG,
+                )
+        except Exception as error:
+            RNS.log(
+                f"{self} could not save persistent path: {error}",
+                RNS.LOG_ERROR,
+            )
+
+    def _restore_persistent_paths(self):
+        if self.persistent_paths_restored:
+            return
+        if self.persistent_path_cache is None:
+            self.persistent_paths_restored = True
+            return
+
+        # External interface constructors run before Reticulum finishes adding
+        # them to the active interface list. Wait until this interface is fully
+        # registered, otherwise the normal path-table cleanup would remove it.
+        if self not in RNS.Transport.interfaces:
+            return
+
+        now = time.time()
+        try:
+            for destination_hash in self.persistent_destination_hashes:
+                saved_path = self.persistent_path_cache.load(destination_hash)
+                if saved_path is None:
+                    continue
+
+                stale_after = saved_path["recorded_at"] + self.persistent_path_max_age
+                if self.persistent_path_max_age <= 0 or now >= stale_after:
+                    self.persistent_path_cache.delete(destination_hash)
+                    RNS.log(
+                        f"{self} discarded expired persistent path to "
+                        f"{RNS.prettyhexrep(destination_hash)}",
+                        RNS.LOG_NOTICE,
+                    )
+                    continue
+
+                with RNS.Transport.path_table_lock:
+                    if destination_hash in RNS.Transport.path_table:
+                        continue
+                    RNS.Transport.path_table[destination_hash] = [
+                        saved_path["timestamp"],
+                        saved_path["next_hop"],
+                        saved_path["hops"],
+                        saved_path["expires"],
+                        saved_path["random_blobs"],
+                        self,
+                        saved_path["packet_hash"],
+                    ]
+
+                RNS.log(
+                    f"{self} restored allowlisted path to "
+                    f"{RNS.prettyhexrep(destination_hash)} without transmitting",
+                    RNS.LOG_NOTICE,
+                )
+        except Exception as error:
+            RNS.log(
+                f"{self} could not restore persistent paths: {error}",
+                RNS.LOG_ERROR,
+            )
+        finally:
+            self.persistent_paths_restored = True
 
     def process_outgoing(self, data):
         if self.detached:
@@ -264,6 +496,7 @@ class IridiumIMTInterface(Interface):
 
             try:
                 self.modem.poll()
+                self._restore_persistent_paths()
                 self._drain_incoming()
                 self._start_next_outbound()
                 self.stop_event.wait(self.poll_interval)
@@ -470,6 +703,7 @@ class IridiumIMTInterface(Interface):
                 )
             else:
                 self.owner.inbound(packet, self)
+                self._capture_persistent_paths()
                 self.rxb += len(packet)
                 RNS.log(
                     f"{self} injected {len(packet)} byte packet from MT "

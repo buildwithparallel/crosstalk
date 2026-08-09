@@ -1,11 +1,16 @@
 import tempfile
 import threading
+import time
 import unittest
 from collections import deque
 from pathlib import Path
+from unittest.mock import patch
+
+import RNS
 
 from src.backend.interfaces.IridiumIMTInterface import (
     DurablePacketQueue,
+    DurablePathCache,
     IridiumIMTCodec,
     IridiumIMTInterface,
     RecentInboundPacketCache,
@@ -60,6 +65,142 @@ class DurablePacketQueueTest(unittest.TestCase):
             self.assertEqual(queue.count(), 1)
 
 
+class DurablePathCacheTest(unittest.TestCase):
+
+    def test_path_survives_reopen(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "paths.sqlite3"
+            destination_hash = bytes.fromhex("11" * 16)
+            next_hop = bytes.fromhex("22" * 16)
+            packet_hash = bytes.fromhex("33" * 32)
+            path_entry = [
+                100.0,
+                next_hop,
+                2,
+                700.0,
+                [bytes.fromhex("44" * 10)],
+                object(),
+                packet_hash,
+            ]
+
+            DurablePathCache(path).save(
+                destination_hash,
+                path_entry,
+                recorded_at=150.0,
+            )
+            restored = DurablePathCache(path).load(destination_hash)
+
+            self.assertEqual(restored["timestamp"], 100.0)
+            self.assertEqual(restored["next_hop"], next_hop)
+            self.assertEqual(restored["hops"], 2)
+            self.assertEqual(restored["expires"], 700.0)
+            self.assertEqual(restored["random_blobs"], [bytes.fromhex("44" * 10)])
+            self.assertEqual(restored["packet_hash"], packet_hash)
+            self.assertEqual(restored["recorded_at"], 150.0)
+
+    def test_delete_removes_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "paths.sqlite3"
+            destination_hash = bytes.fromhex("11" * 16)
+            path_entry = [
+                100.0,
+                bytes.fromhex("22" * 16),
+                1,
+                700.0,
+                [],
+                object(),
+                bytes.fromhex("33" * 32),
+            ]
+            cache = DurablePathCache(path)
+            cache.save(destination_hash, path_entry)
+            cache.delete(destination_hash)
+
+            self.assertIsNone(cache.load(destination_hash))
+
+
+class PersistentDestinationParsingTest(unittest.TestCase):
+
+    def test_parses_only_complete_destination_hashes(self):
+        first = "11" * 16
+        second = "22" * 16
+
+        parsed = IridiumIMTInterface._parse_destination_hashes(
+            f"{first}, {second} invalid 1234"
+        )
+
+        self.assertEqual(parsed, {bytes.fromhex(first), bytes.fromhex(second)})
+
+
+class PersistentPathLifecycleTest(unittest.TestCase):
+
+    def make_interface(self, cache, destination_hash):
+        interface = object.__new__(IridiumIMTInterface)
+        interface.name = "Test Iridium"
+        interface.port = "/dev/test"
+        interface.persistent_path_cache = cache
+        interface.persistent_destination_hashes = {destination_hash}
+        interface.persistent_path_max_age = 3600
+        interface.persistent_paths_restored = False
+        return interface
+
+    def test_capture_and_restore_rebinds_only_to_same_interface(self):
+        with tempfile.TemporaryDirectory() as directory:
+            destination_hash = bytes.fromhex("11" * 16)
+            next_hop = bytes.fromhex("22" * 16)
+            packet_hash = bytes.fromhex("33" * 32)
+            cache = DurablePathCache(Path(directory) / "paths.sqlite3")
+            interface = self.make_interface(cache, destination_hash)
+            path_entry = [
+                time.time(),
+                next_hop,
+                2,
+                time.time() + 3600,
+                [bytes.fromhex("44" * 10)],
+                interface,
+                packet_hash,
+            ]
+
+            with patch.object(RNS.Transport, "path_table", {destination_hash: path_entry}):
+                interface._capture_persistent_paths()
+
+            with (
+                patch.object(RNS.Transport, "interfaces", [interface]),
+                patch.object(RNS.Transport, "path_table", {}) as restored_table,
+            ):
+                interface._restore_persistent_paths()
+
+                self.assertIn(destination_hash, restored_table)
+                self.assertEqual(restored_table[destination_hash][1], next_hop)
+                self.assertEqual(restored_table[destination_hash][2], 2)
+                self.assertIs(restored_table[destination_hash][5], interface)
+
+    def test_restore_discards_stale_allowlisted_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            destination_hash = bytes.fromhex("11" * 16)
+            cache = DurablePathCache(Path(directory) / "paths.sqlite3")
+            interface = self.make_interface(cache, destination_hash)
+            interface.persistent_path_max_age = 10
+            path_entry = [
+                1.0,
+                bytes.fromhex("22" * 16),
+                1,
+                100.0,
+                [],
+                interface,
+                bytes.fromhex("33" * 32),
+            ]
+            cache.save(destination_hash, path_entry, recorded_at=1.0)
+
+            with (
+                patch.object(RNS.Transport, "interfaces", [interface]),
+                patch.object(RNS.Transport, "path_table", {}) as restored_table,
+            ):
+                interface._restore_persistent_paths()
+
+                self.assertNotIn(destination_hash, restored_table)
+                self.assertIsNone(cache.load(destination_hash))
+
+
 class RecentInboundPacketCacheTest(unittest.TestCase):
 
     def test_suppresses_exact_duplicates_within_ttl(self):
@@ -110,6 +251,7 @@ class IridiumIMTReceiveTest(unittest.TestCase):
         interface.recent_inbound_packets = RecentInboundPacketCache()
         interface.state_lock = threading.Lock()
         interface.rxb = 0
+        interface.persistent_path_cache = None
         return interface
 
     def test_incoming_frame_is_injected_and_acknowledged(self):
