@@ -146,7 +146,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: desktop-linux-x64
-          path: dist/Crosstalk-*-linux-x64.AppImage
+          path: dist/Crosstalk-*-linux-x86_64.AppImage
           if-no-files-found: error
           retention-days: 7
 
