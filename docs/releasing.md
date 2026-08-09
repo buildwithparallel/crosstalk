@@ -4,13 +4,13 @@ GitHub Actions builds the desktop applications and creates a draft GitHub
 Release whenever a version tag is pushed. The tag must match the version in
 `package.json` exactly.
 
-The first Crosstalk release is prepared as `2.3.1`; the inherited `v2.3.0` tag
-belongs to upstream MeshChat. After committing the release changes, create and
-push the matching tag:
+The inherited `v2.3.0` tag belongs to upstream MeshChat. After updating the
+version in `package.json` and committing the release changes, create and push
+the matching tag. For example:
 
 ```sh
-git tag -a v2.3.1 -m "Crosstalk v2.3.1"
-git push origin v2.3.1
+git tag -a v2.3.2 -m "Crosstalk v2.3.2"
+git push origin v2.3.2
 ```
 
 The release workflow produces:
