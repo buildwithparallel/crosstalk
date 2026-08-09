@@ -7,14 +7,40 @@
 <h1 align="center">Crosstalk</h1>
 
 <p align="center">
-  A field-focused fork of <a href="https://github.com/liamcottle/reticulum-meshchat">Reticulum MeshChat</a> for resilient messaging over Reticulum, including native Iridium IMT support.
+  A field-focused fork of <a href="https://github.com/liamcottle/reticulum-meshchat">Reticulum MeshChat</a> with clearer network visibility, easier interface setup and a redesigned UI.
 </p>
 
 ![Crosstalk interface](./example-1.png)
 
 ## What Crosstalk adds
 
-Crosstalk keeps MeshChat's LXMF messaging, attachments, audio calls, propagation-node support and Nomad Network browser, then adds the following.
+Crosstalk keeps MeshChat's LXMF messaging, attachments, audio calls, propagation-node support and Nomad Network browser, then makes Reticulum easier to understand, configure and use.
+
+### Transport and infrastructure visibility
+
+- A dedicated Infrastructure view for signed Reticulum interface advertisements.
+- Visibility into relay-only infrastructure, including MicroReticulum transport nodes such as SkyMesh and RTNode devices.
+- Infrastructure nodes, hop counts, radio parameters and connection state in the network map.
+
+### Easier interface setup
+
+- Public-backbone onboarding, including a disabled-by-default RMAP World connection.
+- Improved interface import, export, editing and deletion.
+- Automatic backend restarts after configuration changes.
+- An isolated Crosstalk Reticulum configuration so another local Reticulum instance cannot leave the app using stale settings.
+
+### Better everyday UI
+
+- A redesigned, higher-contrast desktop and mobile UI.
+- Clearer navigation, deterministic identicons and improved network-map controls.
+- Consistent in-app dialogs, notifications and status feedback.
+- Better attachment previews, attachment-only messages and mobile chat controls.
+
+### Reliability improvements and bug fixes
+
+- More predictable startup and configuration behavior.
+- Fixes for stale Reticulum settings, attachment-only messages and mobile chat interactions.
+- Clearer feedback when interfaces restart, connections change or message delivery needs attention.
 
 ### Iridium IMT transport
 
@@ -26,29 +52,6 @@ Crosstalk keeps MeshChat's LXMF messaging, attachments, audio calls, propagation
 - Allowlisted path persistence for restoring selected Iridium routes without generating satellite traffic.
 
 See [RockBLOCK 9704 / Iridium IMT setup](./docs/crosstalk_on_raspberry_pi.md#rockblock-9704--iridium-imt).
-
-### Better network visibility and configuration
-
-- A dedicated Infrastructure view for signed Reticulum interface advertisements.
-- Infrastructure nodes, hop counts, radio parameters and connection state in the network map.
-- Public-backbone onboarding, including a disabled-by-default RMAP World connection.
-- Improved interface import, export, editing and deletion.
-- Automatic backend restarts after configuration changes.
-- An isolated Crosstalk Reticulum configuration so another local Reticulum instance cannot leave the app using stale settings.
-
-### Field-ready interface
-
-- A redesigned, higher-contrast desktop and mobile UI.
-- Clearer navigation, deterministic identicons and improved network-map controls.
-- Consistent in-app dialogs, notifications and status feedback.
-- Better attachment previews, attachment-only messages and mobile chat controls.
-
-### Raspberry Pi fallback networking
-
-- Raspberry Pi deployment documentation and service examples.
-- An optional network supervisor that prefers saved Wi-Fi, then a saved mobile hotspot, and finally creates an `Aspen-Iridium-Pi` access point for direct local access.
-
-See [Raspberry Pi setup](./docs/crosstalk_on_raspberry_pi.md) and [Aspen Pi network fallback](./deploy/pi/network/README.md).
 
 ## Install
 
