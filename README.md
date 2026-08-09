@@ -58,8 +58,9 @@ See [RockBLOCK 9704 / Iridium IMT setup](./docs/crosstalk_on_raspberry_pi.md#roc
 Download a packaged build for Windows, macOS or Linux from [Releases](https://github.com/buildwithparallel/crosstalk/releases).
 
 The desktop packages are not yet Developer ID or Authenticode signed. On
-macOS, Control-click Crosstalk and choose **Open** the first time. On Windows,
-you may need to choose **More info** and then **Run anyway** in SmartScreen.
+macOS, try opening Crosstalk once, then use **System Settings → Privacy &
+Security → Open Anyway**. On Windows, you may need to choose **More info** and
+then **Run anyway** in SmartScreen.
 
 Other supported setups:
 

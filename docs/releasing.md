@@ -28,8 +28,10 @@ repository's **Releases** page.
 
 ## Signing
 
-The default packages are unsigned. Windows SmartScreen and macOS Gatekeeper
-may therefore warn users before launch. Warning-free distribution requires a
-Windows code-signing certificate and an Apple Developer ID certificate plus
-Apple notarization. Store all certificates, passwords and notarization
-credentials in GitHub Actions secrets—never commit them to this repository.
+The default packages do not use trusted developer certificates. macOS packages
+are ad-hoc signed for bundle integrity but are not notarized, and Windows
+packages are not Authenticode signed. Gatekeeper and SmartScreen may therefore
+warn users before launch. Warning-free distribution requires a Windows
+code-signing certificate and an Apple Developer ID certificate plus Apple
+notarization. Store all certificates, passwords and notarization credentials in
+GitHub Actions secrets—never commit them to this repository.
