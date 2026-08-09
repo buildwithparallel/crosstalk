@@ -1,8 +1,16 @@
+import json
+from pathlib import Path
+
 from cx_Freeze import setup, Executable
+
+
+project_dir = Path(__file__).resolve().parent
+package_metadata = json.loads((project_dir / 'package.json').read_text(encoding='utf-8'))
+
 
 setup(
     name='Crosstalk',
-    version='1.0.0',
+    version=package_metadata['version'],
     description='A simple mesh network communications app powered by the Reticulum Network Stack',
     executables=[
         Executable(

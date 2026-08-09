@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/buildwithparallel/crosstalk">
-    <img src="./logo/logo-chat-bubble.png" width="150" alt="Crosstalk logo">
+    <img src="./logo/crosstalk-icon.svg" width="150" alt="Crosstalk logo">
   </a>
 </p>
 
@@ -60,7 +60,7 @@ Other supported setups:
 - [Raspberry Pi](./docs/crosstalk_on_raspberry_pi.md)
 - [Android with Termux](./docs/crosstalk_on_android_with_termux.md)
 
-To run from source, install Python 3 and Node.js 18 or newer, then:
+To run from source, install Python 3 and Node.js 22.12 or newer, then:
 
 ```sh
 git clone https://github.com/buildwithparallel/crosstalk.git
@@ -83,6 +83,8 @@ python3 crosstalk.py --headless
 ```
 
 Use `npm run electron` to build and launch the Electron app locally, or `npm run dist` to create a packaged build for the current platform.
+
+Maintainers can use the [release workflow](./docs/releasing.md) to build downloadable packages for Windows, macOS and Linux.
 
 ## Upstream and compatibility
 

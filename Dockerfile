@@ -1,5 +1,5 @@
 # Build the frontend
-FROM node:20-bookworm-slim AS build-frontend
+FROM node:22-bookworm-slim AS build-frontend
 
 WORKDIR /src
 

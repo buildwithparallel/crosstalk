@@ -1,7 +1,9 @@
 {
   "name": "crosstalk",
-  "version": "2.3.0",
-  "description": "",
+  "version": "2.3.1",
+  "description": "Field-focused Reticulum messaging with native Iridium IMT support",
+  "author": "Build with Parallel",
+  "repository": "https://github.com/buildwithparallel/crosstalk",
   "main": "electron/main.js",
   "scripts": {
     "watch": "npm run build-frontend -- --watch",
@@ -14,11 +16,11 @@
   },
   "license": "MIT",
   "engines": {
-    "node": ">=18"
+    "node": ">=22.12"
   },
   "devDependencies": {
-    "electron": "^30.0.8",
-    "electron-builder": "^24.6.3"
+    "electron": "^41.7.1",
+    "electron-builder": "^26.15.3"
   },
   "build": {
     "appId": "com.buildwithparallel.crosstalk",
@@ -33,7 +35,7 @@
     "mac": {
       "target": "dmg",
       "identity": null,
-      "artifactName": "Crosstalk-v${version}-${os}.${ext}",
+      "artifactName": "Crosstalk-v${version}-macos-${arch}.${ext}",
       "extendInfo": {
         "NSMicrophoneUsageDescription": "Microphone access is only needed for Audio Calls",
         "com.apple.security.device.audio-input": true
@@ -49,7 +51,7 @@
       ]
     },
     "win": {
-      "artifactName": "Crosstalk-v${version}-${os}.${ext}",
+      "artifactName": "Crosstalk-v${version}-windows-${arch}.${ext}",
       "target": [
         {
           "target": "portable"
@@ -69,7 +71,7 @@
       ]
     },
     "linux": {
-      "artifactName": "Crosstalk-v${version}-${os}.${ext}",
+      "artifactName": "Crosstalk-v${version}-linux-${arch}.${ext}",
       "target": "AppImage",
       "extraFiles": [
         {
@@ -85,10 +87,10 @@
       "writeUpdateInfo": false
     },
     "portable": {
-      "artifactName": "Crosstalk-v${version}-${os}-portable.${ext}"
+      "artifactName": "Crosstalk-v${version}-windows-${arch}-portable.${ext}"
     },
     "nsis": {
-      "artifactName": "Crosstalk-v${version}-${os}-installer.${ext}",
+      "artifactName": "Crosstalk-v${version}-windows-${arch}-installer.${ext}",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
     }

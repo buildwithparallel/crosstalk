@@ -29,7 +29,7 @@ Trail access:
 - SSID: `Aspen-Iridium-Pi`
 - Pi address: `10.42.0.1`
 - CrossTalk: `http://10.42.0.1:8000`
-- SSH: `parallel@10.42.0.1`
+- SSH: `<pi-user>@10.42.0.1`
 
 The WPA password is provisioned directly in NetworkManager and is not stored
 in this repository.

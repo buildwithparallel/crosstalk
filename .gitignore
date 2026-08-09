@@ -1,5 +1,24 @@
-.idea
-node_modules
+# editors and operating-system metadata
+.DS_Store
+.idea/
+.vscode/
+
+# local credentials and signing material
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+
+# dependencies and Python-generated files
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
 
 # build files
 /build/
@@ -9,3 +28,6 @@ node_modules
 
 # local storage
 storage/
+*.db
+*.sqlite
+*.sqlite3
