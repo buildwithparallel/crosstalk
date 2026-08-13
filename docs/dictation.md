@@ -24,8 +24,9 @@ Linux prompt when the microphone is first used.
 ## Privacy
 
 - Microphone samples stay in RAM on the local machine.
-- Transcription runs in a Web Worker with Whisper Tiny (`q8`) and ONNX Runtime
-  WASM.
+- Transcription runs in a Web Worker with Whisper Tiny (`fp32`) and ONNX Runtime
+  WASM. Quantized (`q8`) Whisper graphs are avoided because the current
+  Transformers.js / ONNX Runtime combination rejects them.
 - `env.allowRemoteModels` is disabled, so the worker will not fetch weights
   from the Hugging Face Hub at runtime.
 - The OS/browser language is passed to Whisper as a hint. That value never
@@ -34,7 +35,7 @@ Linux prompt when the microphone is first used.
 ## Build-time assets
 
 `npm run build-frontend` runs `scripts/download-whisper-assets.mjs`, which
-downloads quantized Whisper Tiny files from Hugging Face into
+downloads Whisper Tiny fp32 ONNX files from Hugging Face into
 `src/frontend/public/assets/whisper/models/`. Vite then bundles ONNX Runtime
 WASM from the local `onnxruntime-web` install.
 

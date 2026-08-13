@@ -53,8 +53,11 @@ async function getTranscriber() {
         return transcriber;
     }
     if (!loadPromise) {
+        // Use fp32, not q8: Transformers.js 4.2 + current onnxruntime-web rejects
+        // Xenova/whisper-tiny quantized graphs with MatMulNBits missing-scale errors.
+        // fp32 is the supported local workaround until transformers.js 4.3+.
         loadPromise = pipeline("automatic-speech-recognition", MODEL_ID, {
-            dtype: "q8",
+            dtype: "fp32",
             device: "wasm",
             progress_callback: (progress) => {
                 self.postMessage({

@@ -25,8 +25,11 @@ const MODEL_REVISION = "main";
 const USER_AGENT = "crosstalk-whisper-asset-download";
 
 /**
- * Small tokenizer/config files plus the quantized encoder/decoder used with dtype q8.
- * Larger fp16/fp32 ONNX variants are intentionally omitted to keep the app size down.
+ * Tokenizer/config files plus the fp32 encoder/decoder used with dtype fp32.
+ *
+ * Quantized (`*_quantized.onnx`) Whisper graphs currently fail under
+ * @huggingface/transformers 4.2 + onnxruntime-web with MatMulNBits missing-scale
+ * errors, so we stage the fp32 weights instead.
  */
 const MODEL_FILES = [
     "added_tokens.json",
@@ -35,11 +38,17 @@ const MODEL_FILES = [
     "merges.txt",
     "normalizer.json",
     "preprocessor_config.json",
-    "quant_config.json",
     "special_tokens_map.json",
     "tokenizer.json",
     "tokenizer_config.json",
     "vocab.json",
+    "onnx/encoder_model.onnx",
+    "onnx/decoder_model_merged.onnx",
+];
+
+/** Older q8 assets left behind from earlier builds; safe to drop. */
+const OBSOLETE_MODEL_FILES = [
+    "quant_config.json",
     "onnx/encoder_model_quantized.onnx",
     "onnx/decoder_model_merged_quantized.onnx",
 ];
@@ -90,10 +99,22 @@ async function ensureModelFiles() {
     }
 }
 
+async function removeObsoleteModelFiles() {
+    for (const relativePath of OBSOLETE_MODEL_FILES) {
+        const destinationPath = path.join(modelDir, relativePath);
+        if (!fs.existsSync(destinationPath)) {
+            continue;
+        }
+        await fs.promises.unlink(destinationPath);
+        console.log(`removed obsolete whisper asset: ${relativePath}`);
+    }
+}
+
 async function main() {
     console.log("Preparing on-device Whisper assets…");
     await fs.promises.mkdir(assetsRoot, { recursive: true });
     await ensureModelFiles();
+    await removeObsoleteModelFiles();
     console.log("Whisper assets are ready.");
 }
 
