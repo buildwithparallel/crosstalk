@@ -294,6 +294,7 @@ app.whenReady().then(async () => {
         });
 
         // navigate to loading page
+        // Microphone TCC is requested on first Dictate / Add Voice / call, not at launch.
         await mainWindow.loadFile(path.join(__dirname, 'loading.html'));
 
     }
