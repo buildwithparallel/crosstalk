@@ -2361,6 +2361,7 @@ class Crosstalk:
                     "destination_hash": other_user_hash,
                     "is_unread": self.is_lxmf_conversation_unread(other_user_hash),
                     "failed_messages_count": self.lxmf_conversation_failed_messages_count(other_user_hash),
+                    "has_path": self.destination_has_path(other_user_hash),
                     "lxmf_user_icon": lxmf_user_icon,
                     # we say the conversation was updated when the latest message was created
                     # otherwise this will go crazy when sending a message, as the updated_at on the latest message changes very frequently
@@ -3586,6 +3587,24 @@ class Crosstalk:
             return db_destination_display_name.display_name
 
         return None
+
+    def destination_has_path(self, destination_hash):
+        """
+        Return whether Transport currently has a next-hop path for this LXMF destination.
+
+        This is a local table lookup. It does not request a path from the network, so it
+        is safe to call while listing conversations.
+        """
+
+        try:
+            destination_bytes = bytes.fromhex(destination_hash)
+        except (TypeError, ValueError):
+            return False
+
+        try:
+            return bool(RNS.Transport.has_path(destination_bytes))
+        except Exception:
+            return False
 
     # get name to show for an lxmf conversation
     # currently, this will use the app data from the most recent announce

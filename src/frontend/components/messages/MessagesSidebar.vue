@@ -34,7 +34,14 @@
                                 :destination-hash="conversation.destination_hash"/>
                         </div>
                         <div class="min-w-0 flex-1">
-                            <div class="truncate text-sm text-[var(--ct-text)]" :class="{ 'font-bold': conversation.is_unread || conversation.failed_messages_count > 0 }">{{ conversation.custom_display_name ?? conversation.display_name }}</div>
+                            <div class="flex min-w-0 items-center gap-1.5">
+                                <span
+                                    class="size-2.5 shrink-0 rounded-full"
+                                    :class="conversation.has_path ? 'bg-[var(--ct-green)] shadow-[0_0_8px_rgba(46,231,129,0.55)]' : 'border border-[var(--ct-dim)] bg-transparent'"
+                                    :title="pathStatusTitle(conversation.has_path)"
+                                    :aria-label="pathStatusTitle(conversation.has_path)"></span>
+                                <div class="truncate text-sm text-[var(--ct-text)]" :class="{ 'font-bold': conversation.is_unread || conversation.failed_messages_count > 0 }">{{ conversation.custom_display_name ?? conversation.display_name }}</div>
+                            </div>
                             <div class="text-xs text-[var(--ct-dim)]">{{ formatTimeAgo(conversation.updated_at) }}</div>
                         </div>
                         <div v-if="conversation.is_unread" class="ml-2 shrink-0">
@@ -172,6 +179,9 @@ export default {
         },
         formatTimeAgo: function(datetimeString) {
             return Utils.formatTimeAgo(datetimeString);
+        },
+        pathStatusTitle(hasPath) {
+            return hasPath ? "Path available" : "No current path";
         },
     },
     computed: {
