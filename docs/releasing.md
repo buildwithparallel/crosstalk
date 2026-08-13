@@ -13,7 +13,7 @@ git tag -a v2.3.2 -m "Crosstalk v2.3.2"
 git push origin v2.3.2
 ```
 
-Frontend builds download quantized Whisper Tiny weights so packaged apps can
+Frontend builds download Whisper Tiny fp32 weights so packaged apps can
 dictate chat messages entirely on-device. See [dictation.md](./dictation.md).
 
 The release workflow produces:
