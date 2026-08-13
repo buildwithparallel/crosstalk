@@ -69,6 +69,15 @@ ipcMain.handle('showPathInFolder', (event, path) => {
     shell.showItemInFolder(path);
 });
 
+// Prompt for microphone access the first time capture is requested.
+// macOS needs this TCC dialog; other platforms return true immediately.
+ipcMain.handle('ask-for-microphone-access', async() => {
+    if(process.platform !== "darwin"){
+        return true;
+    }
+    return await systemPreferences.askForMediaAccess('microphone');
+});
+
 function log(message) {
 
     // log to stdout of this process
@@ -272,11 +281,6 @@ app.whenReady().then(async () => {
 
         // navigate to loading page
         await mainWindow.loadFile(path.join(__dirname, 'loading.html'));
-
-        // ask mac users for microphone access for audio calls, voice messages and on-device dictation
-        if(process.platform === "darwin"){
-            await systemPreferences.askForMediaAccess('microphone');
-        }
 
     }
 

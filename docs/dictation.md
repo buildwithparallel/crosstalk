@@ -18,8 +18,8 @@ The first use in a session loads the local Whisper model into memory, which can
 take a few seconds. Later dictations reuse that in-memory model.
 
 Dictation uses the same microphone permission as audio calls and voice
-messages. On macOS the app prompts for microphone access at launch. Windows and
-Linux prompt when the microphone is first used.
+messages. The app asks for access the first time you use Dictate, Add Voice,
+or start a call. Windows and Linux also prompt on first capture.
 
 ## Privacy
 

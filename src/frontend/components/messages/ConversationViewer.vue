@@ -457,6 +457,7 @@ import ConversationDropDownMenu from "./ConversationDropDownMenu.vue";
 import AddImageButton from "./AddImageButton.vue";
 import IconButton from "../IconButton.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import ElectronUtils from "../../js/ElectronUtils";
 import CopyButton from "../CopyButton.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import EmptyState from "../base/EmptyState.vue";
@@ -1368,6 +1369,11 @@ export default {
                 return;
             }
 
+            if(!await ElectronUtils.ensureMicrophoneAccess()){
+                DialogUtils.alert("Microphone access is required to record a voice message.");
+                return;
+            }
+
             // handle selected codec
             switch(args.codec){
                 case "codec2": {
@@ -1610,6 +1616,11 @@ export default {
             }
             if(this.isRecordingAudioAttachment){
                 DialogUtils.alert("Stop the voice recording before dictating a message.");
+                return;
+            }
+
+            if(!await ElectronUtils.ensureMicrophoneAccess()){
+                DialogUtils.alert("Microphone access is required for dictation.");
                 return;
             }
 
