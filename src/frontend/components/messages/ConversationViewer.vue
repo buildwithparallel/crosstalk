@@ -496,6 +496,9 @@ export default {
             isSendingMessage: false,
             autoScrollOnNewMessage: true,
 
+            pathProbeSession: 0,
+            pathProbeInFlight: {},
+
             isRecordingAudioAttachment: false,
             audioAttachmentMicrophoneRecorder: null,
             audioAttachmentMicrophoneRecorderCodec: null,
@@ -524,6 +527,8 @@ export default {
 
         // stop polling satellite signal
         clearInterval(this.satelliteSignalTimer);
+
+        this.pathProbeSession += 1;
 
     },
     mounted() {
@@ -583,13 +588,16 @@ export default {
             this.selectedPeerPath = null;
             this.selectedPeerLxmfStampInfo = null;
             this.selectedPeerSignalMetrics = null;
+            this.pathProbeSession += 1;
             if(!this.selectedPeer){
                 return;
             }
 
-            this.getPeerPath();
             this.getPeerLxmfStampInfo();
             this.getPeerSignalMetrics();
+            this.getPeerPath().then(() => {
+                this.probeReachabilityIfNeeded();
+            });
 
             // load 1 page of previous messages
             await this.loadPrevious();
@@ -773,6 +781,40 @@ export default {
                     this.selectedPeerPath = null;
 
                 }
+            }
+        },
+        /**
+         * When a chat is opened with no local path, probe LXMF delivery so the
+         * path-status dot can update without waiting for an announce.
+         * Unopened chats are left announce-driven. Failures stay silent.
+         */
+        async probeReachabilityIfNeeded() {
+            const destinationHash = this.selectedPeer?.destination_hash;
+            if(!destinationHash || this.selectedPeerPath || this.pathProbeInFlight[destinationHash]){
+                return;
+            }
+
+            const session = this.pathProbeSession;
+            this.pathProbeInFlight[destinationHash] = true;
+
+            try {
+                await window.axios.get(`/api/v1/ping/${destinationHash}/lxmf.delivery`, {
+                    params: {
+                        timeout: 15,
+                    },
+                    timeout: 20000,
+                });
+
+                if(session !== this.pathProbeSession || this.selectedPeer?.destination_hash !== destinationHash){
+                    return;
+                }
+
+                await this.getPeerPath();
+                this.$emit("reload-conversations");
+            } catch(e) {
+                // Peer may be offline, or we may not have recalled their identity yet.
+            } finally {
+                delete this.pathProbeInFlight[destinationHash];
             }
         },
         async getPeerLxmfStampInfo() {
@@ -1805,6 +1847,7 @@ export default {
     },
     watch: {
         selectedPeer() {
+            this.pathProbeSession += 1;
             this.initialLoad();
         },
         async selectedPeerChatItems() {
