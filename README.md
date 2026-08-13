@@ -35,6 +35,7 @@ Crosstalk keeps MeshChat's LXMF messaging, attachments, audio calls, propagation
 - Clearer navigation, deterministic identicons and improved network-map controls.
 - Consistent in-app dialogs, notifications and status feedback.
 - Better attachment previews, attachment-only messages and mobile chat controls.
+- On-device dictation that fills the chat composer with Whisper, without sending audio off the device.
 
 ### Reliability improvements and bug fixes
 
@@ -80,6 +81,8 @@ python3 crosstalk.py
 ```
 
 Open <http://localhost:8000>. Run `python3 crosstalk.py --help` for server, identity, storage and Reticulum configuration options.
+
+`npm run build-frontend` also downloads Whisper Tiny so chat dictation can run entirely on-device. See [dictation.md](./docs/dictation.md).
 
 ## Development
 

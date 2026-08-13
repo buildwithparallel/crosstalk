@@ -273,7 +273,7 @@ app.whenReady().then(async () => {
         // navigate to loading page
         await mainWindow.loadFile(path.join(__dirname, 'loading.html'));
 
-        // ask mac users for microphone access for audio calls to work
+        // ask mac users for microphone access for audio calls, voice messages and on-device dictation
         if(process.platform === "darwin"){
             await systemPreferences.askForMediaAccess('microphone');
         }
