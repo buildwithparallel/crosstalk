@@ -381,10 +381,23 @@ export default {
             try {
                 const response = await window.axios.get(`/api/v1/app/info`);
                 this.appInfo = response.data.app_info;
+                this.warnAboutDisabledStartupInterfaces();
             } catch(e) {
                 // do nothing if failed to load app info
                 console.log(e);
             }
+        },
+        warnAboutDisabledStartupInterfaces() {
+            const disabled = this.appInfo?.interfaces_disabled_on_startup ?? [];
+            if(disabled.length === 0){
+                return;
+            }
+            const names = disabled.map((name) => `"${name}"`).join(", ");
+            const verb = disabled.length === 1 ? "was" : "were";
+            DialogUtils.alert(
+                `${names} failed to start and ${verb} turned off so Crosstalk could keep running. You can turn ${disabled.length === 1 ? "it" : "them"} back on from Network Interfaces after fixing the conflict.`,
+                { title: disabled.length === 1 ? "Interface turned off" : "Interfaces turned off" },
+            );
         },
         async getConfig() {
             try {
