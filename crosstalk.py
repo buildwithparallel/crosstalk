@@ -196,6 +196,7 @@ class Crosstalk:
             database.Announce,
             database.CustomDestinationDisplayName,
             database.FavouriteDestination,
+            database.BlockedDestination,
             database.LxmfMessage,
             database.LxmfConversationReadState,
             database.LxmfUserIcon,
@@ -269,6 +270,10 @@ class Crosstalk:
 
         # set a callback for when an lxmf message is received
         self.message_router.register_delivery_callback(self.on_lxmf_delivery)
+
+        # tell lxmf router to ignore messages from blocked destinations
+        for blocked_destination in database.BlockedDestination.select():
+            self.message_router.ignore_destination(bytes.fromhex(blocked_destination.destination_hash))
 
         # update active propagation node
         self.set_active_propagation_node(self.config.lxmf_preferred_propagation_node_destination_hash.get())
@@ -1558,6 +1563,73 @@ class Crosstalk:
             database.FavouriteDestination.delete().where(database.FavouriteDestination.destination_hash == destination_hash).execute()
             return web.json_response({
                 "message": "Favourite has been added!",
+            })
+
+        # serve blocked destinations
+        @routes.get("/api/v1/blocked-destinations")
+        async def index(request):
+
+            # process blocked destinations
+            blocked_destinations = []
+            for blocked_destination in database.BlockedDestination.select().order_by(database.BlockedDestination.created_at.asc()):
+                blocked_destinations.append({
+                    "destination_hash": blocked_destination.destination_hash,
+                    "created_at": blocked_destination.created_at,
+                })
+
+            return web.json_response({
+                "blocked_destinations": blocked_destinations,
+            })
+
+        # block destination
+        @routes.post("/api/v1/blocked-destinations/{destination_hash}")
+        async def index(request):
+
+            # get path params
+            destination_hash = request.match_info.get("destination_hash", "")
+
+            # validate destination hash
+            try:
+                destination_hash_bytes = bytes.fromhex(destination_hash)
+            except ValueError:
+                return web.json_response({
+                    "message": "destination_hash is invalid",
+                }, status=422)
+
+            # upsert blocked destination
+            data = {
+                "destination_hash": destination_hash,
+                "updated_at": datetime.now(timezone.utc),
+            }
+            query = database.BlockedDestination.insert(data)
+            query = query.on_conflict(conflict_target=[database.BlockedDestination.destination_hash], update=data)
+            query.execute()
+
+            # tell lxmf router to ignore messages from this destination
+            self.message_router.ignore_destination(destination_hash_bytes)
+
+            return web.json_response({
+                "message": "Address has been blocked",
+            })
+
+        # unblock destination
+        @routes.delete("/api/v1/blocked-destinations/{destination_hash}")
+        async def index(request):
+
+            # get path params
+            destination_hash = request.match_info.get("destination_hash", "")
+
+            # delete blocked destination
+            database.BlockedDestination.delete().where(database.BlockedDestination.destination_hash == destination_hash).execute()
+
+            # tell lxmf router to stop ignoring messages from this destination
+            try:
+                self.message_router.unignore_destination(bytes.fromhex(destination_hash))
+            except ValueError:
+                pass
+
+            return web.json_response({
+                "message": "Address has been unblocked",
             })
 
         # propagation node status
