@@ -14,5 +14,11 @@ The UI shows an alert naming the interfaces that were turned off. You can turn
 them back on from **Network Interfaces** after fixing the conflict (stop the
 other Reticulum process, or use different AutoInterface ports).
 
+When adding **Local Network (Auto)**, Crosstalk checks for an enabled
+AutoInterface that already uses the same group and ports (empty fields mean
+Reticulum's defaults: group `reticulum`, discovery `29716`, data `42671`). The
+type picker marks that existing interface, the form explains that a second
+copy is unnecessary, and Save asks before creating a duplicate.
+
 A broken config file, or two interfaces that share the same name, is still
 fatal. Those are not recoverable interface start errors.
