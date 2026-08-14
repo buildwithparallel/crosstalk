@@ -3420,10 +3420,11 @@ class Crosstalk:
             has_delivered = lxmf_message.state == LXMF.LXMessage.DELIVERED
             has_propagated = lxmf_message.state == LXMF.LXMessage.SENT and lxmf_message.method == LXMF.LXMessage.PROPAGATED
             has_failed = lxmf_message.state == LXMF.LXMessage.FAILED
+            has_rejected = lxmf_message.state == LXMF.LXMessage.REJECTED
             is_cancelled = lxmf_message.state == LXMF.LXMessage.CANCELLED
 
             # check if we should stop updating
-            if has_delivered or has_propagated or has_failed or is_cancelled:
+            if has_delivered or has_propagated or has_failed or has_rejected or is_cancelled:
                 should_update_message = False
 
     # handle an announce received from reticulum, for an audio call address
