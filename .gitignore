@@ -26,6 +26,9 @@ __pycache__/
 /public/
 /electron/build/exe/
 
+# Whisper weights staged at frontend build time
+src/frontend/public/assets/whisper/models/
+
 # local storage
 storage/
 *.db
