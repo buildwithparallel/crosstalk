@@ -110,6 +110,19 @@ class FavouriteDestination(BaseModel):
         table_name = "favourite_destinations"
 
 
+class BlockedDestination(BaseModel):
+
+    id = BigAutoField()
+    destination_hash = CharField(unique=True)  # unique destination hash
+
+    created_at = DateTimeField(default=lambda: datetime.now(timezone.utc))
+    updated_at = DateTimeField(default=lambda: datetime.now(timezone.utc))
+
+    # define table name
+    class Meta:
+        table_name = "blocked_destinations"
+
+
 class LxmfMessage(BaseModel):
 
     id = BigAutoField()

@@ -82,6 +82,23 @@
                 </div>
             </div>
 
+            <!-- blocked addresses -->
+            <div class="ct-card">
+                <div class="flex border-b border-[var(--ct-border)] p-2.5 font-semibold text-[var(--ct-text)]">Blocked Addresses</div>
+                <div class="divide-y divide-[var(--ct-border)] text-[var(--ct-muted)]">
+
+                    <div v-if="blockedDestinations.length === 0" class="p-2.5 text-sm text-[var(--ct-dim)]">
+                        No blocked addresses. You can block an address from a conversation's menu to stop receiving messages from it.
+                    </div>
+
+                    <div v-for="blockedDestination in blockedDestinations" :key="blockedDestination.destination_hash" class="flex items-center gap-x-2.5 p-2.5">
+                        <span class="ct-hash mr-auto text-sm">{{ blockedDestination.destination_hash }}</span>
+                        <button @click="onUnblockDestination(blockedDestination.destination_hash)" type="button" class="ct-secondary-button rounded-lg px-2.5 py-1.5 text-sm font-semibold">Unblock</button>
+                    </div>
+
+                </div>
+            </div>
+
             <!-- message delivery / propagation nodes -->
             <div class="ct-card">
                 <div class="flex items-center border-b border-[var(--ct-border)] p-2.5 font-semibold text-[var(--ct-text)]">
@@ -156,6 +173,7 @@ export default {
                 lxmf_local_propagation_node_enabled: null,
                 lxmf_preferred_propagation_node_destination_hash: null,
             },
+            blockedDestinations: [],
         };
     },
     beforeUnmount() {
@@ -170,6 +188,7 @@ export default {
         WebSocketConnection.on("message", this.onWebsocketMessage);
 
         this.getConfig();
+        this.getBlockedDestinations();
 
     },
     methods: {
@@ -197,6 +216,24 @@ export default {
                 this.config = response.data.config;
             } catch(e) {
                 DialogUtils.toast("Failed to save settings", "error");
+                console.log(e);
+            }
+        },
+        async getBlockedDestinations() {
+            try {
+                const response = await window.axios.get("/api/v1/blocked-destinations");
+                this.blockedDestinations = response.data.blocked_destinations;
+            } catch(e) {
+                // do nothing if failed to load blocked destinations
+                console.log(e);
+            }
+        },
+        async onUnblockDestination(destinationHash) {
+            try {
+                await window.axios.delete(`/api/v1/blocked-destinations/${destinationHash}`);
+                await this.getBlockedDestinations();
+            } catch(e) {
+                DialogUtils.toast("Failed to unblock address", "error");
                 console.log(e);
             }
         },

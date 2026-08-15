@@ -35,6 +35,16 @@
                 <span>Set Custom Display Name</span>
             </DropDownMenuItem>
 
+            <!-- block/unblock address button -->
+            <div class="border-t">
+                <DropDownMenuItem @click="onToggleBlocked">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-5 text-red-500">
+                        <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm-8.25 9.75a8.25 8.25 0 0 1 13.36-6.492L5.508 17.11A8.213 8.213 0 0 1 3.75 12Zm8.25 8.25a8.213 8.213 0 0 1-5.108-1.758L18.492 6.89A8.25 8.25 0 0 1 12 20.25Z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-red-500">{{ isBlocked ? "Unblock Address" : "Block Address" }}</span>
+                </DropDownMenuItem>
+            </div>
+
             <!-- delete message history button -->
             <div class="border-t">
                 <DropDownMenuItem @click="onDeleteMessageHistory">
@@ -69,7 +79,59 @@ export default {
         "conversation-deleted",
         "set-custom-display-name",
     ],
+    data() {
+        return {
+            isBlocked: false,
+        };
+    },
+    mounted() {
+        this.getBlockedState();
+    },
+    watch: {
+        "peer.destination_hash"() {
+            this.getBlockedState();
+        },
+    },
     methods: {
+        async getBlockedState() {
+            try {
+                const response = await window.axios.get("/api/v1/blocked-destinations");
+                this.isBlocked = response.data.blocked_destinations.some((blockedDestination) => {
+                    return blockedDestination.destination_hash === this.peer.destination_hash;
+                });
+            } catch(e) {
+                // do nothing if failed to load blocked destinations
+                console.log(e);
+            }
+        },
+        async onToggleBlocked() {
+
+            // unblock without confirmation
+            if(this.isBlocked){
+                try {
+                    await window.axios.delete(`/api/v1/blocked-destinations/${this.peer.destination_hash}`);
+                    this.isBlocked = false;
+                } catch(e) {
+                    DialogUtils.alert("failed to unblock address");
+                    console.log(e);
+                }
+                return;
+            }
+
+            // ask user to confirm blocking address
+            if(!await DialogUtils.confirm("Are you sure you want to block this address? You will no longer receive messages from it. You can unblock it later from this menu or from Settings.", { title: "Block Address", danger: true, confirmLabel: "Block" })){
+                return;
+            }
+
+            try {
+                await window.axios.post(`/api/v1/blocked-destinations/${this.peer.destination_hash}`);
+                this.isBlocked = true;
+            } catch(e) {
+                DialogUtils.alert("failed to block address");
+                console.log(e);
+            }
+
+        },
         async onDeleteMessageHistory() {
 
             // ask user to confirm deleting conversation history
