@@ -358,13 +358,13 @@
                     <textarea
                         ref="message-input"
                         id="message-input"
-                        :readonly="isSendingMessage"
+                        :readonly="isSendingMessage || isDictationBusy"
                         v-model="newMessageText"
                         @keydown.enter.exact.native.prevent="onEnterPressed"
                         @keydown.enter.shift.exact.native.prevent="onShiftEnterPressed"
                         class="ct-message-input block w-full resize-none rounded-xl border p-2.5 text-base sm:text-sm"
                         rows="2"
-                        placeholder="Send a message…"></textarea>
+                        :placeholder="messageInputPlaceholder"></textarea>
 
                     <!-- action button -->
                     <div class="flex items-center mt-2">
@@ -391,6 +391,14 @@
                                 @stop-recording="stopRecordingAudioAttachment">
                                 <span>Recording: {{ audioAttachmentRecordingDuration }}</span>
                             </AddAudioButton>
+                        </div>
+
+                        <!-- dictate into the text field using on-device Whisper -->
+                        <div>
+                            <DictateButton
+                                :state="dictationState"
+                                :duration="dictationDuration"
+                                @toggle="toggleDictation"/>
                         </div>
 
                         <!-- send message -->
@@ -440,13 +448,16 @@ import MicrophoneRecorder from "../../js/MicrophoneRecorder";
 import NotificationUtils from "../../js/NotificationUtils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import AddAudioButton from "./AddAudioButton.vue";
+import DictateButton from "./DictateButton.vue";
 import moment from "moment";
 import SendMessageButton from "./SendMessageButton.vue";
+import WhisperSpeechToText, { MAX_RECORDING_SECONDS } from "../../js/WhisperSpeechToText";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ConversationDropDownMenu from "./ConversationDropDownMenu.vue";
 import AddImageButton from "./AddImageButton.vue";
 import IconButton from "../IconButton.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import ElectronUtils from "../../js/ElectronUtils";
 import CopyButton from "../CopyButton.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import EmptyState from "../base/EmptyState.vue";
@@ -461,6 +472,7 @@ export default {
         MaterialDesignIcon,
         SendMessageButton,
         AddAudioButton,
+        DictateButton,
         LxmfUserIcon,
         EmptyState,
     },
@@ -496,6 +508,12 @@ export default {
             isSendingMessage: false,
             autoScrollOnNewMessage: true,
 
+            dictationState: "idle",
+            dictationDuration: "00:00",
+            dictationTimer: null,
+            dictationMaxTimer: null,
+            dictationSession: 0,
+
             isRecordingAudioAttachment: false,
             audioAttachmentMicrophoneRecorder: null,
             audioAttachmentMicrophoneRecorderCodec: null,
@@ -524,6 +542,11 @@ export default {
 
         // stop polling satellite signal
         clearInterval(this.satelliteSignalTimer);
+
+        // drop the mic if this conversation is leaving the page
+        this.dictationSession += 1;
+        this.stopDictationTimers();
+        WhisperSpeechToText.getShared().cancelRecording();
 
     },
     mounted() {
@@ -1335,8 +1358,19 @@ export default {
                 return;
             }
 
+            // the microphone can only be used by one feature at a time
+            if(this.dictationState !== "idle"){
+                DialogUtils.alert("Stop dictation before recording a voice message.");
+                return;
+            }
+
             // ask user to confirm recording new audio attachment, if an existing audio attachment exists
             if(this.newMessageAudio && !await DialogUtils.confirm("An audio recording is already attached. A new recording will replace it. Do you want to continue?")){
+                return;
+            }
+
+            if(!await ElectronUtils.ensureMicrophoneAccess()){
+                DialogUtils.alert("Microphone access is required to record a voice message.");
                 return;
             }
 
@@ -1514,6 +1548,11 @@ export default {
         },
         onEnterPressed: function() {
 
+            // don't send while the composer is capturing or transcribing speech
+            if(this.dictationState !== "idle"){
+                return;
+            }
+
             // add new line on mobile
             if(this.isMobile){
                 this.addNewLine();
@@ -1523,6 +1562,133 @@ export default {
             // send message on desktop
             this.sendMessage();
 
+        },
+        /**
+         * Insert on-device Whisper text at the caret in the chat composer.
+         * @param {string} text
+         */
+        insertDictationText(text) {
+            const transcript = (text || "").trim();
+            if(!transcript){
+                return;
+            }
+
+            const input = this.$refs["message-input"];
+            const start = input?.selectionStart ?? this.newMessageText.length;
+            const end = input?.selectionEnd ?? this.newMessageText.length;
+            const value = this.newMessageText;
+            const needsSpace = start > 0 && !/\s$/.test(value.slice(0, start));
+            const prefix = needsSpace ? " " : "";
+            this.newMessageText = value.slice(0, start) + prefix + transcript + value.slice(end);
+
+            this.$nextTick(() => {
+                if(!input){
+                    return;
+                }
+                const pos = start + prefix.length + transcript.length;
+                input.selectionStart = pos;
+                input.selectionEnd = pos;
+                input.focus();
+            });
+        },
+        stopDictationTimers() {
+            clearInterval(this.dictationTimer);
+            clearTimeout(this.dictationMaxTimer);
+            this.dictationTimer = null;
+            this.dictationMaxTimer = null;
+        },
+        /**
+         * Toggle push-to-talk dictation. Transcription is local Whisper Tiny.
+         */
+        async toggleDictation() {
+            if(this.dictationState === "recording"){
+                await this.stopDictationAndTranscribe();
+                return;
+            }
+            if(this.dictationState !== "idle"){
+                return;
+            }
+            await this.startDictation();
+        },
+        async startDictation() {
+            if(this.isSendingMessage){
+                return;
+            }
+            if(this.isRecordingAudioAttachment){
+                DialogUtils.alert("Stop the voice recording before dictating a message.");
+                return;
+            }
+
+            if(!await ElectronUtils.ensureMicrophoneAccess()){
+                DialogUtils.alert("Microphone access is required for dictation.");
+                return;
+            }
+
+            const speech = WhisperSpeechToText.getShared();
+            const session = this.dictationSession + 1;
+            this.dictationSession = session;
+            this.dictationDuration = Utils.formatMinutesSeconds(0);
+
+            try {
+                // Load Whisper while capturing so the first use can start speaking immediately.
+                speech.ensureReady().catch((error) => {
+                    console.log(error);
+                });
+
+                const started = await speech.startRecording();
+                if(session !== this.dictationSession){
+                    speech.cancelRecording();
+                    return;
+                }
+                if(!started){
+                    this.dictationState = "idle";
+                    DialogUtils.alert("Could not access the microphone for dictation.");
+                    return;
+                }
+
+                this.dictationState = "recording";
+                this.dictationTimer = setInterval(() => {
+                    this.dictationDuration = Utils.formatMinutesSeconds(speech.getElapsedSeconds());
+                }, 250);
+                this.dictationMaxTimer = setTimeout(() => {
+                    this.stopDictationAndTranscribe();
+                }, MAX_RECORDING_SECONDS * 1000);
+            } catch(error) {
+                speech.cancelRecording();
+                this.dictationState = "idle";
+                DialogUtils.alert(error?.message || "Failed to start on-device dictation.");
+            }
+        },
+        async stopDictationAndTranscribe() {
+            if(this.dictationState !== "recording"){
+                return;
+            }
+
+            const session = this.dictationSession;
+            this.stopDictationTimers();
+            this.dictationState = "transcribing";
+
+            try {
+                const text = await WhisperSpeechToText.getShared().stopRecordingAndTranscribe();
+                if(session !== this.dictationSession){
+                    return;
+                }
+                if(!text){
+                    DialogUtils.toast("No speech detected", "info");
+                } else {
+                    this.insertDictationText(text);
+                }
+            } catch(error) {
+                if(session !== this.dictationSession){
+                    return;
+                }
+                DialogUtils.alert(error?.message || "Failed to transcribe speech on this device.");
+            } finally {
+                if(session === this.dictationSession){
+                    this.dictationState = "idle";
+                    this.dictationDuration = "00:00";
+                }
+            }
         },
         onShiftEnterPressed: function() {
             this.addNewLine();
@@ -1750,6 +1916,21 @@ export default {
         isMobile() {
             return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         },
+        isDictationBusy() {
+            return this.dictationState === "loading" || this.dictationState === "transcribing";
+        },
+        messageInputPlaceholder() {
+            if(this.dictationState === "loading"){
+                return "Loading on-device speech model…";
+            }
+            if(this.dictationState === "recording"){
+                return "Listening…";
+            }
+            if(this.dictationState === "transcribing"){
+                return "Transcribing on this device…";
+            }
+            return "Send a message…";
+        },
         canSendMessage() {
 
             // can't send if no content or attachments
@@ -1761,6 +1942,11 @@ export default {
 
             // can't send if already sending
             if(this.isSendingMessage){
+                return false;
+            }
+
+            // wait until dictation has finished inserting text
+            if(this.dictationState !== "idle"){
                 return false;
             }
 
@@ -1805,6 +1991,11 @@ export default {
     },
     watch: {
         selectedPeer() {
+            this.dictationSession += 1;
+            this.stopDictationTimers();
+            WhisperSpeechToText.getShared().cancelRecording();
+            this.dictationState = "idle";
+            this.dictationDuration = "00:00";
             this.initialLoad();
         },
         async selectedPeerChatItems() {

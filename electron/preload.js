@@ -40,4 +40,9 @@ contextBridge.exposeInMainWorld('electron', {
         return await ipcRenderer.invoke('showPathInFolder', path);
     },
 
+    // ask for microphone access on first capture (macOS TCC)
+    askForMicrophoneAccess: async function() {
+        return await ipcRenderer.invoke('ask-for-microphone-access');
+    },
+
 });

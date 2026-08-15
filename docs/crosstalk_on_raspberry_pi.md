@@ -46,6 +46,9 @@ npm install --omit=dev
 npm run build-frontend
 ```
 
+The frontend build downloads Whisper Tiny weights for on-device chat dictation.
+That step needs internet once; speaking into the composer does not.
+
 ## Run Crosstalk
 
 ```
