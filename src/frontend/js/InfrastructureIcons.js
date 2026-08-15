@@ -1,14 +1,8 @@
-import {
-    mdiAccessPointNetwork,
-    mdiIncognito,
-    mdiLan,
-    mdiRadioTower,
-    mdiServerNetwork,
-} from "@mdi/js";
+import { getPhosphorPath } from "./PhosphorIcons";
 
 const iconFamilies = {
     radio: {
-        path: mdiRadioTower,
+        path: getPhosphorPath("broadcast"),
         palettes: [
             ["#0f4c81", "#0ea5e9"],
             ["#164e63", "#22d3ee"],
@@ -16,7 +10,7 @@ const iconFamilies = {
         ],
     },
     backbone: {
-        path: mdiLan,
+        path: getPhosphorPath("share-network"),
         palettes: [
             ["#14532d", "#22c55e"],
             ["#065f46", "#2ee781"],
@@ -24,7 +18,7 @@ const iconFamilies = {
         ],
     },
     server: {
-        path: mdiServerNetwork,
+        path: getPhosphorPath("hard-drives"),
         palettes: [
             ["#713f12", "#f59e0b"],
             ["#7c2d12", "#f97316"],
@@ -32,7 +26,7 @@ const iconFamilies = {
         ],
     },
     private: {
-        path: mdiIncognito,
+        path: getPhosphorPath("detective"),
         palettes: [
             ["#4c1d95", "#a855f7"],
             ["#581c87", "#c084fc"],
@@ -40,7 +34,7 @@ const iconFamilies = {
         ],
     },
     generic: {
-        path: mdiAccessPointNetwork,
+        path: getPhosphorPath("broadcast"),
         palettes: [
             ["#334155", "#64748b"],
             ["#1e3a5f", "#4f7ea8"],
@@ -90,6 +84,7 @@ export function infrastructureIconDataUri(infrastructure) {
         ? '<circle cx="38" cy="10" r="4.5" fill="#2ee781" stroke="#eafff3" stroke-width="1.5"/>'
         : "";
 
+    // Phosphor icons use a 256 viewBox; scale into the 32x32 content area of this badge.
     const svg = [
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">',
         '<defs>',
@@ -99,7 +94,7 @@ export function infrastructureIconDataUri(infrastructure) {
         '<rect width="48" height="48" rx="14" fill="url(#surface)"/>',
         '<rect x=".75" y=".75" width="46.5" height="46.5" rx="13.25" fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="1.5"/>',
         '<rect width="48" height="48" rx="14" fill="url(#glow)"/>',
-        `<path d="${family.path}" fill="#f8fafc" transform="translate(8 8) scale(1.333333)"/>`,
+        `<path d="${family.path}" fill="#f8fafc" transform="translate(8 8) scale(0.125)"/>`,
         transportMarker,
         '</svg>',
     ].join("");

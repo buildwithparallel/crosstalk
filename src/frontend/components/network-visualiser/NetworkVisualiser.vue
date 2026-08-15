@@ -10,9 +10,7 @@
             <div class="network-toolbar pointer-events-auto mx-auto flex max-w-6xl flex-wrap items-center gap-3 rounded-2xl border border-white/10 px-3 py-2.5 shadow-2xl">
                 <div class="flex min-w-52 items-center gap-2.5">
                     <div class="flex size-9 shrink-0 items-center justify-center rounded-xl border border-blue-400/25 bg-blue-500/10 text-[#7db0ff] shadow-[0_0_24px_rgba(0,97,253,0.16)]">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor" class="size-5">
-                            <path d="M200,152a31.84,31.84,0,0,0-19.53,6.68l-23.11-18A31.65,31.65,0,0,0,160,128c0-.74,0-1.48-.08-2.21l13.23-4.41A32,32,0,1,0,168,104c0,.74,0,1.48.08,2.21l-13.23,4.41A32,32,0,0,0,128,96a32.59,32.59,0,0,0-5.27.44L115.89,81A32,32,0,1,0,96,88a32.59,32.59,0,0,0,5.27-.44l6.84,15.4a31.92,31.92,0,0,0-8.57,39.64L73.83,165.44a32.06,32.06,0,1,0,10.63,12l25.71-22.84a31.91,31.91,0,0,0,37.36-1.24l23.11,18A31.65,31.65,0,0,0,168,184a32,32,0,1,0,32-32Z"/>
-                        </svg>
+                        <PhosphorIcon name="graph" weight="duotone" class="size-5"/>
                     </div>
                     <div>
                         <div class="flex items-center gap-2">
@@ -45,8 +43,8 @@
                         <strong>{{ nomadNodeCount }}</strong>
                         <span>pages</span>
                     </div>
-                    <div class="network-stat">
-                        <strong>{{ discoveredInterfaces.length }}</strong>
+                    <div v-if="infrastructureCount > 0" class="network-stat">
+                        <strong>{{ infrastructureCount }}</strong>
                         <span>infrastructure</span>
                     </div>
                 </div>
@@ -88,30 +86,6 @@
             </div>
         </div>
 
-        <!-- compact legend -->
-        <div class="pointer-events-none absolute bottom-0 left-0 z-10 p-3">
-            <div class="network-toolbar pointer-events-auto overflow-hidden rounded-xl border border-white/10 shadow-2xl">
-                <button @click="isShowingControls = !isShowingControls" type="button" class="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-[var(--ct-muted)] transition hover:bg-white/5 hover:text-[var(--ct-text)]">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" class="size-4 text-[var(--ct-dim)]">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3.745c.831-1.436 2.903-1.436 3.734 0l.058.1a2.16 2.16 0 0 0 2.854.826l.102-.054c1.463-.78 3.148.427 3.033 2.08l-.008.115a2.16 2.16 0 0 0 1.765 2.39l.113.021c1.63.304 2.265 2.275 1.143 3.496l-.078.085a2.16 2.16 0 0 0 0 2.972l.078.085c1.122 1.22.487 3.192-1.143 3.496l-.113.021a2.16 2.16 0 0 0-1.765 2.39l.008.115c.115 1.653-1.57 2.86-3.033 2.08l-.102-.054a2.16 2.16 0 0 0-2.854.826l-.058.1c-.831 1.436-2.903 1.436-3.734 0l-.058-.1a2.16 2.16 0 0 0-2.854-.826l-.102.054c-1.463.78-3.148-.427-3.033-2.08l.008-.115a2.16 2.16 0 0 0-1.765-2.39l-.113-.021c-1.63-.304-2.265-2.275-1.143-3.496l.078-.085a2.16 2.16 0 0 0 0-2.972l-.078-.085C-.547 11.5.088 9.527 1.718 9.223l.113-.021a2.16 2.16 0 0 0 1.765-2.39l-.008-.115c-.115-1.653 1.57-2.86 3.033-2.08l.102.054a2.16 2.16 0 0 0 2.854-.826l.058-.1Z" opacity=".45"/>
-                        <circle cx="12" cy="12" r="3.25"/>
-                    </svg>
-                    <span>Legend</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="ml-auto size-4 transition" :class="{ 'rotate-180': isShowingControls }">
-                        <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd"/>
-                    </svg>
-                </button>
-                <div v-if="isShowingControls" class="grid grid-cols-2 gap-x-4 gap-y-2 border-t border-white/10 px-3 py-2.5 text-[11px] text-[var(--ct-muted)] sm:grid-cols-3">
-                    <div class="flex items-center gap-2"><span class="size-2 rounded-full bg-[#2ee781] shadow-[0_0_8px_rgba(46,231,129,0.7)]"></span>Online interface</div>
-                    <div class="flex items-center gap-2"><span class="size-2 rounded-full bg-[#ff5c72]"></span>Offline interface</div>
-                    <div class="flex items-center gap-2"><span class="size-2 rounded-full bg-[#397cff]"></span>Person</div>
-                    <div class="flex items-center gap-2"><span class="size-2 rounded-full bg-[#b779ff]"></span>Nomad page</div>
-                    <div class="flex items-center gap-2"><span class="size-2 rounded-full border border-[#93c5fd] bg-[#475569]"></span>Infrastructure</div>
-                    <div class="flex items-center gap-2"><span class="h-px w-4 border-t border-dashed border-blue-400/70"></span>Advertised route</div>
-                </div>
-            </div>
-        </div>
-
         <div class="pointer-events-none absolute bottom-0 right-0 z-10 hidden p-3 text-[10px] text-[var(--ct-dim)] md:block">
             Drag to pan · Scroll to zoom · Double-click people or pages to open
         </div>
@@ -134,14 +108,18 @@ import { Network } from "vis-network";
 import { DataSet } from "vis-data";
 import Utils from "../../js/Utils";
 import { infrastructureIconDataUri } from "../../js/InfrastructureIcons";
+import { getPhosphorPath } from "../../js/PhosphorIcons";
+import PhosphorIcon from "../PhosphorIcon.vue";
 export default {
     name: 'NetworkVisualiser',
+    components: {
+        PhosphorIcon,
+    },
     data() {
         return {
             config: null,
             autoReload: false,
             reloadInterval: null,
-            isShowingControls: true,
             isUpdating: false,
             interfaces: [],
             discoveredInterfaces: [],
@@ -194,29 +172,57 @@ export default {
                 return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
             };
 
-            const size = 5;
+            // draw into a real pixel canvas rather than a 5x5 one. an svg sized only by
+            // its grid has a 5px intrinsic size, so the canvas scaled it up to the node
+            // size and it rendered blurry.
+            const grid = 5;
+            const cell = 64;
+            const size = grid * cell;
+
             const [primary, accent, background] = palettes[Math.floor(random() * palettes.length)];
             let rects = "";
-            const half = Math.ceil(size / 2);
-            for(let y = 0; y < size; y++){
+            const half = Math.ceil(grid / 2);
+            for(let y = 0; y < grid; y++){
                 for(let x = 0; x < half; x++){
                     const roll = random();
                     let colour = null;
                     if(roll < 0.44) colour = primary;
                     else if(roll < 0.58) colour = accent;
                     if(colour){
-                        rects += `<rect x="${x}" y="${y}" width="1" height="1" fill="${colour}"/>`;
-                        const mirrorX = size - 1 - x;
+                        rects += `<rect x="${x * cell}" y="${y * cell}" width="${cell}" height="${cell}" fill="${colour}"/>`;
+                        const mirrorX = grid - 1 - x;
                         if(mirrorX !== x){
-                            rects += `<rect x="${mirrorX}" y="${y}" width="1" height="1" fill="${colour}"/>`;
+                            rects += `<rect x="${mirrorX * cell}" y="${y * cell}" width="${cell}" height="${cell}" fill="${colour}"/>`;
                         }
                     }
                 }
             }
 
-            const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" shape-rendering="crispEdges"><rect width="${size}" height="${size}" fill="${background}"/>${rects}</svg>`;
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" shape-rendering="crispEdges"><rect width="${size}" height="${size}" fill="${background}"/>${rects}</svg>`;
             const dataUri = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
             this._identiconCache[hash] = dataUri;
+            return dataUri;
+
+        },
+        // crisp vector badge for an interface node, so it stays sharp at any zoom level
+        interfaceIconDataUri(isOnline) {
+
+            this._interfaceIconCache = this._interfaceIconCache ?? {};
+            const key = isOnline ? "online" : "offline";
+            if(this._interfaceIconCache[key]){
+                return this._interfaceIconCache[key];
+            }
+
+            const background = isOnline ? "#22c55e" : "#ef4444";
+            const glyph = getPhosphorPath("tree-structure", "bold");
+
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">`
+                + `<circle cx="128" cy="128" r="128" fill="${background}"/>`
+                + `<path d="${glyph}" fill="#ffffff" transform="translate(48 48) scale(0.625)"/>`
+                + `</svg>`;
+
+            const dataUri = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+            this._interfaceIconCache[key] = dataUri;
             return dataUri;
 
         },
@@ -260,6 +266,25 @@ export default {
                 this.config = response.data.config;
             } catch(e) {
                 console.error(e);
+            }
+        },
+        async resolveAnnouncePaths() {
+
+            // reticulum learns routes lazily, so ask the network to resolve paths for
+            // everyone we know about. this is what makes known peers appear on the map
+            // even when the network is quiet and no fresh announces are arriving.
+            // throttle so we don't spam path requests on every 5s auto-reload.
+            const now = Date.now();
+            if(this._lastPathResolveAt != null && (now - this._lastPathResolveAt) < 45000){
+                return;
+            }
+            this._lastPathResolveAt = now;
+
+            try {
+                await window.axios.post(`/api/v1/path-table/resolve-announces`);
+            } catch(e) {
+                // best-effort: the map still works from whatever paths already exist
+                console.log(e);
             }
         },
         async getAnnounces() {
@@ -328,6 +353,12 @@ export default {
                     font: this.graphLabelFont(),
                     borderWidth: 1.5,
                     borderWidthSelected: 2,
+                    shapeProperties: {
+                        // vis-network otherwise downsamples node images into a mipmap and
+                        // scales a quarter-size tile back up, which makes every icon soft.
+                        // drawing straight from the full-resolution source keeps them sharp.
+                        interpolation: false,
+                    },
                 },
                 physics: {
                     barnesHut: {
@@ -349,8 +380,18 @@ export default {
                 },
                 groups: {
                     "me": {
-                        shape: "image",
-                        image: "/assets/images/logo-chat-bubble.png",
+                        // circularImage clips to a circle like every other node on the
+                        // map. plain "image" renders the artwork's bounding box, which
+                        // showed up as a hard-edged box around the mark.
+                        shape: "circularImage",
+                        image: "/assets/images/network-visualiser/me-node.svg",
+                        color: {
+                            background: "#080b14",
+                            border: "#0061fd",
+                            highlight: { background: "#080b14", border: "#6ea8ff" },
+                            hover: { background: "#080b14", border: "#7db0ff" },
+                        },
+                        borderWidth: 2,
                     },
                     "interface": {
 
@@ -492,6 +533,12 @@ export default {
             await this.getConfig();
             await this.getInterfaceStats();
             await this.getDiscoveredInterfaces();
+
+            // ask the network to resolve routes to known peers so they show up on the
+            // map. path responses arrive asynchronously and are picked up by the next
+            // auto-reload, so we don't block the current refresh on them.
+            this.resolveAnnouncePaths();
+
             await this.getPathTable();
             await this.getAnnounces();
 
@@ -544,7 +591,7 @@ export default {
                     size: 23,
                     font: this.graphLabelFont(13),
                     shape: "circularImage",
-                    image: entry.status ? "/assets/images/network-visualiser/interface_connected.png" : "/assets/images/network-visualiser/interface_disconnected.png",
+                    image: this.interfaceIconDataUri(entry.status),
                     shadow: entry.status ? { enabled: true, color: "rgba(46, 231, 129, 0.3)", size: 16, x: 0, y: 0 } : { enabled: false },
                 };
 
@@ -820,14 +867,34 @@ export default {
                 return !iface.status;
             });
         },
+        // reachable destinations of a given aspect, i.e. the ones we actually draw on
+        // the map (a path table entry with a known hop count and a matching announce).
+        // counting the whole announce history here overstated things badly, e.g. every
+        // lxmf user ever heard, when the map only shows peers we currently have a route to.
+        reachableCountByAspect() {
+            const counts = {};
+            for(const entry of this.pathTable){
+                if(entry.hops == null){
+                    continue;
+                }
+                const announce = this.announces[entry.hash];
+                if(!announce){
+                    continue;
+                }
+                counts[announce.aspect] = (counts[announce.aspect] ?? 0) + 1;
+            }
+            return counts;
+        },
         peopleCount() {
-            return Object.values(this.announces).filter((announce) => {
-                return announce.aspect === "lxmf.delivery";
-            }).length;
+            return this.reachableCountByAspect["lxmf.delivery"] ?? 0;
         },
         nomadNodeCount() {
-            return Object.values(this.announces).filter((announce) => {
-                return announce.aspect === "nomadnetwork.node";
+            return this.reachableCountByAspect["nomadnetwork.node"] ?? 0;
+        },
+        // infrastructure nodes actually drawn (advertisements with a destination hash)
+        infrastructureCount() {
+            return this.discoveredInterfaces.filter((infrastructure) => {
+                return infrastructure.destination_hash != null;
             }).length;
         },
     },

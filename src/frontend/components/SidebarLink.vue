@@ -11,10 +11,10 @@
             ]" 
             class="w-full group flex gap-x-3 rounded-r-full border p-2 mr-2 text-sm leading-6 font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
         >
-            <span class="my-auto opacity-90 group-hover:opacity-100">
+            <span class="flex shrink-0 items-center opacity-90 group-hover:opacity-100">
                 <slot name="icon"></slot>
             </span>
-            <span class="my-auto flex w-full">
+            <span class="flex w-full items-center">
                 <slot name="text"></slot>
             </span>
         </a>

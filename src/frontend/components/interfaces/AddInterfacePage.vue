@@ -29,7 +29,7 @@
                     <div class="grid grid-cols-1 gap-2 md:grid-cols-2">
                         <button v-for="option of group.options" :key="option.type" @click="newInterfaceType = option.type" type="button" class="ct-card ct-card-hover flex items-start gap-x-3 p-3 text-left">
                             <div class="flex size-10 shrink-0 items-center justify-center rounded-lg border border-[rgba(0,97,253,0.3)] bg-[rgba(0,97,253,0.1)] text-[#7db0ff]">
-                                <MaterialDesignIcon :icon-name="option.icon" class="size-5"/>
+                                <PhosphorIcon :name="option.icon" weight="duotone" class="size-5"/>
                             </div>
                             <div class="min-w-0">
                                 <div class="text-sm font-semibold text-[var(--ct-text)]">{{ option.name }}</div>
@@ -83,7 +83,7 @@
                 <div class="flex items-center p-2.5">
                     <div class="flex min-w-0 items-center gap-x-2">
                         <div class="flex size-9 shrink-0 items-center justify-center rounded-lg border border-[rgba(0,97,253,0.3)] bg-[rgba(0,97,253,0.1)] text-[#7db0ff]">
-                            <MaterialDesignIcon :icon-name="selectedTypeOption?.icon ?? 'connection'" class="size-5"/>
+                            <PhosphorIcon :name="selectedTypeOption?.icon ?? 'plugs-connected'" weight="duotone" class="size-5"/>
                         </div>
                         <div class="min-w-0">
                             <div class="truncate text-sm font-bold text-[var(--ct-text)]">{{ selectedTypeOption?.name ?? newInterfaceType }}</div>
@@ -933,7 +933,7 @@ import ExpandingSection from "./ExpandingSection.vue";
 import FormLabel from "../forms/FormLabel.vue";
 import FormSubLabel from "../forms/FormSubLabel.vue";
 import ElectronUtils from "../../js/ElectronUtils";
-import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import PhosphorIcon from "../PhosphorIcon.vue";
 
 export default {
     name: 'AddInterfacePage',
@@ -941,7 +941,7 @@ export default {
         FormSubLabel,
         FormLabel,
         ExpandingSection,
-        MaterialDesignIcon,
+        PhosphorIcon,
     },
     data() {
         return {
@@ -954,35 +954,35 @@ export default {
             comports: [],
 
             // guided picker: plain-language connection types
-            interfaceTypeGroups: [
-                {
-                    label: "Recommended",
-                    options: [
-                        { type: "PublicBackboneInterface", name: "Public Internet Node", icon: "earth", description: "Connect over the internet to a public Reticulum node from rmap.world. The easiest way to get connected." },
-                        { type: "AutoInterface", name: "Local Network (Auto)", icon: "home-outline", description: "Automatically find and connect to other Reticulum peers on your WiFi or Ethernet network." },
-                    ],
-                },
-                {
-                    label: "Radio Hardware",
-                    options: [
-                        { type: "RNodeInterface", name: "RNode (LoRa Radio)", icon: "radio-tower", description: "Long-range, off-grid communication using an RNode LoRa radio device." },
-                        { type: "RNodeMultiInterface", name: "RNode Multi", icon: "radio-tower", description: "For devices with multiple LoRa transceivers, such as the openCom XL." },
-                        { type: "IridiumIMTInterface", name: "RockBLOCK 9704 (Iridium)", icon: "satellite-variant", description: "Carry native Reticulum packets through Iridium Messaging Transport." },
-                        { type: "SerialInterface", name: "Serial Port", icon: "usb-port", description: "Connect through a raw serial port to custom hardware." },
-                        { type: "KISSInterface", name: "KISS / Packet Radio", icon: "antenna", description: "Connect through KISS-compatible TNCs and packet radio modems." },
-                    ],
-                },
-                {
-                    label: "Advanced Networking",
-                    options: [
-                        { type: "TCPClientInterface", name: "TCP Client", icon: "lan-connect", description: "Connect to a specific Reticulum TCP server by host and port." },
-                        { type: "TCPServerInterface", name: "TCP Server", icon: "server-outline", description: "Let other Reticulum peers connect to this device over TCP." },
-                        { type: "UDPInterface", name: "UDP", icon: "lan", description: "Send and receive Reticulum traffic over UDP broadcast." },
-                        { type: "I2PInterface", name: "I2P", icon: "incognito", description: "Route traffic anonymously through the I2P network. Requires a local I2P router." },
-                        { type: "PipeInterface", name: "Program Pipe", icon: "console", description: "Use any program as an interface via stdin and stdout." },
-                    ],
-                },
-            ],
+                        interfaceTypeGroups: [
+                            {
+                                label: "Recommended",
+                                options: [
+                                    { type: "PublicBackboneInterface", name: "Public Internet Node", icon: "globe-hemisphere-west", description: "Connect over the internet to a public Reticulum node from rmap.world. The easiest way to get connected." },
+                                    { type: "AutoInterface", name: "Local Network (Auto)", icon: "house", description: "Automatically find and connect to other Reticulum peers on your WiFi or Ethernet network." },
+                                ],
+                            },
+                            {
+                                label: "Radio Hardware",
+                                options: [
+                                    { type: "RNodeInterface", name: "RNode (LoRa Radio)", icon: "broadcast", description: "Long-range, off-grid communication using an RNode LoRa radio device." },
+                                    { type: "RNodeMultiInterface", name: "RNode Multi", icon: "cell-tower", description: "For devices with multiple LoRa transceivers, such as the openCom XL." },
+                                    { type: "IridiumIMTInterface", name: "RockBLOCK 9704 (Iridium)", icon: "planet", description: "Carry native Reticulum packets through Iridium Messaging Transport." },
+                                    { type: "SerialInterface", name: "Serial Port", icon: "usb", description: "Connect through a raw serial port to custom hardware." },
+                                    { type: "KISSInterface", name: "KISS / Packet Radio", icon: "wifi-high", description: "Connect through KISS-compatible TNCs and packet radio modems." },
+                                ],
+                            },
+                            {
+                                label: "Advanced Networking",
+                                options: [
+                                    { type: "TCPClientInterface", name: "TCP Client", icon: "plugs-connected", description: "Connect to a specific Reticulum TCP server by host and port." },
+                                    { type: "TCPServerInterface", name: "TCP Server", icon: "hard-drives", description: "Let other Reticulum peers connect to this device over TCP." },
+                                    { type: "UDPInterface", name: "UDP", icon: "share-network", description: "Send and receive Reticulum traffic over UDP broadcast." },
+                                    { type: "I2PInterface", name: "I2P", icon: "detective", description: "Route traffic anonymously through the I2P network. Requires a local I2P router." },
+                                    { type: "PipeInterface", name: "Program Pipe", icon: "terminal-window", description: "Use any program as an interface via stdin and stdout." },
+                                ],
+                            },
+                        ],
 
             newInterfaceName: null,
             newInterfaceType: null,
@@ -1142,7 +1142,7 @@ export default {
             }
             // AX25KISSInterface is toggled from the KISS form, show it as KISS
             if(this.newInterfaceType === "AX25KISSInterface"){
-                return { type: "AX25KISSInterface", name: "AX.25 KISS / Packet Radio", icon: "antenna", description: "Connect through KISS-compatible TNCs with AX.25 framing." };
+                return { type: "AX25KISSInterface", name: "AX.25 KISS / Packet Radio", icon: "wifi-high", description: "Connect through KISS-compatible TNCs with AX.25 framing." };
             }
             return null;
         },

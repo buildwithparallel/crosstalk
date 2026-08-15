@@ -2174,6 +2174,45 @@ class Crosstalk:
                 "path_table": path_table,
             })
 
+        # request paths from the network for all recently announced destinations.
+        # reticulum only learns routes lazily (when it hears an announce or a path is
+        # requested), so on a quiet network the path table stays empty and the network
+        # map looks empty even though we know about peers. this fires non-blocking path
+        # requests so the path table (and map) populate on the next refresh.
+        @routes.post("/api/v1/path-table/resolve-announces")
+        async def index(request):
+
+            # how many of the most recent announced destinations to resolve
+            try:
+                limit = int(request.query.get("limit", 100))
+            except:
+                limit = 100
+
+            # gather the most recently announced destinations
+            query_results = (database.Announce.select()
+                             .order_by(database.Announce.updated_at.desc())
+                             .limit(limit))
+
+            requested = 0
+            already_known = 0
+            for announce in query_results:
+                try:
+                    destination_hash = bytes.fromhex(announce.destination_hash)
+                except:
+                    continue
+                # skip if we already have a path to this destination
+                if RNS.Transport.has_path(destination_hash):
+                    already_known += 1
+                    continue
+                # fire a non-blocking path request; the response arrives asynchronously
+                RNS.Transport.request_path(destination_hash)
+                requested += 1
+
+            return web.json_response({
+                "requested": requested,
+                "already_known": already_known,
+            })
+
         # send lxmf message
         @routes.post("/api/v1/lxmf-messages/send")
         async def index(request):

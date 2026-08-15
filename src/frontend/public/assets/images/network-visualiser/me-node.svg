@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="384" height="384" viewBox="0 0 1024 1024">
+  <!--
+    Avatar for "this device" on the network map. Drawn as a full-bleed circle so it
+    lines up exactly with vis-network's circularImage clip, with the Crosstalk mark
+    inset far enough that the bubble and its tail never get cropped by that clip.
+  -->
+  <defs>
+    <linearGradient id="stroke" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6ea8ff"/>
+      <stop offset="0.5" stop-color="#2f7fff"/>
+      <stop offset="1" stop-color="#0061fd"/>
+    </linearGradient>
+    <linearGradient id="node" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8db9ff"/>
+      <stop offset="1" stop-color="#0061fd"/>
+    </linearGradient>
+    <radialGradient id="backdrop" cx="0.5" cy="0.42" r="0.72">
+      <stop offset="0" stop-color="#152036"/>
+      <stop offset="1" stop-color="#080b14"/>
+    </radialGradient>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="18"/>
+    </filter>
+  </defs>
+
+  <circle cx="512" cy="512" r="512" fill="url(#backdrop)"/>
+
+  <g transform="translate(512 512) scale(0.78) translate(-512 -512)">
+
+    <!-- glow behind the bubble -->
+    <g filter="url(#softGlow)" opacity="0.5">
+      <path d="M232 128 h560 a120 120 0 0 1 120 120 v416 a120 120 0 0 1 -120 120 h-306 l-156 138 c-20 18 -52 4 -52 -23 v-115 h-46 a120 120 0 0 1 -120 -120 v-416 a120 120 0 0 1 120 -120 z"
+            fill="none" stroke="#0061fd" stroke-width="44"/>
+    </g>
+
+    <!-- chat bubble outline -->
+    <path d="M232 128 h560 a120 120 0 0 1 120 120 v416 a120 120 0 0 1 -120 120 h-306 l-156 138 c-20 18 -52 4 -52 -23 v-115 h-46 a120 120 0 0 1 -120 -120 v-416 a120 120 0 0 1 120 -120 z"
+          fill="rgba(9, 14, 26, 0.55)" stroke="url(#stroke)" stroke-width="44" stroke-linejoin="round"/>
+
+    <!-- mesh edges -->
+    <g stroke="url(#stroke)" stroke-width="14" stroke-linecap="round" opacity="0.9">
+      <line x1="512" y1="252" x2="336" y2="384"/>
+      <line x1="512" y1="252" x2="694" y2="360"/>
+      <line x1="336" y1="384" x2="462" y2="530"/>
+      <line x1="694" y1="360" x2="462" y2="530"/>
+      <line x1="694" y1="360" x2="740" y2="536"/>
+      <line x1="462" y1="530" x2="740" y2="536"/>
+      <line x1="336" y1="384" x2="694" y2="360"/>
+      <line x1="512" y1="252" x2="462" y2="530"/>
+      <line x1="336" y1="384" x2="312" y2="560"/>
+      <line x1="312" y1="560" x2="462" y2="530"/>
+    </g>
+
+    <!-- node glows -->
+    <g fill="#2f7fff" opacity="0.7" filter="url(#softGlow)">
+      <circle cx="512" cy="252" r="34"/>
+      <circle cx="462" cy="530" r="34"/>
+      <circle cx="740" cy="536" r="24"/>
+    </g>
+
+    <!-- mesh nodes -->
+    <g>
+      <circle cx="512" cy="252" r="46" fill="url(#node)"/>
+      <circle cx="336" cy="384" r="34" fill="#0b1730" stroke="url(#stroke)" stroke-width="12"/>
+      <circle cx="694" cy="360" r="38" fill="#0b1730" stroke="url(#stroke)" stroke-width="12"/>
+      <circle cx="462" cy="530" r="42" fill="url(#node)"/>
+      <circle cx="740" cy="536" r="30" fill="url(#node)"/>
+      <circle cx="312" cy="560" r="26" fill="#0b1730" stroke="url(#stroke)" stroke-width="12"/>
+    </g>
+
+  </g>
+</svg>
