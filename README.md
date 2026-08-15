@@ -28,6 +28,8 @@ Crosstalk keeps MeshChat's LXMF messaging, attachments, audio calls, propagation
 - Improved interface import, export, editing and deletion.
 - Automatic backend restarts after configuration changes.
 - An isolated Crosstalk Reticulum configuration so another local Reticulum instance cannot leave the app using stale settings.
+- Failed interfaces are turned off on startup instead of taking the whole app down. See [Interface startup recovery](./docs/interface_startup.md).
+- Adding Local Network (Auto) warns if an AutoInterface is already enabled, so a second copy does not bind the same LAN ports.
 
 ### Better everyday UI
 

@@ -34,6 +34,7 @@ from src.backend.async_utils import AsyncUtils
 from src.backend.colour_utils import ColourUtils
 from src.backend.interface_config_parser import InterfaceConfigParser
 from src.backend.interface_editor import InterfaceEditor
+from src.backend.reticulum_startup import start_reticulum
 from src.backend.lxmf_message_fields import LxmfImageField, LxmfFileAttachmentsField, LxmfFileAttachment, LxmfAudioField
 from src.backend.audio_call_manager import AudioCall, AudioCallManager
 from src.backend.satellite_retry_policy import SatelliteRetryPolicy
@@ -230,7 +231,9 @@ class Crosstalk:
         # init reticulum
         ensure_bundled_reticulum_interfaces(reticulum_config_dir)
         ensure_dedicated_reticulum_instance(reticulum_config_dir)
-        self.reticulum = RNS.Reticulum(reticulum_config_dir)
+        self.reticulum, self.interfaces_disabled_on_startup = start_reticulum(
+            reticulum_config_dir
+        )
         # Always collect signed interface advertisements so Crosstalk can show
         # nearby Reticulum infrastructure. Reticulum guards against registering
         # the discovery handler more than once when config already enables it.
@@ -1178,6 +1181,7 @@ class Crosstalk:
                     "reticulum_config_path": self.reticulum.configpath,
                     "is_connected_to_shared_instance": self.reticulum.is_connected_to_shared_instance,
                     "is_transport_enabled": self.reticulum.transport_enabled(),
+                    "interfaces_disabled_on_startup": self.interfaces_disabled_on_startup,
                 },
             })
 

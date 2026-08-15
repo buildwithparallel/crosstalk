@@ -34,6 +34,9 @@
                             <div class="min-w-0">
                                 <div class="text-sm font-semibold text-[var(--ct-text)]">{{ option.name }}</div>
                                 <div class="mt-0.5 text-xs leading-4 text-[var(--ct-dim)]">{{ option.description }}</div>
+                                <div v-if="alreadyEnabledNoticeForType(option.type)" class="mt-1 text-xs font-medium text-[#7db0ff]">
+                                    {{ alreadyEnabledNoticeForType(option.type) }}
+                                </div>
                             </div>
                         </button>
                     </div>
@@ -100,6 +103,20 @@
                                class="block w-full rounded-lg border p-2.5 text-sm"
                                :class="{ 'cursor-not-allowed opacity-60': isEditingInterface }">
                         <FormSubLabel>Interface names must be unique.</FormSubLabel>
+                    </div>
+
+                    <div v-if="!isEditingInterface && newInterfaceType === 'AutoInterface' && enabledAutoInterfaces.length > 0" class="rounded-lg border border-[rgba(110,168,255,0.34)] bg-[rgba(0,97,253,0.09)] p-3 text-sm text-[var(--ct-text)]">
+                        <div class="font-bold">Local discovery is already on</div>
+                        <div class="mt-1 text-[var(--ct-muted)]">
+                            {{ enabledAutoInterfaceNames }} {{ enabledAutoInterfaces.length === 1 ? "is" : "are" }} already finding peers on this WiFi or Ethernet network. Another AutoInterface with the default group and ports will fail to start. Add a second one only if you need a separate mesh.
+                        </div>
+                        <button
+                            v-if="enabledAutoInterfaces.length === 1"
+                            @click="editExistingInterface(enabledAutoInterfaces[0]._name)"
+                            type="button"
+                            class="mt-2 inline-flex items-center rounded-md ct-secondary-button px-2.5 py-1.5 text-sm font-semibold">
+                            Edit {{ enabledAutoInterfaces[0]._name }}
+                        </button>
                     </div>
 
                     <div v-if="newInterfaceType === 'PublicBackboneInterface'" class="rounded-lg border border-[rgba(110,168,255,0.34)] bg-[rgba(0,97,253,0.09)] p-3 text-sm text-[var(--ct-text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
@@ -910,6 +927,7 @@
 
 <script>
 import Utils from "../../js/Utils";
+import AutoInterfaceUtils from "../../js/AutoInterfaceUtils";
 import DialogUtils from "../../js/DialogUtils";
 import ExpandingSection from "./ExpandingSection.vue";
 import FormLabel from "../forms/FormLabel.vue";
@@ -931,6 +949,7 @@ export default {
             isEditingInterface: false,
 
             config: null,
+            existingInterfaces: {},
 
             comports: [],
 
@@ -1127,6 +1146,13 @@ export default {
             }
             return null;
         },
+        enabledAutoInterfaces() {
+            const excludeName = this.isEditingInterface ? this.newInterfaceName : null;
+            return AutoInterfaceUtils.enabledAutoInterfaces(this.existingInterfaces, excludeName);
+        },
+        enabledAutoInterfaceNames() {
+            return this.enabledAutoInterfaces.map((iface) => `"${iface._name}"`).join(", ");
+        },
     },
     watch: {
         newInterfaceBandwidth: "updateRNodeCalculations",
@@ -1139,6 +1165,7 @@ export default {
 
         this.getConfig();
         this.loadComports();
+        this.loadExistingInterfaces();
 
         // check if we are editing an interface
         const interfaceName = this.$route.query.interface_name;
@@ -1173,6 +1200,31 @@ export default {
                 console.log(e);
             }
         },
+        alreadyEnabledNoticeForType(interfaceType) {
+            if(interfaceType !== "AutoInterface" || this.enabledAutoInterfaces.length === 0){
+                return null;
+            }
+            if(this.enabledAutoInterfaces.length === 1){
+                return `Already on as ${this.enabledAutoInterfaces[0]._name}`;
+            }
+            return `Already on as ${this.enabledAutoInterfaces.map((iface) => iface._name).join(", ")}`;
+        },
+        editExistingInterface(interfaceName) {
+            this.$router.push({
+                name: "interfaces.edit",
+                query: {
+                    interface_name: interfaceName,
+                },
+            });
+        },
+        async loadExistingInterfaces() {
+            try {
+                const response = await window.axios.get(`/api/v1/reticulum/interfaces`);
+                this.existingInterfaces = response.data.interfaces ?? {};
+            } catch(e) {
+                console.log(e);
+            }
+        },
         async loadComports() {
             try {
                 const response = await window.axios.get(`/api/v1/comports`);
@@ -1187,6 +1239,7 @@ export default {
                 // fetch interfaces
                 const response = await window.axios.get(`/api/v1/reticulum/interfaces`);
                 const interfaces = response.data.interfaces;
+                this.existingInterfaces = interfaces ?? {};
 
                 // find interface, else show error and redirect to interfaces
                 const iface = interfaces[interfaceName];
@@ -1304,6 +1357,27 @@ export default {
         },
         async addInterface() {
             try {
+
+                if(this.newInterfaceType === "AutoInterface"){
+                    const conflicting = AutoInterfaceUtils.conflictingEnabledAutoInterface(
+                        this.existingInterfaces,
+                        {
+                            group_id: this.newInterfaceGroupID,
+                            discovery_port: this.newInterfaceDiscoveryPort,
+                            data_port: this.newInterfaceDataPort,
+                        },
+                        this.isEditingInterface ? this.newInterfaceName : null,
+                    );
+                    if(conflicting){
+                        const shouldSave = await DialogUtils.confirm(
+                            `"${conflicting._name}" is already providing local discovery on the same group and ports. Saving another copy will likely fail until one of them is turned off. Save anyway?`,
+                            { title: "Local discovery already enabled", confirmLabel: "Save anyway" },
+                        );
+                        if(!shouldSave){
+                            return;
+                        }
+                    }
+                }
 
                 // process sub interfaces for RNodeMultiInterface
                 let subInterfacesData = null;
