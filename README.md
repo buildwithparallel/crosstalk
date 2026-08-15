@@ -37,6 +37,7 @@ Crosstalk keeps MeshChat's LXMF messaging, attachments, audio calls, propagation
 - Clearer navigation, deterministic identicons and improved network-map controls.
 - Consistent in-app dialogs, notifications and status feedback.
 - Better attachment previews, attachment-only messages and mobile chat controls.
+- Path-status dots in the chats list so you can see who currently has a delivery route.
 
 ### Reliability improvements and bug fixes
 
