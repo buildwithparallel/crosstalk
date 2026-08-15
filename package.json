@@ -38,7 +38,7 @@
       "target": "dmg",
       "identity": "-",
       "hardenedRuntime": false,
-      "artifactName": "Crosstalk-v${version}-macos-${arch}.${ext}",
+      "artifactName": "Crosstalk-v${version}-macOS-${arch}.${ext}",
       "extendInfo": {
         "NSMicrophoneUsageDescription": "Microphone access is only needed for Audio Calls",
         "com.apple.security.device.audio-input": true
@@ -54,7 +54,7 @@
       ]
     },
     "win": {
-      "artifactName": "Crosstalk-v${version}-windows-${arch}.${ext}",
+      "artifactName": "Crosstalk-v${version}-Windows-${arch}.${ext}",
       "target": [
         {
           "target": "portable"
@@ -74,7 +74,7 @@
       ]
     },
     "linux": {
-      "artifactName": "Crosstalk-v${version}-linux-${arch}.${ext}",
+      "artifactName": "Crosstalk-v${version}-Linux.${ext}",
       "target": "AppImage",
       "extraFiles": [
         {
@@ -90,10 +90,10 @@
       "writeUpdateInfo": false
     },
     "portable": {
-      "artifactName": "Crosstalk-v${version}-windows-${arch}-portable.${ext}"
+      "artifactName": "Crosstalk-v${version}-Windows-Portable.${ext}"
     },
     "nsis": {
-      "artifactName": "Crosstalk-v${version}-windows-${arch}-installer.${ext}",
+      "artifactName": "Crosstalk-v${version}-Windows-Setup.${ext}",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
     }

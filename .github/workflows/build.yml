@@ -59,13 +59,13 @@ jobs:
         with:
           name: desktop-windows-x64
           path: |
-            dist/Crosstalk-*-windows-x64-installer.exe
-            dist/Crosstalk-*-windows-x64-portable.exe
+            dist/Crosstalk-*-Windows-Setup.exe
+            dist/Crosstalk-*-Windows-Portable.exe
           if-no-files-found: error
           retention-days: 7
 
   build_macos:
-    name: macOS ${{ matrix.arch }}
+    name: macOS ${{ matrix.label }}
     needs: validate_release
     strategy:
       fail-fast: false
@@ -73,8 +73,12 @@ jobs:
         include:
           - runner: macos-15
             arch: arm64
+            label: Apple Silicon
+            artifact_suffix: Apple-Silicon
           - runner: macos-15-intel
             arch: x64
+            label: Intel
+            artifact_suffix: Intel
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Check out repository
@@ -106,11 +110,24 @@ jobs:
       - name: Build macOS package
         run: npm run dist
 
+      - name: Rename macOS package for clarity
+        env:
+          BUILD_ARCH: ${{ matrix.arch }}
+          ARTIFACT_SUFFIX: ${{ matrix.artifact_suffix }}
+        run: |
+          shopt -s nullglob
+          for src in dist/Crosstalk-*-macOS-"${BUILD_ARCH}".dmg; do
+            dest="${src/-macOS-${BUILD_ARCH}.dmg/-macOS-${ARTIFACT_SUFFIX}.dmg}"
+            mv "$src" "$dest"
+            echo "Renamed $(basename "$src") -> $(basename "$dest")"
+          done
+          ls -la dist/Crosstalk-*-macOS-*.dmg
+
       - name: Upload macOS package
         uses: actions/upload-artifact@v4
         with:
-          name: desktop-macos-${{ matrix.arch }}
-          path: dist/Crosstalk-*-macos-${{ matrix.arch }}.dmg
+          name: desktop-macos-${{ matrix.artifact_suffix }}
+          path: dist/Crosstalk-*-macOS-${{ matrix.artifact_suffix }}.dmg
           if-no-files-found: error
           retention-days: 7
 
@@ -142,11 +159,24 @@ jobs:
       - name: Build Linux package
         run: npm run dist
 
+      - name: Normalize Linux package name
+        run: |
+          shopt -s nullglob
+          for src in dist/Crosstalk-*-Linux*.AppImage dist/Crosstalk-*-linux-*.AppImage; do
+            version=$(node -p "require('./package.json').version")
+            dest="dist/Crosstalk-v${version}-Linux.AppImage"
+            if [ "$(basename "$src")" != "$(basename "$dest")" ]; then
+              mv "$src" "$dest"
+              echo "Renamed $(basename "$src") -> $(basename "$dest")"
+            fi
+          done
+          ls -la dist/Crosstalk-*-Linux.AppImage
+
       - name: Upload Linux package
         uses: actions/upload-artifact@v4
         with:
           name: desktop-linux-x64
-          path: dist/Crosstalk-*-linux-x86_64.AppImage
+          path: dist/Crosstalk-*-Linux.AppImage
           if-no-files-found: error
           retention-days: 7
 
@@ -177,10 +207,40 @@ jobs:
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
+          VERSION="${RELEASE_TAG#v}"
+
+          {
+            echo "## Which download should I use?"
+            echo
+            echo "| Your computer | Download this file |"
+            echo "| --- | --- |"
+            echo "| **Mac with Apple Silicon** (M1, M2, M3, M4…) | \`Crosstalk-v${VERSION}-macOS-Apple-Silicon.dmg\` |"
+            echo "| **Mac with Intel chip** | \`Crosstalk-v${VERSION}-macOS-Intel.dmg\` |"
+            echo "| **Windows** (recommended) | \`Crosstalk-v${VERSION}-Windows-Setup.exe\` |"
+            echo "| **Windows portable** (no installer) | \`Crosstalk-v${VERSION}-Windows-Portable.exe\` |"
+            echo "| **Linux** | \`Crosstalk-v${VERSION}-Linux.AppImage\` |"
+            echo
+            echo "Not sure which Mac you have? Open ** → About This Mac**. If the chip is an M1/M2/M3/M4 (or later), use **Apple Silicon**."
+            echo
+            echo "> **macOS note:** Crosstalk is not notarized yet, so Gatekeeper may warn on first open. Right-click the app → **Open**."
+            echo
+            echo "## What's Changed"
+            echo
+            gh api "repos/${GH_REPO}/releases/generate-notes" \
+              -f tag_name="$RELEASE_TAG" \
+              --jq .body \
+              || echo "See the commit history for details."
+          } > release-notes.md
+
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release edit "$RELEASE_TAG" --notes-file release-notes.md
             gh release upload "$RELEASE_TAG" release-assets/* --clobber
           else
-            gh release create "$RELEASE_TAG" release-assets/* --draft --generate-notes --verify-tag --title "Crosstalk $RELEASE_TAG"
+            gh release create "$RELEASE_TAG" release-assets/* \
+              --draft \
+              --verify-tag \
+              --title "Crosstalk ${RELEASE_TAG}" \
+              --notes-file release-notes.md
           fi
 
   build_docker:

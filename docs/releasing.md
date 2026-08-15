@@ -13,14 +13,16 @@ git tag -a v2.3.2 -m "Crosstalk v2.3.2"
 git push origin v2.3.2
 ```
 
-The release workflow produces:
+The release workflow produces clearly named downloads:
 
-- a Windows x64 installer
-- a Windows x64 portable executable
-- a macOS Apple Silicon DMG
-- a macOS Intel DMG
-- a Linux x64 AppImage
-- a SHA-256 checksum file
+- `Crosstalk-vX.Y.Z-macOS-Apple-Silicon.dmg` — Macs with M1/M2/M3/M4 chips
+- `Crosstalk-vX.Y.Z-macOS-Intel.dmg` — Intel Macs
+- `Crosstalk-vX.Y.Z-Windows-Setup.exe` — Windows installer (recommended)
+- `Crosstalk-vX.Y.Z-Windows-Portable.exe` — Windows, no install
+- `Crosstalk-vX.Y.Z-Linux.AppImage` — Linux
+- `SHA256SUMS.txt`
+
+Each draft release also includes a “Which download should I use?” table in the notes.
 
 It also publishes `amd64` and `arm64` container images to GitHub Container
 Registry. Once all desktop builds pass, review and publish the draft from the
