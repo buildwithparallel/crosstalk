@@ -1,6 +1,6 @@
 {
   "name": "crosstalk",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "Field-focused Reticulum messaging with native Iridium IMT support",
   "author": "Build with Parallel",
   "repository": "https://github.com/buildwithparallel/crosstalk",
