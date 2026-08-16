@@ -79,6 +79,22 @@
                         </label>
                     </div>
 
+                    <div class="p-2.5 space-y-1">
+                        <div class="text-sm font-medium text-[var(--ct-text)]">Inbound Stamp Cost</div>
+                        <input v-model="config.lxmf_inbound_stamp_cost" @change="onLxmfInboundStampCostChange" type="number" min="0" max="254" class="block w-full rounded-lg border p-2.5 text-sm">
+                        <div class="text-sm text-[var(--ct-dim)]">Senders must attach a proof of work stamp of this difficulty to message you, which deters automated spam. 0 disables it. Higher values take senders longer to compute. Peers learn your cost from your next announce.</div>
+                    </div>
+
+                    <div class="p-2.5">
+                        <label class="flex cursor-pointer items-start gap-x-2.5">
+                            <input v-model="config.lxmf_enforce_inbound_stamp_cost" @change="onLxmfEnforceInboundStampCostChange" type="checkbox" class="mt-0.5 size-4 rounded border">
+                            <span>
+                                <span class="block text-sm font-medium text-[var(--ct-text)]">Require Valid Stamps</span>
+                                <span class="block text-sm text-[var(--ct-dim)]">Messages without a valid stamp will be dropped. When disabled, your stamp cost is advertised but unstamped messages are still delivered.</span>
+                            </span>
+                        </label>
+                    </div>
+
                 </div>
             </div>
 
@@ -213,6 +229,16 @@ export default {
         async onAutoSendFailedMessagesToPropagationNodeChange() {
             await this.updateConfig({
                 "auto_send_failed_messages_to_propagation_node": this.config.auto_send_failed_messages_to_propagation_node,
+            });
+        },
+        async onLxmfInboundStampCostChange() {
+            await this.updateConfig({
+                "lxmf_inbound_stamp_cost": this.config.lxmf_inbound_stamp_cost,
+            });
+        },
+        async onLxmfEnforceInboundStampCostChange() {
+            await this.updateConfig({
+                "lxmf_enforce_inbound_stamp_cost": this.config.lxmf_enforce_inbound_stamp_cost,
             });
         },
         async onShowSuggestedCommunityInterfacesChange() {
