@@ -233,6 +233,7 @@ app.whenReady().then(async () => {
         mainWindow = new BrowserWindow({
             width: 1500,
             height: 800,
+            icon: path.join(__dirname, "build/icon.png"), // window/taskbar icon on linux and windows
             webPreferences: {
                 // used to inject logging over ipc
                 preload: path.join(__dirname, 'preload.js'),
