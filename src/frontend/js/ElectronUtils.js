@@ -51,6 +51,18 @@ class ElectronUtils {
         }
     }
 
+    /**
+     * Ask for microphone access before first capture.
+     * In Electron on macOS this shows the TCC prompt. In the browser it is a
+     * no-op; getUserMedia will prompt instead. Returns false if denied.
+     */
+    static async ensureMicrophoneAccess() {
+        if(window.electron?.askForMicrophoneAccess){
+            return await window.electron.askForMicrophoneAccess();
+        }
+        return true;
+    }
+
 }
 
 export default ElectronUtils;

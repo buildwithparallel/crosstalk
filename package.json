@@ -41,7 +41,7 @@
       "hardenedRuntime": false,
       "artifactName": "Crosstalk-v${version}-macOS-${arch}.${ext}",
       "extendInfo": {
-        "NSMicrophoneUsageDescription": "Microphone access is only needed for Audio Calls",
+        "NSMicrophoneUsageDescription": "Microphone access is needed for audio calls and voice messages",
         "com.apple.security.device.audio-input": true
       },
       "extraFiles": [

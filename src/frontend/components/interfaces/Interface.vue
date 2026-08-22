@@ -219,26 +219,37 @@
         <div class="flex flex-wrap items-center gap-x-1 rounded-b-[var(--ct-radius)] border-t border-[var(--ct-border)] bg-[rgba(0,0,0,0.25)] p-1.5 text-sm text-[var(--ct-dim)]">
 
             <!-- status -->
-            <div v-if="isInterfaceEnabled(iface) && iface._stats?.status === true" class="flex items-center gap-x-1.5 text-sm text-[#5df2a4]">
+            <div
+                v-if="isInterfaceEnabled(iface) && iface._stats?.status === true"
+                class="interface-metric flex items-center gap-x-1.5 text-sm text-[#5df2a4]"
+                data-tooltip="This interface is active and Reticulum can use it. It does not guarantee that every remote peer or service is reachable."
+                tabindex="0">
                 <span class="ct-status-dot online"></span>
                 <span>Connected</span>
             </div>
-            <div v-else class="flex items-center gap-x-1.5 text-sm" :class="isInterfaceEnabled(iface) ? 'text-[#ff8298]' : 'text-[var(--ct-dim)]'">
+            <div
+                v-else
+                class="interface-metric flex items-center gap-x-1.5 text-sm"
+                :class="isInterfaceEnabled(iface) ? 'text-[#ff8298]' : 'text-[var(--ct-dim)]'"
+                :data-tooltip="isInterfaceEnabled(iface)
+                    ? 'This interface is enabled, but Reticulum does not currently have an active connection through it.'
+                    : 'This interface is disabled and Reticulum will not try to use it.'"
+                tabindex="0">
                 <span class="ct-status-dot" :class="isInterfaceEnabled(iface) ? 'error' : 'offline'"></span>
                 <span>{{ isInterfaceEnabled(iface) ? 'Disconnected' : 'Turned Off' }}</span>
             </div>
 
             <!-- stats -->
-            <div>• Bitrate: {{ formatBitsPerSecond(iface._stats?.bitrate ?? 0) }}</div>
-            <div>• TX: {{ formatBytes(iface._stats?.txb ?? 0) }}</div>
-            <div>• RX: {{ formatBytes(iface._stats?.rxb ?? 0) }}</div>
-            <div v-if="iface.type === 'IridiumIMTInterface'">• Signal: {{ formatSatelliteSignal(iface._stats?.signal_bars) }}</div>
-            <div v-if="iface.type === 'IridiumIMTInterface'">• Queue: {{ iface._stats?.queued_packets ?? 0 }}</div>
-            <div v-if="iface.type === 'RNodeInterface'">• Noise Floor: {{
+            <div class="interface-metric" data-tooltip="The interface's configured or reported link capacity. This is the maximum expected rate, not current traffic speed." tabindex="0">• Bitrate: {{ formatBitsPerSecond(iface._stats?.bitrate ?? 0) }}</div>
+            <div class="interface-metric" data-tooltip="Transmit total: data sent through this interface since Crosstalk started." tabindex="0">• TX: {{ formatBytes(iface._stats?.txb ?? 0) }}</div>
+            <div class="interface-metric" data-tooltip="Receive total: data received through this interface since Crosstalk started." tabindex="0">• RX: {{ formatBytes(iface._stats?.rxb ?? 0) }}</div>
+            <div v-if="iface.type === 'IridiumIMTInterface'" class="interface-metric" data-tooltip="The modem's most recently reported satellite signal strength, from 0 (none) to 5 (strongest)." tabindex="0">• Signal: {{ formatSatelliteSignal(iface._stats?.signal_bars) }}</div>
+            <div v-if="iface.type === 'IridiumIMTInterface'" class="interface-metric" data-tooltip="Packets waiting locally to be transmitted by the satellite modem." tabindex="0">• Queue: {{ iface._stats?.queued_packets ?? 0 }}</div>
+            <div v-if="iface.type === 'RNodeInterface'" class="interface-metric" data-tooltip="Measured background radio noise. More-negative dBm values indicate a quieter channel." tabindex="0">• Noise Floor: {{
                 iface._stats?.noise_floor
               }} dBm
             </div>
-            <div v-if="iface._stats?.clients != null">• Clients: {{ iface._stats?.clients }}</div>
+            <div v-if="iface._stats?.clients != null" class="interface-metric" data-tooltip="The number of clients currently connected to this server-style interface." tabindex="0">• Clients: {{ iface._stats?.clients }}</div>
 
         </div>
 
@@ -308,3 +319,52 @@ export default {
     },
 }
 </script>
+
+<style scoped>
+.interface-metric {
+    position: relative;
+    cursor: help;
+    text-decoration: underline;
+    text-decoration-color: rgba(148, 163, 184, 0.32);
+    text-decoration-style: dotted;
+    text-underline-offset: 3px;
+}
+
+.interface-metric::after {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    z-index: 40;
+    width: max-content;
+    max-width: min(19rem, 78vw);
+    padding: 0.5rem 0.625rem;
+    border: 1px solid var(--ct-border-strong);
+    border-radius: 0.5rem;
+    background: rgba(16, 18, 27, 0.98);
+    box-shadow: var(--ct-shadow-overlay);
+    color: var(--ct-text);
+    content: attr(data-tooltip);
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.4;
+    opacity: 0;
+    pointer-events: none;
+    text-align: left;
+    text-decoration: none;
+    transform: translateY(4px);
+    transition: opacity 120ms ease, transform 120ms ease;
+    white-space: normal;
+}
+
+.interface-metric:hover::after,
+.interface-metric:focus-visible::after {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.interface-metric:focus-visible {
+    border-radius: 0.25rem;
+    outline: 2px solid var(--ct-border-focus);
+    outline-offset: 2px;
+}
+</style>

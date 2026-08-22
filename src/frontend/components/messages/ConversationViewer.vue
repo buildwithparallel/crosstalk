@@ -447,6 +447,7 @@ import ConversationDropDownMenu from "./ConversationDropDownMenu.vue";
 import AddImageButton from "./AddImageButton.vue";
 import IconButton from "../IconButton.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import ElectronUtils from "../../js/ElectronUtils";
 import CopyButton from "../CopyButton.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import EmptyState from "../base/EmptyState.vue";
@@ -1379,6 +1380,11 @@ export default {
 
             // ask user to confirm recording new audio attachment, if an existing audio attachment exists
             if(this.newMessageAudio && !await DialogUtils.confirm("An audio recording is already attached. A new recording will replace it. Do you want to continue?")){
+                return;
+            }
+
+            if(!await ElectronUtils.ensureMicrophoneAccess()){
+                DialogUtils.alert("Microphone access is required to record a voice message.");
                 return;
             }
 

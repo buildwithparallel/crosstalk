@@ -280,6 +280,7 @@
 <script>
 import protobuf from "protobufjs";
 import DialogUtils from "../../js/DialogUtils";
+import ElectronUtils from "../../js/ElectronUtils";
 import CopyButton from "../CopyButton.vue";
 import ModalHost from "../overlays/ModalHost.vue";
 import ToastHost from "../overlays/ToastHost.vue";
@@ -358,6 +359,11 @@ export default {
             // make sure call hash provided
             if(!destinationHash) {
                 DialogUtils.toast("Enter a destination hash to call", "error");
+                return;
+            }
+
+            if(!await ElectronUtils.ensureMicrophoneAccess()){
+                DialogUtils.toast("Microphone access is required for audio calls.", "error");
                 return;
             }
 
@@ -567,6 +573,11 @@ export default {
         },
         async startRecordingMicrophone(onAudioAvailable) {
             try {
+
+                if(!await ElectronUtils.ensureMicrophoneAccess()){
+                    DialogUtils.toast("Microphone access is required for audio calls.", "error");
+                    return;
+                }
 
                 // load audio worklet module
                 this.audioContext = new AudioContext({ sampleRate: this.sampleRate });

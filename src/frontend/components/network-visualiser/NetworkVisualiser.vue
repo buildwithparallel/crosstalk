@@ -25,15 +25,15 @@
                 </div>
 
                 <div class="flex flex-1 flex-wrap items-center gap-1.5 md:justify-center">
-                    <div class="network-stat">
+                    <div class="network-stat" title="Nodes on this map that this device currently has a route to">
                         <span class="size-1.5 rounded-full bg-[#2ee781]"></span>
-                        <strong>{{ onlineInterfaces.length }}</strong>
-                        <span>online</span>
+                        <strong>{{ reachableNodeCount }}</strong>
+                        <span>reachable</span>
                     </div>
-                    <div v-if="offlineInterfaces.length > 0" class="network-stat">
+                    <div v-if="offlineInterfaces.length > 0" class="network-stat" title="Your own interfaces that are enabled but not connected">
                         <span class="size-1.5 rounded-full bg-[#ff5c72]"></span>
                         <strong>{{ offlineInterfaces.length }}</strong>
-                        <span>offline</span>
+                        <span>{{ offlineInterfaces.length === 1 ? "interface offline" : "interfaces offline" }}</span>
                     </div>
                     <div class="network-stat">
                         <strong>{{ peopleCount }}</strong>
@@ -545,6 +545,10 @@ export default {
             const nodes = [];
             const edges = [];
 
+            // several advertisements can share one destination hash, and node ids must be
+            // unique, so remember which infrastructure destinations we have already drawn
+            const drawnInfrastructure = new Set();
+
             // add me
             nodes.push({
                 id: "me",
@@ -631,16 +635,20 @@ export default {
 
             }
 
-            // add signed Reticulum infrastructure advertisements with friendly names
+            // add signed Reticulum infrastructure advertisements with friendly names.
+            // an advertisement we heard once is not a link, so skip anything we have no
+            // current route to, otherwise stale entries get drawn hanging off "me" and
+            // look like direct connections that do not exist.
             for(const infrastructure of this.discoveredInterfaces){
                 const path = this.pathTable.find((entry) => entry.hash === infrastructure.destination_hash);
-                if(!infrastructure.destination_hash){
+                if(!infrastructure.destination_hash || !path){
                     continue;
                 }
-                const hops = path?.hops ?? infrastructure.hops;
-                const pathDescription = path
-                    ? `${path.hops} ${path.hops === 1 ? 'Hop' : 'Hops'} via ${path.interface}`
-                    : `${hops ?? 'Unknown'} ${hops === 1 ? 'Hop' : 'Hops'} when advertised; current route not loaded`;
+                if(drawnInfrastructure.has(infrastructure.destination_hash)){
+                    continue;
+                }
+                drawnInfrastructure.add(infrastructure.destination_hash);
+                const pathDescription = `${path.hops} ${path.hops === 1 ? 'Hop' : 'Hops'} via ${path.interface}`;
 
                 const radio = [
                     infrastructure.frequency ? `Frequency: ${this.formatFrequency(infrastructure.frequency)}` : null,
@@ -672,7 +680,7 @@ export default {
                         highlight: { border: "#dbeafe" },
                     },
                     borderWidth: infrastructure.status === "available" ? 2 : 1.5,
-                    shadow: path && infrastructure.status === "available"
+                    shadow: infrastructure.status === "available"
                         ? { enabled: true, color: "rgba(96, 165, 250, 0.24)", size: 12, x: 0, y: 0 }
                         : false,
                     font: this.graphLabelFont(12),
@@ -680,16 +688,15 @@ export default {
                 });
 
                 edges.push({
-                    id: `${path?.interface ?? 'me'}~${infrastructure.destination_hash}`,
-                    from: path?.interface ?? "me",
+                    id: `${path.interface}~${infrastructure.destination_hash}`,
+                    from: path.interface,
                     to: infrastructure.destination_hash,
-                    dashes: !path,
                     color: {
-                        color: path ? "rgba(96, 165, 250, 0.42)" : "rgba(96, 165, 250, 0.28)",
+                        color: "rgba(96, 165, 250, 0.42)",
                         highlight: "#93c5fd",
                         hover: "#93c5fd",
                     },
-                    width: path ? 1.1 : 0.8,
+                    width: 1.1,
                 });
             }
 
@@ -857,11 +864,6 @@ export default {
         },
     },
     computed: {
-        onlineInterfaces() {
-            return this.interfaces.filter((iface) => {
-                return iface.status;
-            });
-        },
         offlineInterfaces() {
             return this.interfaces.filter((iface) => {
                 return !iface.status;
@@ -891,11 +893,26 @@ export default {
         nomadNodeCount() {
             return this.reachableCountByAspect["nomadnetwork.node"] ?? 0;
         },
-        // infrastructure nodes actually drawn (advertisements with a destination hash)
+        // infrastructure nodes actually drawn, i.e. unique destinations we have a route
+        // to. advertisements we merely heard about once are not drawn, so must not count.
         infrastructureCount() {
-            return this.discoveredInterfaces.filter((infrastructure) => {
-                return infrastructure.destination_hash != null;
-            }).length;
+            const reachable = new Set();
+            for(const infrastructure of this.discoveredInterfaces){
+                if(infrastructure.destination_hash == null){
+                    continue;
+                }
+                if(!this.pathTable.some((entry) => entry.hash === infrastructure.destination_hash)){
+                    continue;
+                }
+                reachable.add(infrastructure.destination_hash);
+            }
+            return reachable.size;
+        },
+        // every remote node drawn on the map that we currently have a route to. this
+        // deliberately excludes "me" and our own interface nodes, since those describe
+        // this device's links rather than what is out there on the mesh.
+        reachableNodeCount() {
+            return this.peopleCount + this.nomadNodeCount + this.infrastructureCount;
         },
     },
 }
