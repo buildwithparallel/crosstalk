@@ -34,6 +34,11 @@ from src.backend.async_utils import AsyncUtils
 from src.backend.colour_utils import ColourUtils
 from src.backend.interface_config_parser import InterfaceConfigParser
 from src.backend.interface_editor import InterfaceEditor
+from src.backend.outbound_identity import (
+    parse_path_timeout,
+    recall_send_identity,
+    remember_destination_identity,
+)
 from src.backend.reticulum_startup import start_reticulum
 from src.backend.lxmf_message_fields import LxmfImageField, LxmfFileAttachmentsField, LxmfFileAttachment, LxmfAudioField
 from src.backend.audio_call_manager import AudioCall, AudioCallManager
@@ -2225,6 +2230,10 @@ class Crosstalk:
             if "delivery_method" in data:
                 delivery_method = data["delivery_method"]
 
+            path_timeout_seconds = parse_path_timeout(
+                data.get("path_timeout", request.query.get("path_timeout")),
+            )
+
             # get data from json
             destination_hash = data["lxmf_message"]["destination_hash"]
             content = data["lxmf_message"]["content"]
@@ -2267,7 +2276,8 @@ class Crosstalk:
                     image_field=image_field,
                     audio_field=audio_field,
                     file_attachments_field=file_attachments_field,
-                    delivery_method=delivery_method
+                    delivery_method=delivery_method,
+                    path_timeout_seconds=path_timeout_seconds,
                 )
 
                 return web.json_response({
@@ -3176,6 +3186,24 @@ class Crosstalk:
             # upsert lxmf message to database
             self.db_upsert_lxmf_message(lxmf_message)
 
+            # Keep the sender identity so a later reply can be queued even if
+            # the inbound path has expired.
+            try:
+                source_hash = lxmf_message.source_hash
+                source_identity = RNS.Identity.recall(source_hash)
+                if source_identity is not None:
+                    remember_destination_identity(source_hash, source_identity)
+                    self.db_upsert_announce(
+                        source_identity,
+                        source_hash,
+                        "lxmf.delivery",
+                        None,
+                        lxmf_message.hash,
+                    )
+            except Exception as e:
+                print("failed to persist inbound LXMF sender identity")
+                print(e)
+
             # update lxmf user icon if icon appearance field is available
             try:
                 message_fields = lxmf_message.get_fields()
@@ -3305,6 +3333,14 @@ class Crosstalk:
         query = query.on_conflict(conflict_target=[database.Announce.destination_hash], update=data)
         query.execute()
 
+    def _announce_public_key_b64(self, destination_hash: bytes):
+        announce = database.Announce.get_or_none(
+            database.Announce.destination_hash == destination_hash.hex()
+        )
+        if announce is None:
+            return None
+        return announce.identity_public_key
+
     # upserts a custom destination display name to the database
     def db_upsert_custom_destination_display_name(self, destination_hash: str, display_name: str):
 
@@ -3356,7 +3392,8 @@ class Crosstalk:
                            image_field: LxmfImageField = None,
                            audio_field: LxmfAudioField = None,
                            file_attachments_field: LxmfFileAttachmentsField = None,
-                           delivery_method: str = None) -> LXMF.LXMessage:
+                           delivery_method: str = None,
+                           path_timeout_seconds: float = 0) -> LXMF.LXMessage:
 
         # convert destination hash to bytes
         destination_hash = bytes.fromhex(destination_hash)
@@ -3376,26 +3413,30 @@ class Crosstalk:
                 has_path=RNS.Transport.has_path(destination_hash),
             )
         else:
-
-            # determine when to timeout finding path
-            timeout_after_seconds = time.time() + 10
-
-            # check if we have a path to the destination
+            # A reply is a new outbound delivery. Request a path if needed,
+            # but do not fail the send because the inbound link went idle.
             if not RNS.Transport.has_path(destination_hash):
-
-                # we don't have a path, so we need to request it
                 RNS.Transport.request_path(destination_hash)
 
-                # wait until we have a path, or give up after the configured timeout
-                while not RNS.Transport.has_path(destination_hash) and time.time() < timeout_after_seconds:
-                    await asyncio.sleep(0.1)
+            timeout_after_seconds = time.time() + max(float(path_timeout_seconds), 0)
+            while (
+                path_timeout_seconds > 0
+                and not RNS.Transport.has_path(destination_hash)
+                and self._announce_public_key_b64(destination_hash) is None
+                and RNS.Identity.recall(destination_hash) is None
+                and time.time() < timeout_after_seconds
+            ):
+                await asyncio.sleep(0.1)
 
-        # find destination identity from hash
-        destination_identity = RNS.Identity.recall(destination_hash)
+        destination_identity = recall_send_identity(
+            destination_hash,
+            self._announce_public_key_b64(destination_hash),
+        )
         if destination_identity is None:
-
-            # we have to bail out of sending, since we don't have the identity/path yet
-            raise Exception("Could not find path to destination. Try again later.")
+            raise Exception(
+                "Unknown destination identity. Crosstalk has not received "
+                "from this peer and has no saved announce for them."
+            )
 
         # create destination for recipients lxmf delivery address
         lxmf_destination = RNS.Destination(destination_identity, RNS.Destination.OUT, RNS.Destination.SINGLE, "lxmf", "delivery")
