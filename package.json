@@ -1,6 +1,7 @@
 {
   "name": "crosstalk",
   "version": "2.5.2",
+  "desktopName": "crosstalk",
   "description": "Field-focused Reticulum messaging with native Iridium IMT support",
   "author": "Build with Parallel",
   "repository": "https://github.com/buildwithparallel/crosstalk",
@@ -76,6 +77,8 @@
     "linux": {
       "artifactName": "Crosstalk-v${version}-Linux.${ext}",
       "target": "AppImage",
+      "category": "Network",
+      "syncDesktopName": true,
       "extraFiles": [
         {
           "from": "build/exe",
