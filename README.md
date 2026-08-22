@@ -97,6 +97,10 @@ Use `npm run electron` to build and launch the Electron app locally, or `npm run
 
 Maintainers can use the [release workflow](./docs/releasing.md) to build downloadable packages for Windows, macOS and Linux.
 
+## Contributing
+
+Pull requests are welcome when they improve something Crosstalk already does, or add a capability other users would actually use. Fixes, clearer UI, reliability, and features that help the broader Reticulum community are a good fit. Very personal or one-off customizations are better kept in a fork.
+
 ## Upstream and compatibility
 
 Crosstalk is based on [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) and remains compatible with LXMF clients such as [Sideband](https://github.com/markqvist/Sideband) and [NomadNet](https://github.com/markqvist/nomadnet).
