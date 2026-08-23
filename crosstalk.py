@@ -2459,6 +2459,9 @@ class Crosstalk:
             # execute sql query
             cursor = database.database.execute_sql(query)
 
+            # get blocked destination hashes, so we can hide conversations with blocked users
+            blocked_destination_hashes = set(blocked_destination.destination_hash for blocked_destination in database.BlockedDestination.select())
+
             # parse results to get a list of conversations we have sent or received a message from
             conversations = []
             for row in cursor.fetchall():
@@ -2473,6 +2476,10 @@ class Crosstalk:
                     other_user_hash = destination_hash
                 else:
                     other_user_hash = source_hash
+
+                # skip conversations with blocked users
+                if other_user_hash in blocked_destination_hashes:
+                    continue
 
                 # find lxmf user icon from database
                 lxmf_user_icon = None

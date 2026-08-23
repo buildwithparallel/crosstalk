@@ -91,6 +91,7 @@
                     v-if="selectedPeer"
                     :peer="selectedPeer"
                     @conversation-deleted="onConversationDeleted"
+                    @blocked-changed="onBlockedChanged"
                     @set-custom-display-name="updateCustomDisplayName"/>
             </div>
 
@@ -967,6 +968,17 @@ export default {
             } catch(e) {
                 console.log(e);
                 DialogUtils.alert("Failed to update display name");
+            }
+
+        },
+        async onBlockedChanged(isBlocked) {
+
+            // reload conversations so blocked conversations are hidden from the sidebar
+            this.$emit("reload-conversations");
+
+            // close the conversation when the user was blocked
+            if(isBlocked){
+                this.close();
             }
 
         },
