@@ -77,6 +77,16 @@ const router = createRouter({
             component: defineAsyncComponent(() => import("./components/ping/PingPage.vue")),
         },
         {
+            name: "path-lookup",
+            path: '/path-lookup',
+            component: defineAsyncComponent(() => import("./components/tools/PathLookupPage.vue")),
+        },
+        {
+            name: "rf-activity",
+            path: '/rf-activity',
+            component: defineAsyncComponent(() => import("./components/tools/RfActivityPage.vue")),
+        },
+        {
             name: "profile.icon",
             path: '/profile/icon',
             component: defineAsyncComponent(() => import("./components/profile/ProfileIconPage.vue")),
