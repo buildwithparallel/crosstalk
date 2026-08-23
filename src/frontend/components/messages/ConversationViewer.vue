@@ -117,6 +117,8 @@
 
                         <div class="w-full space-y-0.5 px-2.5 py-1">
 
+                            <div v-if="displayedMessageTitle(chatItem.lxmf_message.title)" class="text-xs opacity-80">{{ displayedMessageTitle(chatItem.lxmf_message.title) }}</div>
+
                             <!-- content -->
                             <div v-if="chatItem.lxmf_message.content" style="white-space:pre-wrap;word-break:break-word;font-family:inherit;">{{ chatItem.lxmf_message.content }}</div>
 
@@ -209,7 +211,7 @@
                             <!-- state label -->
                             <div class="my-auto">
                                 <span @click="showSentMessageInfo(chatItem.lxmf_message)" class="space-x-1 cursor-pointer">
-                                    <span>{{ chatItem.lxmf_message.state }}</span>
+                                    <span>{{ displayedDeliveryState(chatItem.lxmf_message) }}</span>
                                     <span v-if="chatItem.lxmf_message.state === 'outbound' && chatItem.lxmf_message.delivery_attempts >= 1">(attempt {{ chatItem.lxmf_message.delivery_attempts + 1 }})</span>
                                     <span v-if="chatItem.lxmf_message.state === 'sent' && chatItem.lxmf_message.method === 'opportunistic' && chatItem.lxmf_message.delivery_attempts >= 1">(attempt {{ chatItem.lxmf_message.delivery_attempts }})</span>
                                     <span v-if="chatItem.lxmf_message.state === 'sent' && chatItem.lxmf_message.method === 'propagated'">to propagation node</span>
@@ -219,8 +221,15 @@
                                 <button v-if="chatItem.lxmf_message.state === 'failed'" type="button" @click="retrySendingMessage(chatItem)" class="ml-1 min-h-9 cursor-pointer rounded px-1.5 underline text-blue-400">Retry</button>
                             </div>
 
+                            <!-- last-resort: radio accepted it, dest unconfirmed -->
+                            <div v-if="isLastResortOutbound(chatItem.lxmf_message) && chatItem.lxmf_message.state === 'delivered'" class="my-auto" title="The radio on this Crosstalk accepted it. There is no confirmation that they received it.">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.288 15.038a5.25 5.25 0 0 1 7.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 0 1 1.06 0Z" />
+                                </svg>
+                            </div>
+
                             <!-- delivered icon -->
-                            <div v-if="chatItem.lxmf_message.state === 'delivered'" class="my-auto">
+                            <div v-else-if="chatItem.lxmf_message.state === 'delivered'" class="my-auto">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
                                     <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" />
                                 </svg>
@@ -354,6 +363,44 @@
                         </div>
                     </div>
 
+                    <div
+                        v-if="lastResortOffered"
+                        class="mb-2 rounded-lg border px-2.5 py-2"
+                        :class="hfHopActive
+                            ? 'border-[rgba(0,97,253,0.45)] bg-[rgba(0,97,253,0.1)]'
+                            : 'border-[var(--ct-border)] bg-[rgba(255,255,255,0.03)]'">
+                        <button
+                            type="button"
+                            class="flex w-full items-center gap-3 text-left cursor-pointer"
+                            role="switch"
+                            :aria-checked="hfHopActive"
+                            aria-label="Public broadcast"
+                            @click="toggleLastResortHop">
+                            <span
+                                class="inline-flex h-5 w-9 shrink-0 rounded-full border p-0.5 transition"
+                                :class="hfHopActive
+                                    ? 'border-[var(--ct-blue)] bg-[var(--ct-blue)]'
+                                    : 'border-[var(--ct-border-strong)] bg-[rgba(255,255,255,0.08)]'">
+                                <span
+                                    class="h-3.5 w-3.5 rounded-full bg-white shadow transition"
+                                    :class="hfHopActive ? 'translate-x-3.5' : 'translate-x-0'"></span>
+                            </span>
+                            <span class="min-w-0">
+                                <span class="block text-sm font-semibold text-[var(--ct-text)]">Public broadcast</span>
+                                <span class="block text-xs text-[var(--ct-muted)]">OTA Long Haul{{ lastResortStationLabel ? ` · ${lastResortStationLabel}` : "" }}</span>
+                            </span>
+                        </button>
+                        <p v-if="hfHopActive" class="mt-2 text-xs text-[var(--ct-muted)]">
+                            Anyone with a receiver can read this. You will not know if they got it. Readable plain language only.
+                        </p>
+                        <p v-else class="mt-2 text-xs text-[var(--ct-dim)]">
+                            No private path from this Crosstalk. Turn this on to send in the open over radio.
+                        </p>
+                        <p v-if="hfHopActive && hasComposerAttachments" class="mt-1 text-xs text-red-300">
+                            Text only — remove the attachment first.
+                        </p>
+                    </div>
+
                     <!-- text input -->
                     <textarea
                         ref="message-input"
@@ -364,13 +411,16 @@
                         @keydown.enter.shift.exact.native.prevent="onShiftEnterPressed"
                         class="ct-message-input block w-full resize-none rounded-xl border p-2.5 text-base sm:text-sm"
                         rows="2"
-                        placeholder="Send a message…"></textarea>
+                        :placeholder="hfHopActive ? 'Send a short message…' : 'Send a message…'"></textarea>
+                    <div v-if="hfHopActive" class="mt-1 text-right text-xs tabular-nums" :class="lastResortBytesUsed >= lastResortMaxBytes ? 'text-[var(--ct-text)]' : 'text-[var(--ct-dim)]'">
+                        {{ lastResortBytesUsed }} / {{ lastResortMaxBytes }}
+                    </div>
 
                     <!-- action button -->
                     <div class="flex items-center mt-2">
 
                         <!-- add files -->
-                        <button @click="addFilesToMessage" type="button" aria-label="Add files" class="my-auto mr-1 ct-secondary-button inline-flex min-h-11 min-w-11 items-center justify-center gap-x-1 rounded-lg px-2.5 py-1.5 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 sm:min-h-0 sm:min-w-0 sm:rounded-md">
+                        <button v-if="!hfHopActive" @click="addFilesToMessage" type="button" aria-label="Add files" class="my-auto mr-1 ct-secondary-button inline-flex min-h-11 min-w-11 items-center justify-center gap-x-1 rounded-lg px-2.5 py-1.5 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 sm:min-h-0 sm:min-w-0 sm:rounded-md">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
                                 <path fill-rule="evenodd" d="M5.625 1.5H9a3.75 3.75 0 0 1 3.75 3.75v1.875c0 1.036.84 1.875 1.875 1.875H16.5a3.75 3.75 0 0 1 3.75 3.75v7.875c0 1.035-.84 1.875-1.875 1.875H5.625a1.875 1.875 0 0 1-1.875-1.875V3.375c0-1.036.84-1.875 1.875-1.875ZM12.75 12a.75.75 0 0 0-1.5 0v2.25H9a.75.75 0 0 0 0 1.5h2.25V18a.75.75 0 0 0 1.5 0v-2.25H15a.75.75 0 0 0 0-1.5h-2.25V12Z" clip-rule="evenodd" />
                                 <path d="M14.25 5.25a5.23 5.23 0 0 0-1.279-3.434 9.768 9.768 0 0 1 6.963 6.963A5.23 5.23 0 0 0 16.5 7.5h-1.875a.375.375 0 0 1-.375-.375V5.25Z" />
@@ -379,12 +429,12 @@
                         </button>
 
                         <!-- add image -->
-                        <div>
+                        <div v-if="!hfHopActive">
                             <AddImageButton @add-image="onImageSelected"/>
                         </div>
 
                         <!-- add audio -->
-                        <div>
+                        <div v-if="!hfHopActive">
                             <AddAudioButton
                                 :is-recording-audio-attachment="isRecordingAudioAttachment"
                                 @start-recording="startRecordingAudioAttachment($event)"
@@ -451,6 +501,7 @@ import ElectronUtils from "../../js/ElectronUtils";
 import CopyButton from "../CopyButton.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import EmptyState from "../base/EmptyState.vue";
+import { LAST_RESORT_HOP, LAST_RESORT_MAX_BYTES, truncateUtf8Bytes, utf8ByteLength } from "../../js/bridgeExtensions";
 
 export default {
     name: 'ConversationViewer',
@@ -473,6 +524,9 @@ export default {
     data() {
         return {
 
+            lastResortHop: LAST_RESORT_HOP,
+            lastResortMaxBytes: LAST_RESORT_MAX_BYTES,
+
             selectedPeerPath: null,
             selectedPeerLxmfStampInfo: null,
             selectedPeerSignalMetrics: null,
@@ -489,6 +543,12 @@ export default {
             hasMorePrevious: true,
 
             newMessageDeliveryMethod: null,
+            hfBridgeEnabled: false,
+            txBridge: null,
+            hfCallsign: "",
+            txRunningHere: false,
+            peerPathChecked: false,
+            lastResortRefreshTimer: null,
             newMessageText: "",
             newMessageImage: null,
             newMessageImageUrl: null,
@@ -528,6 +588,7 @@ export default {
 
         // stop polling satellite signal
         clearInterval(this.satelliteSignalTimer);
+        clearInterval(this.lastResortRefreshTimer);
 
         this.pathProbeSession += 1;
 
@@ -540,11 +601,99 @@ export default {
         // poll satellite modem signal so the user knows when to attempt sends
         this.updateSatelliteSignal();
         this.satelliteSignalTimer = setInterval(this.updateSatelliteSignal, 5000);
+        this.refreshLastResortStation();
+        this.lastResortRefreshTimer = setInterval(this.refreshLastResortStation, 4000);
 
     },
     methods: {
         close() {
             this.$emit("close");
+        },
+        hfSettingsKey() {
+            const hash = this.selectedPeer?.destination_hash;
+            return hash ? `crosstalk.hf-bridge.${hash}` : null;
+        },
+        normalizeLxmfHash(value) {
+            let text = (value || "").trim().toLowerCase();
+            if(text.startsWith("lxmf@")){
+                text = text.slice(5);
+            }
+            return text.replace(/[^0-9a-f]/g, "");
+        },
+        loadHfSettings() {
+            const key = this.hfSettingsKey();
+            if(!key){
+                this.hfBridgeEnabled = false;
+                return;
+            }
+            try {
+                const parsed = JSON.parse(localStorage.getItem(key) || "{}");
+                this.hfBridgeEnabled = !!parsed.enabled;
+            } catch(e) {
+                this.hfBridgeEnabled = false;
+            }
+        },
+        saveHfSettings() {
+            const key = this.hfSettingsKey();
+            if(!key){
+                return;
+            }
+            localStorage.setItem(key, JSON.stringify({
+                enabled: this.hfBridgeEnabled,
+            }));
+        },
+        toggleLastResortHop() {
+            if(!this.lastResortOffered){
+                return;
+            }
+            this.hfBridgeEnabled = !this.hfBridgeEnabled;
+            if(this.hfBridgeEnabled){
+                this.clipLastResortText();
+            }
+            this.saveHfSettings();
+        },
+        clipLastResortText() {
+            const clipped = truncateUtf8Bytes(this.newMessageText, this.lastResortMaxBytes);
+            if(clipped !== this.newMessageText){
+                this.newMessageText = clipped;
+            }
+        },
+        isLastResortOutbound(lxmfMessage) {
+            return (lxmfMessage?.title || "").startsWith("hfdest:");
+        },
+        displayedDeliveryState(lxmfMessage) {
+            if(this.isLastResortOutbound(lxmfMessage) && lxmfMessage.state === "delivered"){
+                return "handed to radio";
+            }
+            return lxmfMessage.state;
+        },
+        async refreshLastResortStation() {
+            try {
+                const response = await window.axios.get("/api/v1/hf-bridges");
+                const announced = response.data.announced || [];
+                const txBridges = announced.filter((item) => item.role === "txbridge");
+                this.txBridge = txBridges.find((item) => item.heard_recently) || txBridges[0] || null;
+                this.hfCallsign = (response.data.settings?.callsign || "").trim();
+                this.txRunningHere = !!response.data.processes?.txbridge?.running;
+            } catch (error) {
+                this.txBridge = null;
+                this.txRunningHere = false;
+            }
+            if(this.selectedPeer){
+                await this.getPeerPath();
+            }
+        },
+        displayedMessageTitle(title) {
+            if(!title){
+                return "";
+            }
+            if(title.startsWith("hfdest:")){
+                return "Sent over OTA Long Haul";
+            }
+            if(title.startsWith("hfvia:")){
+                return `via ${title.slice(6)} (OTA Long Haul)`;
+            }
+            return title;
         },
         async updateSatelliteSignal() {
             try {
@@ -589,11 +738,13 @@ export default {
             this.selectedPeerPath = null;
             this.selectedPeerLxmfStampInfo = null;
             this.selectedPeerSignalMetrics = null;
+            this.peerPathChecked = false;
             this.pathProbeSession += 1;
             if(!this.selectedPeer){
                 return;
             }
 
+            this.loadHfSettings();
             this.getPeerLxmfStampInfo();
             this.getPeerSignalMetrics();
             this.getPeerPath().then(() => {
@@ -766,21 +917,27 @@ export default {
             }
         },
         async getPeerPath() {
-            if(this.selectedPeer){
-                try {
-
-                    // get path to destination
-                    const response = await window.axios.get(`/api/v1/destination/${this.selectedPeer.destination_hash}/path`);
-
-                    // update ui
-                    this.selectedPeerPath = response.data.path;
-
-                } catch(e) {
-                    console.log(e);
-
-                    // clear previous known path
-                    this.selectedPeerPath = null;
-
+            const destinationHash = this.selectedPeer?.destination_hash;
+            if(!destinationHash){
+                this.selectedPeerPath = null;
+                this.peerPathChecked = false;
+                return;
+            }
+            try {
+                const response = await window.axios.get(`/api/v1/destination/${destinationHash}/path`);
+                if(this.selectedPeer?.destination_hash !== destinationHash){
+                    return;
+                }
+                this.selectedPeerPath = response.data.path;
+            } catch(e) {
+                console.log(e);
+                if(this.selectedPeer?.destination_hash !== destinationHash){
+                    return;
+                }
+                this.selectedPeerPath = null;
+            } finally {
+                if(this.selectedPeer?.destination_hash === destinationHash){
+                    this.peerPathChecked = true;
                 }
             }
         },
@@ -1219,13 +1376,19 @@ export default {
                 }
 
                 // send message to reticulum
+                const lxmfMessage = {
+                    "destination_hash": this.hfHopActive
+                        ? this.txBridge.destination_hash
+                        : this.selectedPeer.destination_hash,
+                    "content": this.hfHopActive ? this.newMessageText.trim() : this.newMessageText,
+                    "fields": this.hfHopActive ? {} : fields,
+                };
+                if(this.hfBridgeTitle){
+                    lxmfMessage.title = this.hfBridgeTitle;
+                }
                 const response = await window.axios.post(`/api/v1/lxmf-messages/send`, {
                     "delivery_method": this.newMessageDeliveryMethod,
-                    "lxmf_message": {
-                        "destination_hash": this.selectedPeer.destination_hash,
-                        "content": this.newMessageText,
-                        "fields": fields,
-                    },
+                    "lxmf_message": lxmfMessage,
                 });
 
                 // add outbound message to ui
@@ -1300,12 +1463,16 @@ export default {
             try {
 
                 // send message to reticulum
+                const retryMessage = {
+                    "destination_hash": chatItem.lxmf_message.destination_hash,
+                    "content": chatItem.lxmf_message.content,
+                    "fields": chatItem.lxmf_message.fields,
+                };
+                if(chatItem.lxmf_message.title){
+                    retryMessage.title = chatItem.lxmf_message.title;
+                }
                 const response = await window.axios.post(`/api/v1/lxmf-messages/send`, {
-                    "lxmf_message": {
-                        "destination_hash": chatItem.lxmf_message.destination_hash,
-                        "content": chatItem.lxmf_message.content,
-                        "fields": chatItem.lxmf_message.fields,
-                    },
+                    "lxmf_message": retryMessage,
                 });
 
                 // add outbound message to ui
@@ -1337,6 +1504,10 @@ export default {
             return Utils.formatBytes(bytes);
         },
         onFileInputChange: function(event) {
+            if(this.hfHopActive){
+                this.clearFileInput();
+                return;
+            }
             for(const file of event.target.files){
                 this.newMessageFiles.push(file);
             }
@@ -1357,6 +1528,9 @@ export default {
 
         },
         onImageSelected: function(imageBlob) {
+            if(this.hfHopActive){
+                return;
+            }
 
             // update selected file
             this.newMessageImage = imageBlob;
@@ -1372,6 +1546,10 @@ export default {
 
         },
         async startRecordingAudioAttachment(args) {
+
+            if(this.hfHopActive){
+                return;
+            }
 
             // do nothing if already recording
             if(this.isRecordingAudioAttachment){
@@ -1576,6 +1754,9 @@ export default {
             this.addNewLine();
         },
         addFilesToMessage: function() {
+            if(this.hfHopActive){
+                return;
+            }
             this.$refs["file-input"].click();
         },
         findConversation: function(destinationHash) {
@@ -1604,7 +1785,7 @@ export default {
 
             // basic info
             const info = [
-                `State: ${lxmfMessage.state ?? "unknown"}`,
+                `State: ${this.displayedDeliveryState(lxmfMessage) ?? "unknown"}`,
                 `Created: ${Utils.convertUnixMillisToLocalDateTimeString(lxmfMessage.timestamp * 1000)}`,
                 `Last Updated: ${Utils.convertDateTimeToLocalDateTimeString(new Date(lxmfMessage.updated_at))}`,
                 `Method: ${lxmfMessage.method ?? "unknown"}`,
@@ -1649,6 +1830,11 @@ export default {
             }
 
             info.push(`Approx Payload: ${this.formatBytes(totalPayloadBytes)}`);
+
+            if(this.isLastResortOutbound(lxmfMessage)){
+                info.push("");
+                info.push("OTA Long Haul: this status is only as far as the radio on this Crosstalk. There is no confirmation that the person received it.");
+            }
 
             if(['failed', 'rejected'].includes(lxmfMessage.state)){
                 info.push("");
@@ -1798,11 +1984,36 @@ export default {
         isMobile() {
             return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         },
+        lastResortAvailable() {
+            return this.txBridge != null;
+        },
+        lastResortOffered() {
+            return this.lastResortAvailable && this.peerPathChecked && this.selectedPeerPath == null;
+        },
+        hfHopActive() {
+            return this.hfBridgeEnabled && this.lastResortOffered;
+        },
+        lastResortStationLabel() {
+            return this.hfCallsign || "This radio";
+        },
+        hasComposerAttachments() {
+            return this.newMessageImage != null || this.newMessageAudio != null || this.newMessageFiles.length > 0;
+        },
+        lastResortBytesUsed() {
+            return utf8ByteLength(this.newMessageText);
+        },
+        hfBridgeTitle() {
+            const peer = this.normalizeLxmfHash(this.selectedPeer?.destination_hash);
+            if(!this.hfHopActive || peer.length !== 32){
+                return "";
+            }
+            return `hfdest:${peer}`;
+        },
         canSendMessage() {
 
             // can't send if no content or attachments
             const messageText = this.newMessageText.trim();
-            const hasAttachments = this.newMessageImage != null || this.newMessageAudio != null || this.newMessageFiles.length > 0;
+            const hasAttachments = this.hasComposerAttachments;
             if((messageText == null || messageText === "") && !hasAttachments){
                 return false;
             }
@@ -1812,6 +2023,15 @@ export default {
                 return false;
             }
 
+            if(this.hfHopActive){
+                if(hasAttachments){
+                    return false;
+                }
+                if(this.lastResortBytesUsed > this.lastResortMaxBytes){
+                    return false;
+                }
+            }
+
             return true;
 
         },
@@ -1819,12 +2039,14 @@ export default {
 
             // get all chat items related to the selected peer
             if(this.selectedPeer){
+                const hopTitle = `hfdest:${this.normalizeLxmfHash(this.selectedPeer.destination_hash)}`;
                 return this.chatItems.filter((chatItem) => {
 
                     if(chatItem.type === "lxmf_message"){
                         const isFromSelectedPeer = chatItem.lxmf_message.source_hash === this.selectedPeer.destination_hash;
                         const isToSelectedPeer = chatItem.lxmf_message.destination_hash === this.selectedPeer.destination_hash;
-                        return isFromSelectedPeer || isToSelectedPeer;
+                        const isLastResortToPeer = chatItem.lxmf_message.title === hopTitle;
+                        return isFromSelectedPeer || isToSelectedPeer || isLastResortToPeer;
                     }
 
                     return false;
@@ -1855,6 +2077,16 @@ export default {
         selectedPeer() {
             this.pathProbeSession += 1;
             this.initialLoad();
+        },
+        hfHopActive(active) {
+            if(active){
+                this.clipLastResortText();
+            }
+        },
+        newMessageText() {
+            if(this.hfHopActive){
+                this.clipLastResortText();
+            }
         },
         async selectedPeerChatItems() {
 

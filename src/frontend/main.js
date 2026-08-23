@@ -37,6 +37,47 @@ const router = createRouter({
             component: defineAsyncComponent(() => import("./components/infrastructure/InfrastructurePage.vue")),
         },
         {
+            name: "bridge-extensions",
+            path: '/bridge-extensions',
+            component: defineAsyncComponent(() => import("./components/bridge-extensions/BridgeExtensionsPage.vue")),
+        },
+        {
+            path: '/bridge-extensions/amateur-hf/:roleId',
+            redirect: (to) => `/bridge-extensions/ota-long-haul/${to.params.roleId}`,
+        },
+        {
+            path: '/bridge-extensions/amateur-hf',
+            redirect: '/bridge-extensions/ota-long-haul',
+        },
+        {
+            path: '/bridge-extensions/last-resort-hop/:roleId',
+            redirect: (to) => `/bridge-extensions/ota-long-haul/${to.params.roleId}`,
+        },
+        {
+            path: '/bridge-extensions/last-resort-hop',
+            redirect: '/bridge-extensions/ota-long-haul',
+        },
+        {
+            name: "bridge-extensions.show",
+            path: '/bridge-extensions/:id',
+            props: true,
+            component: defineAsyncComponent(() => import("./components/bridge-extensions/BridgeExtensionPage.vue")),
+        },
+        {
+            name: "bridge-extensions.role",
+            path: '/bridge-extensions/:id/:roleId',
+            props: true,
+            component: defineAsyncComponent(() => import("./components/bridge-extensions/BridgeExtensionPage.vue")),
+        },
+        {
+            path: '/licensed-radio',
+            redirect: '/bridge-extensions/ota-long-haul',
+        },
+        {
+            path: '/hf-bridges',
+            redirect: '/bridge-extensions/ota-long-haul',
+        },
+        {
             name: "interfaces.add",
             path: '/interfaces/add',
             component: defineAsyncComponent(() => import("./components/interfaces/AddInterfacePage.vue")),

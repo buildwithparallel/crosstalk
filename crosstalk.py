@@ -10,6 +10,7 @@ import sys
 import threading
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Callable, List
 
 import RNS
@@ -44,6 +45,22 @@ from src.backend.lxmf_message_fields import LxmfImageField, LxmfFileAttachmentsF
 from src.backend.audio_call_manager import AudioCall, AudioCallManager
 from src.backend.satellite_retry_policy import SatelliteRetryPolicy
 from src.backend.sideband_commands import SidebandCommands
+from src.backend.hf_bridge_ops import (
+    DEFAULT_FREQUENCY_HZ,
+    DEFAULT_POWER_PERCENT,
+    DEFAULT_RTL_GAIN_DB,
+    HfBridgeSupervisor,
+    announced_bridges,
+    default_repo_path,
+    discover_hl2_radios,
+    last_resort_send_error,
+    last_resort_title,
+    parse_allow_hashes,
+    repo_is_ready,
+    rtl_gain_from_tenths,
+    rtl_gain_tenths,
+    validate_frequency_hz,
+)
 
 
 DEFAULT_RMAP_WORLD_INTERFACE_NAME = "RMAP World"
@@ -210,6 +227,7 @@ class Crosstalk:
 
         # init config
         self.config = Config()
+        self.hf_bridges = HfBridgeSupervisor()
 
         # if database already existed before init, and we don't have a previous version set, we are on version 1
         if database_already_exists and self.config.database_version.get() is None:
@@ -462,6 +480,8 @@ class Crosstalk:
         # force close websocket clients
         for websocket_client in self.websocket_clients:
             await websocket_client.close(code=WSCloseCode.GOING_AWAY)
+
+        self.hf_bridges.stop_all()
 
         # stop reticulum
         RNS.Transport.detach_interfaces()
@@ -1209,12 +1229,58 @@ class Crosstalk:
             # get request body as json
             data = await request.json()
 
-            # update config
-            await self.update_config(data)
+            try:
+                await self.update_config(data)
+            except ValueError as exc:
+                return web.json_response({"message": str(exc)}, status=400)
 
             return web.json_response({
                 "config": self.get_config_dict(),
             })
+
+        @routes.get("/api/v1/hf-bridges")
+        async def index(request):
+            return web.json_response(self.hf_bridge_status())
+
+        @routes.post("/api/v1/hf-bridges/start")
+        async def index(request):
+            data = await request.json()
+            role = data.get("role")
+            arm_tx = bool(data.get("arm_tx"))
+            settings = self.hf_bridge_settings()
+            try:
+                self.hf_bridges.start(
+                    role,
+                    repo=Path(settings["repo_path"]),
+                    callsign=settings["callsign"],
+                    hl2_ip=settings["hl2_ip"],
+                    arm_tx=arm_tx,
+                    frequency_hz=settings["frequency_hz"],
+                    power_percent=settings["power_percent"],
+                    allow_hashes=parse_allow_hashes(settings["allowlist"]),
+                    allow_enabled=settings["allowlist_enabled"],
+                    rtl_gain_db=settings["rtl_gain_db"],
+                )
+            except Exception as exc:
+                return web.json_response({"message": str(exc)}, status=400)
+            return web.json_response(self.hf_bridge_status())
+
+        @routes.post("/api/v1/hf-bridges/stop")
+        async def index(request):
+            data = await request.json()
+            try:
+                self.hf_bridges.stop(data.get("role"))
+            except Exception as exc:
+                return web.json_response({"message": str(exc)}, status=400)
+            return web.json_response(self.hf_bridge_status())
+
+        @routes.post("/api/v1/hf-bridges/discover")
+        async def index(request):
+            try:
+                radios = await asyncio.to_thread(discover_hl2_radios)
+            except Exception as exc:
+                return web.json_response({"message": str(exc)}, status=400)
+            return web.json_response({"radios": radios})
 
         # enable transport mode
         @routes.post("/api/v1/reticulum/enable-transport")
@@ -2242,9 +2308,16 @@ class Crosstalk:
             # get data from json
             destination_hash = data["lxmf_message"]["destination_hash"]
             content = data["lxmf_message"]["content"]
+            title = data["lxmf_message"].get("title") or ""
+            if not isinstance(title, str):
+                return web.json_response({"message": "Title must be a string"}, status=422)
             fields = {}
             if "fields" in data["lxmf_message"]:
                 fields = data["lxmf_message"]["fields"]
+
+            hop_error = last_resort_send_error(title, content, fields)
+            if hop_error:
+                return web.json_response({"message": hop_error}, status=422)
 
             # parse image field
             image_field = None
@@ -2278,6 +2351,7 @@ class Crosstalk:
                 lxmf_message = await self.send_message(
                     destination_hash=destination_hash,
                     content=content,
+                    title=title,
                     image_field=image_field,
                     audio_field=audio_field,
                     file_attachments_field=file_attachments_field,
@@ -2392,6 +2466,7 @@ class Crosstalk:
             db_lxmf_messages = (database.LxmfMessage.select()
                      .where((database.LxmfMessage.source_hash == source_hash) & (database.LxmfMessage.destination_hash == destination_hash))
                      .orwhere((database.LxmfMessage.destination_hash == source_hash) & (database.LxmfMessage.source_hash == destination_hash))
+                     .orwhere((database.LxmfMessage.source_hash == source_hash) & (database.LxmfMessage.title == last_resort_title(destination_hash)))
                      .order_by(database.LxmfMessage.id.asc() if order == "asc" else database.LxmfMessage.id.desc()))
 
             # limit how many messages to return
@@ -2428,6 +2503,7 @@ class Crosstalk:
             (database.LxmfMessage.delete()
              .where((database.LxmfMessage.source_hash == source_hash) & (database.LxmfMessage.destination_hash == destination_hash))
              .orwhere((database.LxmfMessage.destination_hash == source_hash) & (database.LxmfMessage.source_hash == destination_hash))
+             .orwhere((database.LxmfMessage.source_hash == source_hash) & (database.LxmfMessage.title == last_resort_title(destination_hash)))
              .execute())
 
             return web.json_response({
@@ -2438,41 +2514,30 @@ class Crosstalk:
         @routes.get("/api/v1/lxmf/conversations")
         async def index(request):
 
-            # sql query to fetch unique source/destination hash pairs ordered by the most recently updated message
+            me = self.local_lxmf_destination.hexhash
             query = """
-            WITH NormalizedMessages AS (
+            SELECT other_hash, MAX(created_at) AS most_recent_created_at
+            FROM (
                 SELECT
-                    CASE WHEN source_hash < destination_hash THEN source_hash ELSE destination_hash END AS normalized_source,
-                    CASE WHEN source_hash < destination_hash THEN destination_hash ELSE source_hash END AS normalized_destination,
-                    MAX(created_at) AS most_recent_created_at
+                    CASE
+                        WHEN title LIKE 'hfdest:%' AND length(title) = 39 THEN lower(substr(title, 8))
+                        WHEN source_hash = ? THEN destination_hash
+                        ELSE source_hash
+                    END AS other_hash,
+                    created_at
                 FROM lxmf_messages
-                GROUP BY normalized_source, normalized_destination
             )
-            SELECT
-                normalized_source AS source_hash,
-                normalized_destination AS destination_hash,
-                most_recent_created_at
-            FROM NormalizedMessages
+            WHERE other_hash IS NOT NULL AND other_hash != ?
+            GROUP BY other_hash
             ORDER BY most_recent_created_at DESC;
             """
 
-            # execute sql query
-            cursor = database.database.execute_sql(query)
+            cursor = database.database.execute_sql(query, (me, me))
 
-            # parse results to get a list of conversations we have sent or received a message from
             conversations = []
             for row in cursor.fetchall():
-
-                # get data from row
-                source_hash = row[0]
-                destination_hash = row[1]
-                created_at = row[2]
-
-                # determine destination hash of other user
-                if source_hash == self.local_lxmf_destination.hexhash:
-                    other_user_hash = destination_hash
-                else:
-                    other_user_hash = source_hash
+                other_user_hash = row[0]
+                created_at = row[1]
 
                 # find lxmf user icon from database
                 lxmf_user_icon = None
@@ -2665,6 +2730,32 @@ class Crosstalk:
         # update lxmf user icon background colour in config
         if "lxmf_user_icon_background_colour" in data:
             self.config.lxmf_user_icon_background_colour.set(data["lxmf_user_icon_background_colour"])
+
+        if "hfbridge_repo_path" in data:
+            self.config.hfbridge_repo_path.set(data["hfbridge_repo_path"] or None)
+        if "hfbridge_callsign" in data:
+            self.config.hfbridge_callsign.set(data["hfbridge_callsign"] or None)
+        if "hfbridge_hl2_ip" in data:
+            self.config.hfbridge_hl2_ip.set(data["hfbridge_hl2_ip"] or None)
+        if "hfbridge_frequency_hz" in data:
+            self.config.hfbridge_frequency_hz.set(
+                validate_frequency_hz(int(data["hfbridge_frequency_hz"]))
+            )
+        if "hfbridge_power_percent" in data:
+            percent = int(data["hfbridge_power_percent"])
+            self.config.hfbridge_power_percent.set(max(1, min(100, percent)))
+        if "hfbridge_rtl_gain_db" in data:
+            self.config.hfbridge_rtl_gain_tenth_db.set(
+                rtl_gain_tenths(data["hfbridge_rtl_gain_db"])
+            )
+        if "hfbridge_allowlist_enabled" in data:
+            self.config.hfbridge_allowlist_enabled.set(
+                bool(data["hfbridge_allowlist_enabled"])
+            )
+        if "hfbridge_allowlist" in data:
+            self.config.hfbridge_allowlist.set(data["hfbridge_allowlist"] or "")
+        if "hfbridge_arm_tx" in data:
+            self.config.hfbridge_arm_tx.set(bool(data["hfbridge_arm_tx"]))
 
         # send config to websocket clients
         await self.send_config_to_websocket_clients()
@@ -2896,6 +2987,53 @@ class Crosstalk:
             "lxmf_user_icon_name": self.config.lxmf_user_icon_name.get(),
             "lxmf_user_icon_foreground_colour": self.config.lxmf_user_icon_foreground_colour.get(),
             "lxmf_user_icon_background_colour": self.config.lxmf_user_icon_background_colour.get(),
+            "hfbridge_repo_path": self.config.hfbridge_repo_path.get(),
+            "hfbridge_callsign": self.config.hfbridge_callsign.get(),
+            "hfbridge_hl2_ip": self.config.hfbridge_hl2_ip.get(),
+            "hfbridge_frequency_hz": self.config.hfbridge_frequency_hz.get(),
+            "hfbridge_power_percent": self.config.hfbridge_power_percent.get(),
+            "hfbridge_rtl_gain_db": rtl_gain_from_tenths(
+                self.config.hfbridge_rtl_gain_tenth_db.get()
+            ),
+            "hfbridge_allowlist_enabled": self.config.hfbridge_allowlist_enabled.get(),
+            "hfbridge_allowlist": self.config.hfbridge_allowlist.get(),
+            "hfbridge_arm_tx": self.config.hfbridge_arm_tx.get(),
+        }
+
+    def hf_bridge_settings(self):
+        repo = self.config.hfbridge_repo_path.get() or str(default_repo_path())
+        return {
+            "repo_path": repo,
+            "callsign": self.config.hfbridge_callsign.get() or "",
+            "hl2_ip": self.config.hfbridge_hl2_ip.get() or "",
+            "frequency_hz": self.config.hfbridge_frequency_hz.get()
+            or DEFAULT_FREQUENCY_HZ,
+            "power_percent": self.config.hfbridge_power_percent.get()
+            or DEFAULT_POWER_PERCENT,
+            "rtl_gain_db": rtl_gain_from_tenths(
+                self.config.hfbridge_rtl_gain_tenth_db.get()
+            ),
+            "allowlist_enabled": self.config.hfbridge_allowlist_enabled.get(),
+            "allowlist": self.config.hfbridge_allowlist.get() or "",
+            "arm_tx": self.config.hfbridge_arm_tx.get(),
+            "lxmf_address_hash": self.local_lxmf_destination.hexhash,
+            "identity_hash": self.identity.hexhash,
+        }
+
+    def hf_bridge_status(self):
+        settings = self.hf_bridge_settings()
+        announces = [
+            self.convert_db_announce_to_dict(row)
+            for row in database.Announce.select().where(
+                database.Announce.aspect == "lxmf.delivery"
+            )
+        ]
+        return {
+            "settings": settings,
+            "default_repo_path": str(default_repo_path()),
+            "repo_ready": repo_is_ready(Path(settings["repo_path"])),
+            "processes": self.hf_bridges.snapshot(),
+            "announced": announced_bridges(announces),
         }
 
     # convert audio call to dict
@@ -3414,7 +3552,8 @@ class Crosstalk:
                            audio_field: LxmfAudioField = None,
                            file_attachments_field: LxmfFileAttachmentsField = None,
                            delivery_method: str = None,
-                           path_timeout_seconds: float = 0) -> LXMF.LXMessage:
+                           path_timeout_seconds: float = 0,
+                           title: str = "") -> LXMF.LXMessage:
 
         # convert destination hash to bytes
         destination_hash = bytes.fromhex(destination_hash)
@@ -3499,7 +3638,13 @@ class Crosstalk:
             desired_delivery_method = LXMF.LXMessage.OPPORTUNISTIC
 
         # create lxmf message
-        lxmf_message = LXMF.LXMessage(lxmf_destination, self.local_lxmf_destination, content, desired_method=desired_delivery_method)
+        lxmf_message = LXMF.LXMessage(
+            lxmf_destination,
+            self.local_lxmf_destination,
+            content,
+            title=title,
+            desired_method=desired_delivery_method,
+        )
         lxmf_message.try_propagation_on_fail = self.config.auto_send_failed_messages_to_propagation_node.get()
 
         lxmf_message.fields = {}
@@ -3719,6 +3864,7 @@ class Crosstalk:
                     image_field,
                     audio_field,
                     file_attachments_field,
+                    title=failed_message.title or "",
                 )
 
                 # remove original failed message from database
@@ -4005,6 +4151,17 @@ class Config:
     lxmf_user_icon_name = StringConfig("lxmf_user_icon_name", None)
     lxmf_user_icon_foreground_colour = StringConfig("lxmf_user_icon_foreground_colour", None)
     lxmf_user_icon_background_colour = StringConfig("lxmf_user_icon_background_colour", None)
+    hfbridge_repo_path = StringConfig("hfbridge_repo_path", None)
+    hfbridge_callsign = StringConfig("hfbridge_callsign", None)
+    hfbridge_hl2_ip = StringConfig("hfbridge_hl2_ip", None)
+    hfbridge_frequency_hz = IntConfig("hfbridge_frequency_hz", DEFAULT_FREQUENCY_HZ)
+    hfbridge_power_percent = IntConfig("hfbridge_power_percent", DEFAULT_POWER_PERCENT)
+    hfbridge_rtl_gain_tenth_db = IntConfig(
+        "hfbridge_rtl_gain_tenth_db", int(round(DEFAULT_RTL_GAIN_DB * 10))
+    )
+    hfbridge_allowlist_enabled = BoolConfig("hfbridge_allowlist_enabled", False)
+    hfbridge_allowlist = StringConfig("hfbridge_allowlist", "")
+    hfbridge_arm_tx = BoolConfig("hfbridge_arm_tx", False)
 
 # FIXME: we should probably set this as an instance variable of Crosstalk so it has a proper home, and pass it in to the constructor?
 nomadnet_cached_links = {}

@@ -173,6 +173,52 @@ textarea {
     outline: none;
 }
 
+.dark input[type="checkbox"]:not(.sr-only),
+.dark input[type="radio"]:not(.sr-only) {
+    appearance: none;
+    width: 1rem;
+    height: 1rem;
+    padding: 0;
+    background-color: rgba(15, 18, 29, 0.94);
+    background-image: none;
+    border: 1px solid var(--ct-border-strong);
+    box-shadow: none;
+    color: var(--ct-blue);
+}
+
+.dark input[type="checkbox"]:not(.sr-only) {
+    border-radius: 0.25rem;
+}
+
+.dark input[type="radio"]:not(.sr-only) {
+    border-radius: 999px;
+}
+
+.dark input[type="checkbox"]:not(.sr-only):checked {
+    background-color: var(--ct-blue);
+    border-color: var(--ct-blue);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3.5 8.5 6.5 11.5 12.5 4.5' stroke='%23f7f8ff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.dark input[type="radio"]:not(.sr-only):checked {
+    background-color: var(--ct-blue);
+    border-color: var(--ct-blue);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='8' cy='8' r='3.25' fill='%23f7f8ff'/%3E%3C/svg%3E");
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.dark input[type="checkbox"]:not(.sr-only):focus,
+.dark input[type="radio"]:not(.sr-only):focus {
+    border-color: var(--ct-border-focus);
+    box-shadow: var(--ct-focus-ring);
+    outline: none;
+}
+
 .dark select option {
     background: #111118;
     color: var(--ct-text);

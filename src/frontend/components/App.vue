@@ -130,7 +130,7 @@
 
                         <!-- app group -->
                         <div class="ct-section-label px-4 pt-4 pb-1.5">App</div>
-                        <ul class="pr-2 space-y-0.5 pb-2">
+                        <ul class="pr-2 space-y-0.5">
                             <li>
                                 <SidebarLink :to="{ name: 'settings' }">
                                     <template v-slot:icon>
@@ -145,6 +145,32 @@
                                         <PhosphorIcon name="info" weight="duotone" class="size-5"/>
                                     </template>
                                     <template v-slot:text>About</template>
+                                </SidebarLink>
+                            </li>
+                        </ul>
+
+                        <!-- advanced group -->
+                        <div class="ct-section-label px-4 pt-4 pb-1.5">Advanced</div>
+                        <ul class="pr-2 space-y-0.5 pb-2">
+                            <li>
+                                <SidebarLink :to="{ name: 'bridge-extensions' }" @click="mobileNavigationOpen = false">
+                                    <template v-slot:icon>
+                                        <PhosphorIcon name="plugs-connected" weight="duotone" class="size-5"/>
+                                    </template>
+                                    <template v-slot:text>Bridge Extensions</template>
+                                </SidebarLink>
+                            </li>
+                            <li v-for="bridge in runningBridges" :key="`${bridge.extensionId}-${bridge.roleId}`" class="pl-5">
+                                <SidebarLink
+                                    :to="{ name: 'bridge-extensions.role', params: { id: bridge.extensionId, roleId: bridge.roleId } }"
+                                    @click="mobileNavigationOpen = false">
+                                    <template v-slot:icon>
+                                        <PhosphorIcon :name="bridge.icon" weight="duotone" class="size-5"/>
+                                    </template>
+                                    <template v-slot:text>
+                                        <span class="truncate">{{ bridge.hardware }}</span>
+                                        <span class="ml-auto mr-2 size-1.5 shrink-0 rounded-full bg-green-400" title="Running here"></span>
+                                    </template>
                                 </SidebarLink>
                             </li>
                         </ul>
@@ -274,6 +300,7 @@ import CopyButton from "./CopyButton.vue";
 import ModalHost from "./overlays/ModalHost.vue";
 import ToastHost from "./overlays/ToastHost.vue";
 import PhosphorIcon from "./PhosphorIcon.vue";
+import { runningBridgeShortcuts } from "../js/bridgeExtensions";
 
 export default {
     name: 'App',
@@ -299,6 +326,7 @@ export default {
 
             audioCalls: [],
             propagationNodeStatus: null,
+            hfBridgeProcesses: {},
 
         };
     },
@@ -318,11 +346,13 @@ export default {
         this.getAppInfo();
         this.updateCallsList();
         this.updatePropagationNodeStatus();
+        this.updateRunningBridges();
 
         // update info every few seconds
         this.reloadInterval = setInterval(() => {
             this.updateCallsList();
             this.updatePropagationNodeStatus();
+            this.updateRunningBridges();
         }, 3000);
 
     },
@@ -503,6 +533,14 @@ export default {
                 // do nothing on error
             }
         },
+        async updateRunningBridges() {
+            try {
+                const response = await window.axios.get("/api/v1/hf-bridges");
+                this.hfBridgeProcesses = response.data.processes || {};
+            } catch (error) {
+                this.hfBridgeProcesses = {};
+            }
+        },
         async hangupAllCalls() {
 
             // confirm user wants to hang up calls
@@ -538,6 +576,9 @@ export default {
         },
         isOnMessagesRoute() {
             return this.$route.name === "messages";
+        },
+        runningBridges() {
+            return runningBridgeShortcuts(this.hfBridgeProcesses);
         },
         truncatedAddress() {
             const hash = this.config?.lxmf_address_hash ?? "";
