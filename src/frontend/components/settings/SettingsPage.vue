@@ -41,6 +41,14 @@
                         </label>
                     </div>
 
+                    <div class="flex items-center gap-x-2.5 p-2.5">
+                        <span class="mr-auto">
+                            <span class="block text-sm font-medium text-[var(--ct-text)]">Clear Network Caches</span>
+                            <span class="block text-sm text-[var(--ct-dim)]">Removes all cached announces and discovered interfaces, so Discover and the Map only show what is heard on your current connections. They repopulate as announces are received.</span>
+                        </span>
+                        <button @click="onClearNetworkCaches" type="button" class="ct-secondary-button shrink-0 rounded-lg px-2.5 py-1.5 text-sm font-semibold">Clear</button>
+                    </div>
+
                 </div>
             </div>
 
@@ -277,6 +285,22 @@ export default {
             await this.updateConfig({
                 "lxmf_enforce_inbound_stamp_cost": this.config.lxmf_enforce_inbound_stamp_cost,
             });
+        },
+        async onClearNetworkCaches() {
+
+            // ask user to confirm clearing network caches
+            if(!await DialogUtils.confirm("Are you sure you want to clear all cached announces and discovered interfaces? They will repopulate as announces are received on your current connections.", { title: "Clear Network Caches", danger: true, confirmLabel: "Clear" })){
+                return;
+            }
+
+            try {
+                await window.axios.post("/api/v1/network-caches/clear");
+                DialogUtils.toast("Network caches cleared");
+            } catch(e) {
+                DialogUtils.toast("Failed to clear network caches", "error");
+                console.log(e);
+            }
+
         },
         async onShowSuggestedCommunityInterfacesChange() {
             await this.updateConfig({
