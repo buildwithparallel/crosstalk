@@ -2183,6 +2183,27 @@ class Crosstalk:
             })
 
         # get Reticulum infrastructure discovered from signed interface advertisements
+        # clear cached network data so discover and the map only show what is heard on current interfaces
+        @routes.post("/api/v1/network-caches/clear")
+        async def index(request):
+
+            # delete all cached announces
+            database.Announce.delete().execute()
+
+            # delete cached interface discovery records from rns storage
+            # rns reads these files on every listing, so no restart is needed
+            discovery_path = os.path.join(RNS.Reticulum.storagepath, "discovery", "interfaces")
+            if os.path.isdir(discovery_path):
+                for filename in os.listdir(discovery_path):
+                    try:
+                        os.remove(os.path.join(discovery_path, filename))
+                    except OSError:
+                        pass
+
+            return web.json_response({
+                "message": "Network caches cleared",
+            })
+
         @routes.get("/api/v1/discovered-interfaces")
         async def index(request):
 
