@@ -45,16 +45,9 @@ Crosstalk keeps MeshChat's LXMF messaging, attachments, audio calls, propagation
 - Fixes for stale Reticulum settings, attachment-only messages and mobile chat interactions.
 - Clearer feedback when interfaces restart, connections change or message delivery needs attention.
 
-### Iridium IMT transport
+### Exotic interfaces
 
-- Native Reticulum interface for a USB-connected RockBLOCK 9704.
-- Complete encrypted Reticulum packets sent over Iridium Messaging Transport.
-- Duplicate inbound packet suppression.
-- Bounded LXMF retry behavior designed to avoid waste on paid, high-latency satellite links.
-- Delivery and signal-status feedback in the conversation UI.
-- Allowlisted path persistence for restoring selected Iridium routes without generating satellite traffic.
-
-See [RockBLOCK 9704 / Iridium IMT setup](./docs/crosstalk_on_raspberry_pi.md#rockblock-9704--iridium-imt).
+Templates for proven but uncommon Reticulum transports, such as Iridium IMT, so they can be added like any other interface instead of as one-off forks.
 
 ## Install
 
@@ -105,7 +98,7 @@ Pull requests are welcome when they improve something Crosstalk already does, or
 
 Crosstalk is based on [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) and remains compatible with LXMF clients such as [Sideband](https://github.com/markqvist/Sideband) and [NomadNet](https://github.com/markqvist/nomadnet).
 
-It uses the [Reticulum Network Stack](https://github.com/markqvist/Reticulum) and can communicate over any configured Reticulum interface, including TCP, local networks, RNode/LoRa and the Crosstalk Iridium IMT interface.
+It uses the [Reticulum Network Stack](https://github.com/markqvist/Reticulum) and can communicate over any configured Reticulum interface, including TCP, local networks, RNode/LoRa, and templates for exotic links such as Iridium IMT.
 
 ## License
 

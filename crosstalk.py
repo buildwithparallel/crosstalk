@@ -58,6 +58,7 @@ from src.backend.hf_bridge_ops import (
     DEFAULT_RTL_GAIN_DB,
     HfBridgeSupervisor,
     announced_bridges,
+    classify_bridge_name,
     default_repo_path,
     discover_hl2_radios,
     last_resort_send_error,
@@ -68,6 +69,12 @@ from src.backend.hf_bridge_ops import (
     rtl_gain_tenths,
     validate_frequency_hz,
 )
+from src.backend.live_activity import (
+    heard_announce_payload,
+    install_validate_announce_hook,
+    local_announce_payload,
+)
+from src.backend.lxmf_app_data import display_name_from_app_data as parse_lxmf_app_data_name
 
 
 DEFAULT_RMAP_WORLD_INTERFACE_NAME = "RMAP World"
@@ -235,6 +242,8 @@ class Crosstalk:
         # init config
         self.config = Config()
         self.hf_bridges = HfBridgeSupervisor()
+        self._hf_announced_cache = None
+        self._hf_announced_cache_at = 0.0
 
         # if database already existed before init, and we don't have a previous version set, we are on version 1
         if database_already_exists and self.config.database_version.get() is None:
@@ -325,6 +334,13 @@ class Crosstalk:
         RNS.Transport.register_announce_handler(AnnounceHandler("lxmf.delivery", self.on_lxmf_announce_received))
         RNS.Transport.register_announce_handler(AnnounceHandler("lxmf.propagation", self.on_lxmf_propagation_announce_received))
         RNS.Transport.register_announce_handler(AnnounceHandler("nomadnetwork.node", self.on_nomadnet_node_announce_received))
+
+        # LXMF still assumes msgpack names are bytes; umsgpack now yields str
+        LXMF.display_name_from_app_data = parse_lxmf_app_data_name
+
+        # live activity needs every validated announce, including hub rebroadcasts
+        # that do not update the path table and therefore skip registered handlers
+        install_validate_announce_hook(self.on_announce_heard)
 
         # remember websocket clients
         self.websocket_clients: List[web.WebSocketResponse] = []
@@ -2651,6 +2667,7 @@ class Crosstalk:
 
         # tell websocket clients we just announced
         await self.send_announced_to_websocket_clients()
+        await self.broadcast_local_announces()
 
     async def announce_lxmf(self, notify_websocket_clients=True):
 
@@ -2665,6 +2682,7 @@ class Crosstalk:
 
         if notify_websocket_clients:
             await self.send_announced_to_websocket_clients()
+            await self.broadcast_local_announces()
 
     # handle syncing propagation nodes
     async def sync_propagation_nodes(self):
@@ -2996,6 +3014,34 @@ class Crosstalk:
             "type": "announced",
         }))
 
+    async def broadcast_local_announces(self):
+        display_name = self.config.display_name.get()
+        await self.websocket_broadcast(json.dumps({
+            "type": "heard_announce",
+            "announce": local_announce_payload(
+                self.local_lxmf_destination.hexhash,
+                "lxmf.delivery",
+                display_name,
+            ),
+        }))
+        await self.websocket_broadcast(json.dumps({
+            "type": "heard_announce",
+            "announce": local_announce_payload(
+                self.audio_call_manager.audio_call_receiver.destination.hexhash,
+                "call.audio",
+                display_name,
+            ),
+        }))
+        if self.config.lxmf_local_propagation_node_enabled.get():
+            await self.websocket_broadcast(json.dumps({
+                "type": "heard_announce",
+                "announce": local_announce_payload(
+                    self.message_router.propagation_destination.hexhash,
+                    "lxmf.propagation",
+                    display_name,
+                ),
+            }))
+
     # returns a dictionary of config
     def get_config_dict(self):
         return {
@@ -3057,19 +3103,31 @@ class Crosstalk:
 
     def hf_bridge_status(self):
         settings = self.hf_bridge_settings()
-        announces = [
-            self.convert_db_announce_to_dict(row)
-            for row in database.Announce.select().where(
-                database.Announce.aspect == "lxmf.delivery"
-            )
-        ]
         return {
             "settings": settings,
             "default_repo_path": str(default_repo_path()),
             "repo_ready": repo_is_ready(Path(settings["repo_path"])),
             "processes": self.hf_bridges.snapshot(),
-            "announced": announced_bridges(announces),
+            "announced": self._cached_announced_bridges(),
         }
+
+    def _cached_announced_bridges(self):
+        now = time.time()
+        if self._hf_announced_cache is not None and now - self._hf_announced_cache_at < 15:
+            return self._hf_announced_cache
+
+        announced = []
+        for row in database.Announce.select().where(
+            database.Announce.aspect == "lxmf.delivery"
+        ):
+            display_name = self.parse_lxmf_display_name(row.app_data, None)
+            if classify_bridge_name(display_name) is None:
+                continue
+            announced.append(self.convert_db_announce_to_dict(row))
+
+        self._hf_announced_cache = announced_bridges(announced)
+        self._hf_announced_cache_at = now
+        return self._hf_announced_cache
 
     # convert audio call to dict
     def convert_audio_call_to_dict(self, audio_call: AudioCall):
@@ -3785,6 +3843,16 @@ class Crosstalk:
             if has_delivered or has_propagated or has_failed or has_rejected or is_cancelled:
                 should_update_message = False
 
+    def on_announce_heard(self, packet):
+        try:
+            payload = heard_announce_payload(packet)
+            AsyncUtils.run_async(self.websocket_broadcast(json.dumps({
+                "type": "heard_announce",
+                "announce": payload,
+            })))
+        except Exception as error:
+            print(f"Error broadcasting heard announce: {error}")
+
     # handle an announce received from reticulum, for an audio call address
     # NOTE: cant be async, as Reticulum doesn't await it
     def on_audio_call_announce_received(self, aspect, destination_hash, announced_identity, app_data, announce_packet_hash):
@@ -3989,7 +4057,7 @@ class Crosstalk:
 
         try:
             app_data_bytes = base64.b64decode(app_data_base64)
-            display_name = LXMF.display_name_from_app_data(app_data_bytes)
+            display_name = parse_lxmf_app_data_name(app_data_bytes)
             if display_name is not None:
                 return display_name
         except:

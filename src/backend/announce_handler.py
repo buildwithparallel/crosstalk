@@ -11,6 +11,5 @@ class AnnounceHandler:
         try:
             # handle received announce
             self.received_announce_callback(self.aspect_filter, destination_hash, announced_identity, app_data, announce_packet_hash)
-        except:
-            # ignore failure to handle received announce
-            pass
+        except Exception as error:
+            print(f"Error handling {self.aspect_filter} announce: {error}")
