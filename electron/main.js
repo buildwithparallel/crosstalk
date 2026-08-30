@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain, shell, systemPreferences } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, shell, systemPreferences, Menu } = require('electron');
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('node:path');
@@ -247,6 +247,19 @@ app.whenReady().then(async () => {
                 // used to inject logging over ipc
                 preload: path.join(__dirname, 'preload.js'),
             },
+        });
+
+        // show a native right click menu, electron has none by default so paste into inputs was impossible
+        mainWindow.webContents.on('context-menu', (event, params) => {
+            const menuItems = [];
+            if(params.isEditable){
+                menuItems.push({ role: 'cut' }, { role: 'copy' }, { role: 'paste' });
+            } else if(params.selectionText){
+                menuItems.push({ role: 'copy' });
+            }
+            if(menuItems.length > 0){
+                Menu.buildFromTemplate(menuItems).popup();
+            }
         });
 
         // open external links in default web browser instead of electron
