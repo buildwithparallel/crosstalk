@@ -34,7 +34,6 @@ except ImportError:
     webbrowser = None
 
 from peewee import SqliteDatabase
-from serial.tools import list_ports
 
 import database
 from src.backend.announce_handler import AnnounceHandler
@@ -51,6 +50,7 @@ from src.backend.reticulum_startup import start_reticulum
 from src.backend.lxmf_message_fields import LxmfImageField, LxmfFileAttachmentsField, LxmfFileAttachment, LxmfAudioField
 from src.backend.audio_call_manager import AudioCall, AudioCallManager
 from src.backend.satellite_retry_policy import SatelliteRetryPolicy
+from src.backend.serial_ports import available_serial_ports
 from src.backend.sideband_commands import SidebandCommands
 from src.backend.hf_bridge_ops import (
     DEFAULT_FREQUENCY_HZ,
@@ -531,7 +531,7 @@ class Crosstalk:
         async def index(request):
 
             comports = []
-            for comport in list_ports.comports():
+            for comport in available_serial_ports():
                 comports.append({
                     "device": comport.device,
                     "product": comport.product,
