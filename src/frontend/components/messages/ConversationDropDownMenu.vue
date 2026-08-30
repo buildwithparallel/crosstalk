@@ -78,6 +78,7 @@ export default {
     emits: [
         "conversation-deleted",
         "set-custom-display-name",
+        "blocked-changed",
     ],
     data() {
         return {
@@ -111,6 +112,7 @@ export default {
                 try {
                     await window.axios.delete(`/api/v1/blocked-destinations/${this.peer.destination_hash}`);
                     this.isBlocked = false;
+                    this.$emit("blocked-changed", false);
                 } catch(e) {
                     DialogUtils.alert("failed to unblock address");
                     console.log(e);
@@ -126,6 +128,7 @@ export default {
             try {
                 await window.axios.post(`/api/v1/blocked-destinations/${this.peer.destination_hash}`);
                 this.isBlocked = true;
+                this.$emit("blocked-changed", true);
             } catch(e) {
                 DialogUtils.alert("failed to block address");
                 console.log(e);
