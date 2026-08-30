@@ -587,6 +587,13 @@ export default {
             }
             return hash;
         },
+        documentTitle() {
+            const hash = this.config?.lxmf_address_hash ?? "";
+            if(!hash){
+                return "Crosstalk";
+            }
+            return `Crosstalk - …${hash.slice(-5)}`;
+        },
         activeAudioCalls() {
             return this.audioCalls.filter(function(audioCall) {
                 return audioCall.is_active;
@@ -616,6 +623,12 @@ export default {
     watch: {
         $route() {
             this.mobileNavigationOpen = false;
+        },
+        documentTitle: {
+            immediate: true,
+            handler(title) {
+                document.title = title;
+            },
         },
     },
 }

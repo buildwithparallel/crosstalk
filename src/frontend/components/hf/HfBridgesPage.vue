@@ -75,7 +75,7 @@
             <div v-else class="ct-card space-y-3 p-3">
                 <label class="block space-y-1">
                     <span class="text-sm text-[var(--ct-muted)]">Your callsign</span>
-                    <input v-model="callsign" type="text" class="ct-message-input block w-full rounded-lg border px-2 py-1.5 text-sm" placeholder="KR4NNP"/>
+                    <input v-model="callsign" type="text" class="ct-message-input block w-full rounded-lg border px-2 py-1.5 text-sm" placeholder="N0CALL"/>
                 </label>
                 <div class="space-y-1">
                     <span class="text-sm text-[var(--ct-muted)]">Hermes-Lite 2 address</span>
