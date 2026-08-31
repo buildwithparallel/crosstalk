@@ -121,14 +121,14 @@
 
                     <div v-if="newInterfaceType === 'PublicBackboneInterface'" class="rounded-lg border border-[rgba(110,168,255,0.34)] bg-[rgba(0,97,253,0.09)] p-3 text-sm text-[var(--ct-text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                         <div class="font-bold">Public Backbone Node Setup</div>
-                        <div class="mt-1 text-[var(--ct-muted)]">Paste the rmap.world configuration block here, then fill the interface fields from it.</div>
+                        <div class="mt-1 text-[var(--ct-muted)]">Paste the rmap.world configuration block here, then fill the interface fields from it. TCP client blocks and BackboneInterface blocks both work.</div>
                         <textarea
                             v-model="publicBackboneConfigText"
                             rows="7"
-                            placeholder="[[____mia_us_thunderhost_net____]]
-  type = BackboneInterface
+                            placeholder="[_____tpa_us_thunderhost_net_____]
+  type = TCPClientInterface
   enabled = yes
-  remote = mia.us.thunderhost.net
+  target_host = tpa.us.thunderhost.net
   target_port = 4242
   transport_identity = ..."
                             class="mt-2 font-mono border text-sm rounded-lg block w-full p-2.5 bg-[rgba(2,6,23,0.78)] border-[rgba(110,168,255,0.38)] text-[var(--ct-text)] placeholder:text-[var(--ct-dim)]"></textarea>
@@ -141,7 +141,7 @@
                                 Fill Interface Fields
                             </button>
                             <div class="min-w-0 text-[var(--ct-muted)] leading-5">
-                                Crosstalk saves this as a TCP Client Interface. <code>remote</code> becomes Target Host, <code>target_port</code> becomes Target Port, and <code>transport_identity</code> is not required.
+                                Crosstalk saves this as a TCP Client Interface. <code>target_host</code> or <code>remote</code> becomes Target Host, <code>target_port</code> becomes Target Port, and <code>transport_identity</code> is not required.
                             </div>
                         </div>
                     </div>
@@ -151,7 +151,7 @@
                     <div v-if="usesTCPClientFields" class="mb-2">
                         <FormLabel class="mb-1">Target Host</FormLabel>
                         <input type="text" placeholder="e.g: example.com" v-model="newInterfaceTargetHost" class="block w-full rounded-lg border p-2.5 text-sm">
-                        <FormSubLabel>For rmap.world backbone configs, paste the <code>remote</code> value here.</FormSubLabel>
+                        <FormSubLabel>For rmap.world configs, paste the <code>target_host</code> or <code>remote</code> value here.</FormSubLabel>
                     </div>
 
                     <!-- interface target port -->
@@ -166,7 +166,7 @@
                         <div class="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-1">
                             <div>Choose Type</div>
                             <div>Public Backbone Node (rmap.world)</div>
-                            <div><code>remote = host.example</code></div>
+                            <div><code>target_host</code> or <code>remote</code></div>
                             <div>Target Host</div>
                             <div><code>target_port = 4242</code></div>
                             <div>Target Port</div>
@@ -1575,22 +1575,24 @@ export default {
             this.publicBackboneConfigError = null;
 
             const config = this.publicBackboneConfigText ?? "";
-            const sectionName = config.match(/\[\[([^\]]+)\]\]/)?.[1];
+            const sectionName = config.match(/\[\[([^\]]+)\]\]/)?.[1]
+                ?? config.match(/^\s*\[([^\[\]]+)\]\s*$/m)?.[1];
             const type = config.match(/^\s*type\s*=\s*(.+?)\s*$/mi)?.[1]?.trim();
-            const remote = config.match(/^\s*remote\s*=\s*(.+?)\s*$/mi)?.[1]?.trim();
+            const host = config.match(/^\s*target_host\s*=\s*(.+?)\s*$/mi)?.[1]?.trim()
+                ?? config.match(/^\s*remote\s*=\s*(.+?)\s*$/mi)?.[1]?.trim();
             const targetPort = config.match(/^\s*target_port\s*=\s*(.+?)\s*$/mi)?.[1]?.trim();
 
-            if(type !== "BackboneInterface"){
-                this.publicBackboneConfigError = "Paste a BackboneInterface block from rmap.world.";
+            if(type !== "BackboneInterface" && type !== "TCPClientInterface"){
+                this.publicBackboneConfigError = "Paste a TCPClientInterface or BackboneInterface block from rmap.world.";
                 return;
             }
 
-            if(!remote || !targetPort){
-                this.publicBackboneConfigError = "The block must include remote and target_port values.";
+            if(!host || !targetPort){
+                this.publicBackboneConfigError = "The block must include a host (target_host or remote) and target_port.";
                 return;
             }
 
-            const fallbackName = remote
+            const fallbackName = host
                 .replace(/[^a-z0-9]+/gi, " ")
                 .trim()
                 .replace(/\s+/g, " ");
@@ -1600,7 +1602,7 @@ export default {
                 .replace(/_+/g, " ")
                 .trim() || fallbackName;
 
-            this.usePublicBackboneInterface(name, remote, targetPort);
+            this.usePublicBackboneInterface(name, host, targetPort);
         },
         addSubInterface() {
             this.RNodeMultiInterface.subInterfaces.push({
