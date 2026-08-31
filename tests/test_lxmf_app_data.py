@@ -1,13 +1,15 @@
 import unittest
 
+import RNS
 import RNS.vendor.umsgpack as msgpack
 
-from src.backend.lxmf_app_data import display_name_from_app_data
 from src.backend.live_activity import (
     display_name_for_aspect,
     heard_announce_payload,
+    install_validate_announce_hook,
     local_announce_payload,
 )
+from src.backend.lxmf_app_data import display_name_from_app_data
 
 
 class LxmfAppDataTest(unittest.TestCase):
@@ -53,3 +55,31 @@ class LiveActivityPayloadTest(unittest.TestCase):
         self.assertEqual(payload["origin"], "sent")
         self.assertEqual(payload["interface"], "this device")
         self.assertEqual(payload["display_name"], "N0CALL")
+
+
+class LiveActivityHookTest(unittest.TestCase):
+    def test_forwards_signal_blackholed(self):
+        seen = {}
+        heard = []
+
+        def original(packet, only_validate_signature=False, signal_blackholed=False):
+            seen["only_validate_signature"] = only_validate_signature
+            seen["signal_blackholed"] = signal_blackholed
+            return True
+
+        previous = RNS.Identity.validate_announce
+        try:
+            RNS.Identity.validate_announce = staticmethod(original)
+            install_validate_announce_hook(heard.append)
+            packet = object()
+            result = RNS.Identity.validate_announce(
+                packet,
+                only_validate_signature=True,
+                signal_blackholed=True,
+            )
+            self.assertTrue(result)
+            self.assertTrue(seen["only_validate_signature"])
+            self.assertTrue(seen["signal_blackholed"])
+            self.assertEqual(heard, [packet])
+        finally:
+            RNS.Identity.validate_announce = previous

@@ -112,8 +112,10 @@ def install_validate_announce_hook(callback):
     if getattr(original, "_crosstalk_live_activity", False):
         return
 
-    def wrapped(packet, only_validate_signature=False):
-        result = original(packet, only_validate_signature=only_validate_signature)
+    def wrapped(packet, only_validate_signature=False, *args, **kwargs):
+        # RNS 1.5.2+ passes signal_blackholed=True. Swallowing unknown kwargs
+        # here TypeErrors and drops every inbound announce.
+        result = original(packet, only_validate_signature, *args, **kwargs)
         # Signature-only is the inbound path that still runs for our own
         # destination when a hub echoes the announce back. Full validation
         # is skipped for local destinations, so hooking only that misses
