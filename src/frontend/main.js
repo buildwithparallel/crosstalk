@@ -128,6 +128,26 @@ const router = createRouter({
             component: defineAsyncComponent(() => import("./components/tools/RfActivityPage.vue")),
         },
         {
+            name: "path-table",
+            path: '/path-table',
+            component: defineAsyncComponent(() => import("./components/tools/PathTablePage.vue")),
+        },
+        {
+            name: "propagation-health",
+            path: '/propagation-health',
+            component: defineAsyncComponent(() => import("./components/tools/PropagationHealthPage.vue")),
+        },
+        {
+            name: "hash-inspector",
+            path: '/hash-inspector',
+            component: defineAsyncComponent(() => import("./components/tools/HashInspectorPage.vue")),
+        },
+        {
+            name: "log-viewer",
+            path: '/log-viewer',
+            component: defineAsyncComponent(() => import("./components/tools/LogViewerPage.vue")),
+        },
+        {
             name: "profile.icon",
             path: '/profile/icon',
             component: defineAsyncComponent(() => import("./components/profile/ProfileIconPage.vue")),
