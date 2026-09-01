@@ -21,13 +21,17 @@
                     <span class="mr-auto font-semibold text-[var(--ct-text)]">{{ filteredLogs.length }}<span v-if="searchText"> of {{ logs.length }}</span> lines</span>
                     <input v-model="searchText" type="text" placeholder="Search logs..." class="rounded-lg border p-1.5 text-sm">
                     <label class="flex cursor-pointer items-center gap-x-1.5 text-sm text-[var(--ct-dim)]">
+                        <input v-model="colorize" type="checkbox" class="size-4 rounded border">
+                        Color by level
+                    </label>
+                    <label class="flex cursor-pointer items-center gap-x-1.5 text-sm text-[var(--ct-dim)]">
                         <input v-model="autoRefresh" type="checkbox" class="size-4 rounded border">
                         Auto refresh
                     </label>
                 </div>
                 <div class="max-h-[70vh] overflow-y-auto p-2.5">
                     <div v-if="filteredLogs.length === 0" class="text-sm text-[var(--ct-dim)]">{{ searchText ? "No log lines match your search." : "No log lines yet." }}</div>
-                    <div v-for="(line, index) in filteredLogs" :key="index" class="ct-hash whitespace-pre-wrap break-all border-b border-[var(--ct-border)] py-0.5 text-xs text-[var(--ct-muted)] last:border-b-0">{{ line }}</div>
+                    <div v-for="(line, index) in filteredLogs" :key="index" class="ct-hash whitespace-pre-wrap break-all border-b border-[var(--ct-border)] py-0.5 text-xs last:border-b-0" :class="colorize ? levelClass(line) : 'text-[var(--ct-muted)]'">{{ line }}</div>
                 </div>
             </div>
 
@@ -42,6 +46,7 @@ export default {
         return {
             logs: [],
             searchText: "",
+            colorize: true,
             autoRefresh: true,
             refreshInterval: null,
         };
@@ -69,6 +74,19 @@ export default {
         clearInterval(this.refreshInterval);
     },
     methods: {
+        levelClass(line) {
+            // rns log lines carry their level like "[2026-09-01 12:00:00] [Error] ..."
+            if(line.includes("[Critical]") || line.includes("[Error]")){
+                return "text-red-400";
+            }
+            if(line.includes("[Warning]")){
+                return "text-amber-400";
+            }
+            if(line.includes("[Verbose]") || line.includes("[Debug]") || line.includes("[Extreme]")){
+                return "text-[var(--ct-dim)]";
+            }
+            return "text-[var(--ct-muted)]";
+        },
         async getLogs() {
             try {
                 const response = await window.axios.get("/api/v1/logs");
