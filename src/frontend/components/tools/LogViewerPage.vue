@@ -31,7 +31,7 @@
                 </div>
                 <div class="max-h-[70vh] overflow-y-auto p-2.5">
                     <div v-if="filteredLogs.length === 0" class="text-sm text-[var(--ct-dim)]">{{ searchText ? "No log lines match your search." : "No log lines yet." }}</div>
-                    <div v-for="(line, index) in filteredLogs" :key="index" class="ct-hash whitespace-pre-wrap break-all border-b border-[var(--ct-border)] py-0.5 text-xs last:border-b-0" :class="colorize ? levelClass(line) : 'text-[var(--ct-muted)]'">{{ line }}</div>
+                    <div v-for="(line, index) in filteredLogs" :key="index" class="ct-hash whitespace-pre-wrap break-all border-b border-[var(--ct-border)] py-0.5 text-xs text-[var(--ct-muted)] last:border-b-0" :style="colorize ? levelStyle(line) : null">{{ line }}</div>
                 </div>
             </div>
 
@@ -74,18 +74,19 @@ export default {
         clearInterval(this.refreshInterval);
     },
     methods: {
-        levelClass(line) {
+        levelStyle(line) {
             // rns log lines carry their level like "[2026-09-01 12:00:00] [Error] ..."
+            // inline style so the colors are not overridden by the ct-hash class
             if(line.includes("[Critical]") || line.includes("[Error]")){
-                return "text-red-400";
+                return { color: "#f87171" };
             }
             if(line.includes("[Warning]")){
-                return "text-amber-400";
+                return { color: "#fbbf24" };
             }
             if(line.includes("[Verbose]") || line.includes("[Debug]") || line.includes("[Extreme]")){
-                return "text-[var(--ct-dim)]";
+                return { color: "var(--ct-dim)" };
             }
-            return "text-[var(--ct-muted)]";
+            return null;
         },
         async getLogs() {
             try {
