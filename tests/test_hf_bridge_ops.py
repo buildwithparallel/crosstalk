@@ -27,14 +27,14 @@ class HfBridgeOpsTest(unittest.TestCase):
     def test_classifies_bridge_display_names(self):
         self.assertEqual(classify_bridge_name("hf-txbridge"), "txbridge")
         self.assertEqual(classify_bridge_name("hf-ingress"), "ingress")
-        self.assertIsNone(classify_bridge_name("Tim's Mom"))
+        self.assertIsNone(classify_bridge_name("Example User"))
 
     def test_txbridge_stays_dry_run_until_armed(self):
         command = build_command(
             "txbridge",
             repo=Path("/tmp/hf"),
-            callsign="KR4NNP",
-            hl2_ip="169.254.19.221",
+            callsign="N0CALL",
+            hl2_ip="169.254.1.1",
             arm_tx=False,
         )
         self.assertIn("hfbridge.txbridge", command)
@@ -52,8 +52,8 @@ class HfBridgeOpsTest(unittest.TestCase):
         command = build_command(
             "txbridge",
             repo=Path("/tmp/hf"),
-            callsign="KR4NNP",
-            hl2_ip="169.254.19.221",
+            callsign="N0CALL",
+            hl2_ip="169.254.1.1",
             arm_tx=False,
             frequency_hz=28_130_000,
             power_percent=100,
@@ -70,8 +70,8 @@ class HfBridgeOpsTest(unittest.TestCase):
             build_command(
                 "txbridge",
                 repo=Path("/tmp/hf"),
-                callsign="KR4NNP",
-                hl2_ip="169.254.19.221",
+                callsign="N0CALL",
+                hl2_ip="169.254.1.1",
                 arm_tx=False,
                 allow_enabled=True,
                 allow_hashes=[],
@@ -82,14 +82,14 @@ class HfBridgeOpsTest(unittest.TestCase):
             build_command(
                 "txbridge",
                 repo=Path("/tmp/hf"),
-                callsign="KR4NNP",
-                hl2_ip="169.254.19.221",
+                callsign="N0CALL",
+                hl2_ip="169.254.1.1",
                 arm_tx=False,
                 frequency_hz=28_120_000,
             )
 
     def test_parse_allow_hashes_and_power_percent(self):
-        peer = "b9ab2399f5d00df37b705684ea010af3"
+        peer = "0123456789abcdef0123456789abcdef"
         self.assertEqual(parse_allow_hashes(f"lxmf@{peer.upper()}\n, {peer}"), [peer])
         self.assertEqual(settings_from_power_percent(100), (1.0, 255))
         amplitude, drive = settings_from_power_percent(10)
@@ -122,7 +122,7 @@ class HfBridgeOpsTest(unittest.TestCase):
             build_command(
                 "txbridge",
                 repo=Path("/tmp/hf"),
-                callsign="KR4NNP",
+                callsign="N0CALL",
                 hl2_ip="",
                 arm_tx=True,
             )
@@ -149,13 +149,13 @@ class HfBridgeOpsTest(unittest.TestCase):
         self.assertTrue(found[0]["heard_recently"])
 
     def test_last_resort_title_round_trip(self):
-        dest = "b9ab2399f5d00df37b705684ea010af3"
+        dest = "0123456789abcdef0123456789abcdef"
         self.assertEqual(last_resort_title(dest), f"hfdest:{dest}")
         self.assertEqual(last_resort_peer_from_title(last_resort_title(dest)), dest)
         self.assertIsNone(last_resort_peer_from_title("hello"))
 
     def test_last_resort_send_rejects_attachments_and_oversize(self):
-        dest = last_resort_title("b9ab2399f5d00df37b705684ea010af3")
+        dest = last_resort_title("0123456789abcdef0123456789abcdef")
         self.assertIsNone(last_resort_send_error(dest, "hello"))
         self.assertIsNone(last_resort_send_error("ordinary", "x" * 500, {"image": True}))
         self.assertIsNotNone(last_resort_send_error(dest, "hello", {"image": {"image_type": "png"}}))
@@ -189,22 +189,22 @@ class HfBridgeOpsTest(unittest.TestCase):
     def test_parse_hl2_discovery_reply(self):
         payload = b"\xef\xfe\x02" + bytes.fromhex("001cc0a213dd") + bytes([74, 6]) + bytes(20)
         self.assertEqual(
-            parse_hl2_discovery_reply(payload, "192.168.0.164"),
+            parse_hl2_discovery_reply(payload, "192.168.1.50"),
             {
-                "ip": "192.168.0.164",
+                "ip": "192.168.1.50",
                 "mac": "00:1c:c0:a2:13:dd",
                 "gateware_version": 74,
                 "board_id": 6,
             },
         )
-        self.assertIsNone(parse_hl2_discovery_reply(b"nope", "192.168.0.164"))
+        self.assertIsNone(parse_hl2_discovery_reply(b"nope", "192.168.1.50"))
 
     def test_discover_hl2_radios_collects_unique_replies(self):
         payload = b"\xef\xfe\x02" + bytes.fromhex("001cc0a213dd") + bytes([74, 6]) + bytes(20)
 
         class FakeSocket:
             def __init__(self, *_args):
-                self.replies = [(payload, ("192.168.0.164", 1024))]
+                self.replies = [(payload, ("192.168.1.50", 1024))]
 
             def setsockopt(self, *_args):
                 return None
@@ -227,15 +227,15 @@ class HfBridgeOpsTest(unittest.TestCase):
                 return None
 
         radios = discover_hl2_radios(timeout=0.05, _socket_factory=lambda *_args: FakeSocket())
-        self.assertEqual(radios[0]["ip"], "192.168.0.164")
+        self.assertEqual(radios[0]["ip"], "192.168.1.50")
         self.assertEqual(radios[0]["mac"], "00:1c:c0:a2:13:dd")
 
     def test_parse_ingress_stats_uses_the_latest_line(self):
         log = (
             "ingress abc\n"
             "ingress-stats heard=0 forwarded=0 decode_failed=0 inject_failed=0\n"
-            "decoded KR4NNP 8B\n"
-            "ingress-stats heard=2 forwarded=1 decode_failed=1 inject_failed=0 last=KR4NNP\n"
+            "decoded N0CALL 8B\n"
+            "ingress-stats heard=2 forwarded=1 decode_failed=1 inject_failed=0 last=N0CALL\n"
         )
         self.assertEqual(
             parse_ingress_stats(log),
@@ -244,7 +244,7 @@ class HfBridgeOpsTest(unittest.TestCase):
                 "forwarded": 1,
                 "decode_failed": 1,
                 "inject_failed": 0,
-                "last_origin": "KR4NNP",
+                "last_origin": "N0CALL",
             },
         )
         self.assertEqual(parse_ingress_stats(""), {"heard": 0, "forwarded": 0, "decode_failed": 0, "inject_failed": 0, "last_origin": None})

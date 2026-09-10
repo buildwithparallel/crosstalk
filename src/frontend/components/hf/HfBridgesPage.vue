@@ -80,7 +80,7 @@
                 <div class="space-y-1">
                     <span class="text-sm text-[var(--ct-muted)]">Hermes-Lite 2 address</span>
                     <div class="flex flex-col gap-2 sm:flex-row">
-                        <input v-model="hl2Ip" type="text" class="ct-message-input block min-w-0 flex-1 rounded-lg border px-2 py-1.5 text-sm" placeholder="192.168.0.164"/>
+                        <input v-model="hl2Ip" type="text" class="ct-message-input block min-w-0 flex-1 rounded-lg border px-2 py-1.5 text-sm" placeholder="192.168.1.50"/>
                         <button
                             type="button"
                             class="ct-secondary-button rounded-lg px-3 py-1.5 text-sm font-semibold"

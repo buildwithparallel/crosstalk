@@ -14,12 +14,12 @@ from src.backend.lxmf_app_data import display_name_from_app_data
 
 class LxmfAppDataTest(unittest.TestCase):
     def test_reads_msgpack_string_names(self):
-        packed = msgpack.packb(["EastPort Home", 8])
-        self.assertEqual(display_name_from_app_data(packed), "EastPort Home")
+        packed = msgpack.packb(["Example Peer", 8])
+        self.assertEqual(display_name_from_app_data(packed), "Example Peer")
 
     def test_reads_msgpack_byte_names(self):
-        packed = msgpack.packb([b"EastPort Home", 8])
-        self.assertEqual(display_name_from_app_data(packed), "EastPort Home")
+        packed = msgpack.packb([b"Example Peer", 8])
+        self.assertEqual(display_name_from_app_data(packed), "Example Peer")
 
     def test_reads_legacy_utf8_app_data(self):
         self.assertEqual(display_name_from_app_data(b"Anonymous Peer"), "Anonymous Peer")

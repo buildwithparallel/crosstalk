@@ -100,7 +100,7 @@ for ch in padded:
 wire = value.to_bytes(6, "big")
 ```
 
-Example: `KR4NNP` → `44 5d 38 41 80 00`.
+Example: `N0CALL` → `57 7b 2a 46 f8 00`.
 
 ### CRC-16
 
@@ -221,32 +221,32 @@ information columns.
 A status note from a Reticulum client with no internet path, addressed to an
 ordinary LXMF inbox. The text is the whole message.
 
-- **Origin:** `KR4NNP` (the licensed station keying the transmitter)
-- **Dest:** `b9ab2399f5d00df37b705684ea010af3`
+- **Origin:** `N0CALL` (the licensed station keying the transmitter)
+- **Dest:** `0123456789abcdef0123456789abcdef`
 - **MSG_ID:** 42
 - **Message:** `no internet here. all ok. next check 0900` (41 characters)
 
 Inner packet, **71 bytes**:
 
 ```
-10 00 44 5d 38 41 80 00 b9 ab 23 99 f5 d0 0d f3
-7b 70 56 84 ea 01 0a f3 00 2a 01 29 6e 6f 20 69
+10 00 57 7b 2a 46 f8 00 01 23 45 67 89 ab cd ef
+01 23 45 67 89 ab cd ef 00 2a 01 29 6e 6f 20 69
 6e 74 65 72 6e 65 74 20 68 65 72 65 2e 20 61 6c
 6c 20 6f 6b 2e 20 6e 65 78 74 20 63 68 65 63 6b
-20 30 39 30 30 f4 14
+20 30 39 30 30 85 98
 ```
 
 | Offset | Hex | Meaning |
 | --- | --- | --- |
 | 0 | `10` | version 1, data |
 | 1 | `00` | flags off |
-| 2 | `44 5d 38 41 80 00` | ORIGIN `KR4NNP` |
-| 8 | `b9 ab 23 … 0a f3` | DEST |
+| 2 | `57 7b 2a 46 f8 00` | ORIGIN `N0CALL` |
+| 8 | `01 23 45 … cd ef` | DEST |
 | 24 | `00 2a` | MSG_ID 42 |
 | 26 | `01` | fragment 0 of 1 |
 | 27 | `29` | 41 bytes of text follow |
 | 28 | `6e 6f 20 69 … 30 30` | the UTF-8 note |
-| 69 | `f4 14` | CRC-16 |
+| 69 | `85 98` | CRC-16 |
 
 On the air that packet is LDPC-wrapped (9 blocks, header `09 09 09`) plus
 Costas, click-track, unique word, and tail: **179 bytes** of FSK plus 7 Costas
