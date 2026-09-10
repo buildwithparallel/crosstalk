@@ -5,9 +5,8 @@ for anyone listening on 10 meters, and for the FCC.
 
 Crosstalk can send a short conversation over a licensed 10 meter station when
 there is no Reticulum path. The radio hop is **plaintext**. Encrypted Reticulum
-packets never go on the air. The station decrypts locally, shouts callsign +
-destination hash + UTF-8, and a receive station injects a **new** LXMF message
-into whatever mesh it already has.
+packets never go on the air. The station decrypts locally and shouts callsign +
+destination hash + UTF-8. Anyone with a receiver can read that shout.
 
 Digital station ID counts under Part 97.119 because this recipe is public. The
 RF hop is **not encoded to obscure meaning** (Part 97.113(a)(4)). Anyone with a
@@ -261,16 +260,8 @@ still the legal gate: it identifies with a callsign on every shout, rate-limits,
 and may apply an allow list.
 
 Crosstalk addresses the far inbox with the 16-byte LXMF delivery hash in DEST.
-After a receive station injects a new message, the dest sees that ingress
-identity as the sender. The title `hfvia:<callsign>` marks the hop; it is not
-part of the on-air payload.
+A title such as `hfvia:<callsign>` can mark that the text arrived via this hop;
+it is not part of the on-air payload.
 
 Sensitive traffic does not belong here. The control operator is responsible
 for every emission.
-
-## Third-party traffic
-
-Relaying for non-licensed parties is generally permitted domestically and
-restricted internationally to countries with agreements. A bridge that
-forwards everything it hears will eventually forward something it should not.
-The licensee filters before keying.
