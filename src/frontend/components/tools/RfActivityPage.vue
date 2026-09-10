@@ -3,9 +3,16 @@
         <div class="overflow-y-auto space-y-3 p-3">
 
             <!-- page header -->
-            <div>
+            <div class="flex items-center gap-x-2">
+                <RouterLink :to="{ name: 'tools' }" class="flex rounded-md p-1.5 text-[var(--ct-muted)] transition hover:bg-[rgba(255,255,255,0.08)] hover:text-[var(--ct-text)]" title="Back to Diagnostics">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
+                        <path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clip-rule="evenodd" />
+                    </svg>
+                </RouterLink>
+                <div>
                 <div class="text-lg font-bold text-[var(--ct-text)]">Live Activity</div>
                 <div class="text-sm text-[var(--ct-dim)]">Watch traffic on your interfaces. Path requests keep a hub busy even when nobody is announcing. Announces appear here as they are heard, including rebroadcasts of destinations you already know.</div>
+                </div>
             </div>
 
             <!-- interfaces -->
@@ -26,15 +33,16 @@
 
             <!-- announce feed -->
             <div class="ct-card">
-                <div class="flex items-center border-b border-[var(--ct-border)] p-2.5 font-semibold text-[var(--ct-text)]">
+                <div class="flex items-center gap-x-2.5 border-b border-[var(--ct-border)] p-2.5 font-semibold text-[var(--ct-text)]">
                     <span class="mr-auto">Announces</span>
-                    <span class="text-sm font-normal text-[var(--ct-dim)]">{{ announces.length }} heard since opening</span>
+                    <input v-model="searchText" type="text" placeholder="Filter by name or hash..." class="rounded-lg border p-1.5 text-sm font-normal">
+                    <span class="text-sm font-normal text-[var(--ct-dim)]">{{ searchText ? `${filteredAnnounces.length} of ${announces.length}` : announces.length }} heard since opening</span>
                 </div>
                 <div class="divide-y divide-[var(--ct-border)] text-sm text-[var(--ct-muted)]">
-                    <div v-if="announces.length === 0" class="p-2.5 text-[var(--ct-dim)]">
-                        No announces heard since opening this page. A TCP hub can still show RX growth from path requests. Ask a peer to announce, or wait — peers often re-announce only every few hours.
+                    <div v-if="filteredAnnounces.length === 0" class="p-2.5 text-[var(--ct-dim)]">
+                        {{ searchText ? "No announces match your filter." : "No announces heard since opening this page. A TCP hub can still show RX growth from path requests. Ask a peer to announce, or wait — peers often re-announce only every few hours." }}
                     </div>
-                    <div v-for="announce in announces" :key="announce.key" class="p-2.5">
+                    <div v-for="announce in filteredAnnounces" :key="announce.key" class="p-2.5">
                         <div class="flex items-center gap-x-2">
                             <span v-if="announce.origin === 'sent'" class="shrink-0 rounded bg-[rgba(0,97,253,0.15)] px-1.5 py-0.5 text-xs font-semibold text-[#7db0ff]">Sent</span>
                             <span v-else-if="announce.rssi != null" class="shrink-0 rounded bg-[rgba(46,231,129,0.15)] px-1.5 py-0.5 text-xs font-semibold text-[var(--ct-green)]">RF</span>
@@ -68,8 +76,22 @@ export default {
         return {
             announces: [],
             interfaces: [],
+            searchText: "",
             statsInterval: null,
         };
+    },
+    computed: {
+        filteredAnnounces() {
+            const search = this.searchText.toLowerCase().trim();
+            if(!search){
+                return this.announces;
+            }
+            return this.announces.filter((announce) => {
+                return (announce.destination_hash ?? "").includes(search)
+                    || (announce.display_name ?? "").toLowerCase().includes(search)
+                    || (announce.aspect ?? "").toLowerCase().includes(search);
+            });
+        },
     },
     mounted() {
         WebSocketConnection.on("message", this.onWebsocketMessage);

@@ -16,6 +16,7 @@ import shutil
 import sys
 import threading
 import time
+from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, List
@@ -266,6 +267,15 @@ class Crosstalk:
          .where(database.LxmfMessage.state == "outbound")
          .orwhere((database.LxmfMessage.state == "sent") & (database.LxmfMessage.method == "opportunistic"))
          .orwhere(database.LxmfMessage.state == "sending").execute())
+
+        # keep recent rns log lines in memory for the log viewer
+        # the callback still prints, so stdout logging keeps working as before
+        self.log_buffer = deque(maxlen=500)
+        def log_to_buffer(logstring):
+            self.log_buffer.append(logstring)
+            print(logstring)
+        RNS.logdest = RNS.LOG_CALLBACK
+        RNS.logcall = log_to_buffer
 
         # init reticulum
         ensure_bundled_reticulum_interfaces(reticulum_config_dir)
@@ -2199,6 +2209,65 @@ class Crosstalk:
             })
 
         # get Reticulum infrastructure discovered from signed interface advertisements
+        # serve recent rns log lines
+        @routes.get("/api/v1/logs")
+        async def index(request):
+            return web.json_response({
+                "logs": list(self.log_buffer),
+            })
+
+        # serve everything known about a destination hash
+        @routes.get("/api/v1/destination/{destination_hash}/info")
+        async def index(request):
+
+            # get path params
+            destination_hash = request.match_info.get("destination_hash", "")
+
+            # validate destination hash
+            try:
+                destination_hash_bytes = bytes.fromhex(destination_hash)
+            except ValueError:
+                return web.json_response({
+                    "message": "destination_hash is invalid",
+                }, status=422)
+
+            # find announce info, if we have heard this destination announce
+            announce_info = None
+            announce = database.Announce.get_or_none(database.Announce.destination_hash == destination_hash)
+            if announce is not None:
+                display_name = None
+                if announce.aspect == "lxmf.delivery":
+                    display_name = self.parse_lxmf_display_name(announce.app_data, default_value=None)
+                elif announce.aspect == "nomadnetwork.node":
+                    display_name = self.parse_nomadnetwork_node_display_name(announce.app_data, default_value=None)
+                announce_info = {
+                    "aspect": announce.aspect,
+                    "display_name": display_name,
+                    "identity_hash": announce.identity_hash,
+                    "rssi": announce.rssi,
+                    "snr": announce.snr,
+                    "quality": announce.quality,
+                    "last_announced_at": str(announce.updated_at),
+                }
+
+            # find path info, if a path is known
+            path_info = None
+            if RNS.Transport.has_path(destination_hash_bytes):
+                path_info = {
+                    "hops": RNS.Transport.hops_to(destination_hash_bytes),
+                    "next_hop_interface": self.reticulum.get_next_hop_if_name(destination_hash_bytes),
+                }
+
+            return web.json_response({
+                "destination_info": {
+                    "destination_hash": destination_hash,
+                    "custom_display_name": self.get_custom_destination_display_name(destination_hash),
+                    "is_blocked": database.BlockedDestination.get_or_none(database.BlockedDestination.destination_hash == destination_hash) is not None,
+                    "announce": announce_info,
+                    "path": path_info,
+                },
+            })
+
         # clear cached network data so discover and the map only show what is heard on current interfaces
         @routes.post("/api/v1/network-caches/clear")
         async def index(request):
