@@ -49,6 +49,10 @@ Crosstalk keeps MeshChat's LXMF messaging, attachments, audio calls, propagation
 
 Templates for proven but uncommon Reticulum transports, such as Iridium IMT, so they can be added like any other interface instead of as one-off forks.
 
+### Optional 10 m HF hop
+
+Crosstalk can opt a conversation onto a licensed amateur HF hop when there is no Reticulum path. The radio hop is plaintext; encrypted Reticulum never goes on the air. The on-air recipe is public: [10 m HF codec](./docs/hf_codec.md).
+
 ## Install
 
 Download a packaged build for Windows, macOS or Linux from [Releases](https://github.com/buildwithparallel/crosstalk/releases).
