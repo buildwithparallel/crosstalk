@@ -320,7 +320,7 @@ export default {
         },
         estimatedPowerLabel() {
             const percent = Math.max(1, Math.min(100, Number(this.powerPercent) || 10));
-            const watts = 5 * (percent / 100);
+            const watts = 0.001 + (5 - 0.001) * (percent - 1) / 99;
             let amount;
             if (watts < 1) {
                 const milliwatts = watts * 1000;
@@ -329,7 +329,7 @@ export default {
             } else {
                 amount = `${Number(watts.toPrecision(2))} W`;
             }
-            return `About ${amount} at this setting (rough). 100% is about 5 W`;
+            return `About ${amount} at this setting (rough). 1% is about 1 mW; 100% is about 5 W`;
         },
         frequencyHz() {
             const mhz = Number(this.frequencyMhz);

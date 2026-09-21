@@ -145,8 +145,9 @@ RTL_TUNER_GAINS_DB = (
 )
 MAX_AMPLITUDE = 1.0
 MAX_DRIVE = 255
-MIN_DRIVE = 16
+MIN_DRIVE = 1
 FULL_SCALE_WATTS = 5.0
+MIN_POWER_WATTS = 0.001
 
 
 def snap_rtl_gain_db(value: int | float | None) -> float:
@@ -179,11 +180,16 @@ def parse_allow_hashes(text: str | None) -> list[str]:
     return found
 
 
-def settings_from_power_percent(percent: int | float | None) -> tuple[float, int]:
-    """Map 1–100% to IQ amplitude and HL2 drive so 100% is about 5 W."""
+def watts_from_power_percent(percent: int | float | None) -> float:
+    """Map 1–100% linearly from 1 mW to about 5 W."""
     pct = DEFAULT_POWER_PERCENT if percent is None else int(percent)
     pct = max(1, min(100, pct))
-    scale = (pct / 100.0) ** 0.5
+    return MIN_POWER_WATTS + (FULL_SCALE_WATTS - MIN_POWER_WATTS) * (pct - 1) / 99.0
+
+
+def settings_from_power_percent(percent: int | float | None) -> tuple[float, int]:
+    """Map 1–100% to IQ amplitude and HL2 drive so 1% is about 1 mW and 100% is about 5 W."""
+    scale = (watts_from_power_percent(percent) / FULL_SCALE_WATTS) ** 0.5
     drive = max(MIN_DRIVE, min(MAX_DRIVE, round(MAX_DRIVE * scale)))
     amplitude = round(min(MAX_AMPLITUDE, (scale * MAX_DRIVE) / drive), 4)
     return amplitude, drive
@@ -340,6 +346,7 @@ def build_command(
             "--quiet",
             "--gain",
             str(gain),
+            "--fixed-gain",
         ]
     raise ValueError(f"unknown bridge role {role}")
 

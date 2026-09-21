@@ -6,6 +6,7 @@ from src.backend.hf_bridge_ops import (
     DEFAULT_FREQUENCY_HZ,
     DEFAULT_RTL_GAIN_DB,
     amplitude_from_power_percent,
+    estimated_watts_from_percent,
     announced_bridges,
     build_command,
     classify_bridge_name,
@@ -96,6 +97,8 @@ class HfBridgeOpsTest(unittest.TestCase):
         self.assertEqual(amplitude_from_power_percent(10), amplitude)
         self.assertGreater(drive, 16)
         self.assertLess(drive, 255)
+        self.assertAlmostEqual(estimated_watts_from_percent(1), 0.001, places=4)
+        self.assertAlmostEqual(estimated_watts_from_percent(100), 5.0, places=2)
 
     def test_ingress_uses_tuner_gain(self):
         command = build_command(
@@ -115,6 +118,7 @@ class HfBridgeOpsTest(unittest.TestCase):
             rtl_gain_db=41.9,
         )
         self.assertEqual(command[command.index("--gain") + 1], "42.1")
+        self.assertIn("--fixed-gain", command)
         self.assertEqual(snap_rtl_gain_db(20.5), 20.7)
 
     def test_arming_requires_radio_ip(self):
