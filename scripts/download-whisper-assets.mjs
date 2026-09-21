@@ -21,7 +21,8 @@ const modelDir = path.join(assetsRoot, "models", "Xenova", "whisper-tiny");
 
 const MODEL_HOST = "https://huggingface.co";
 const MODEL_ID = "Xenova/whisper-tiny";
-const MODEL_REVISION = "main";
+/** Pin to a commit SHA so builds do not silently pick up Hub `main` changes. */
+const MODEL_REVISION = "5332fcc35e32a33b86612b9a57a89be7906102b1";
 const USER_AGENT = "crosstalk-whisper-asset-download";
 
 /**

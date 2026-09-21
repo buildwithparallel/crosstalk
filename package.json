@@ -25,6 +25,9 @@
     "electron-builder": "^26.15.3",
     "@phosphor-icons/core": "^2.1.1"
   },
+  "overrides": {
+    "onnxruntime-web": "1.30.0"
+  },
   "build": {
     "appId": "com.buildwithparallel.crosstalk",
     "productName": "Crosstalk",
@@ -103,7 +106,8 @@
     }
   },
   "dependencies": {
-    "@huggingface/transformers": "^4.2.0",
+    "@huggingface/transformers": "4.2.0",
+    "onnxruntime-web": "1.30.0",
     "@mdi/js": "^7.4.47",
     "@tailwindcss/forms": "^0.5.9",
     "@vitejs/plugin-vue": "^5.2.1",

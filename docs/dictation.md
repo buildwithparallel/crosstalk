@@ -18,8 +18,8 @@ The first use in a session loads the local Whisper model into memory, which can
 take a few seconds. Later dictations reuse that in-memory model.
 
 Dictation uses the same microphone permission as audio calls and voice
-messages. On macOS the app prompts for microphone access at launch. Windows and
-Linux prompt when the microphone is first used.
+messages. The OS prompts when the microphone is first used (Dictate, Add Voice,
+or a call), not at app launch.
 
 ## Privacy
 
@@ -36,8 +36,11 @@ Linux prompt when the microphone is first used.
 
 `npm run build-frontend` runs `scripts/download-whisper-assets.mjs`, which
 downloads Whisper Tiny fp32 ONNX files from Hugging Face into
-`src/frontend/public/assets/whisper/models/`. Vite then bundles ONNX Runtime
-WASM from the local `onnxruntime-web` install.
+`src/frontend/public/assets/whisper/models/`. The download is pinned to Hugging
+Face commit `5332fcc35e32a33b86612b9a57a89be7906102b1` (not floating `main`).
+Vite then bundles ONNX Runtime WASM from the local `onnxruntime-web@1.30.0`
+install (npm `overrides` keep Transformers.js from pulling a floating
+`*-dev` runtime).
 
 Those files are served by Crosstalk's own HTTP server (including packaged
 Electron builds). A network connection is only required while *building*, not

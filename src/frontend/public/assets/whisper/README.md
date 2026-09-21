@@ -2,8 +2,10 @@
 
 Chat dictation loads Whisper Tiny fp32 weights from this directory. The files
 are staged by `npm run download-whisper-assets` during `npm run build-frontend`
-and are then served by Crosstalk's local web server. ONNX Runtime WASM is
-bundled by Vite from `onnxruntime-web`.
+(pinned Hugging Face revision
+`5332fcc35e32a33b86612b9a57a89be7906102b1`) and are then served by Crosstalk's
+local web server. ONNX Runtime WASM is bundled by Vite from
+`onnxruntime-web@1.30.0`.
 
 fp32 is intentional: current Transformers.js / ONNX Runtime rejects the older
 quantized Whisper graphs with MatMulNBits missing-scale errors.
