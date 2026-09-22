@@ -85,6 +85,11 @@
                         {{ iface.maximum_modem_attempts ?? 1 }} modem attempt/packet
                     </div>
 
+                    <!-- rnode interface -->
+                    <div v-else-if="iface.type === 'RNodeInterface'" class="inline-flex min-w-0 items-center gap-1">
+                        <span class="min-w-0 break-all">{{ iface.type }} • {{ formatRNodeConnection(iface.port) }}</span>
+                    </div>
+
                     <!-- other interface types -->
                     <div v-else>{{ iface.type }}</div>
 
@@ -200,6 +205,7 @@
 
             <!-- rnode interface details -->
             <div v-else-if="iface.type === 'RNodeInterface'">
+                <div>Connection: {{ formatRNodeConnection(iface.port) }}</div>
                 <div>Port: {{ iface.port }}</div>
                 <div>Frequency: {{ formatFrequency(iface.frequency) }}</div>
                 <div>Bandwidth: {{ formatFrequency(iface.bandwidth) }}</div>
@@ -310,6 +316,23 @@ export default {
         },
         formatFrequency(hz) {
             return Utils.formatFrequency(hz);
+        },
+        /**
+         * Human-readable RNode connection label for USB, BLE, or WiFi ports.
+         * @param {string|null|undefined} port
+         */
+        formatRNodeConnection(port) {
+            const value = typeof port === "string" ? port : "";
+            const lower = value.toLowerCase();
+            if(lower.startsWith("ble://")){
+                const target = value.slice("ble://".length);
+                return target ? `Bluetooth LE (${target})` : "Bluetooth LE (first paired RNode)";
+            }
+            if(lower.startsWith("tcp://")){
+                const host = value.slice("tcp://".length);
+                return host ? `WiFi TCP (${host})` : "WiFi TCP";
+            }
+            return value ? `USB Serial (${value})` : "USB Serial";
         },
         formatSatelliteSignal(signalBars) {
             return Number.isInteger(signalBars) && signalBars >= 0

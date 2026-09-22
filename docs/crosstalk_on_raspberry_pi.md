@@ -2,7 +2,9 @@
 
 A simple guide to install [Crosstalk](https://github.com/buildwithparallel/crosstalk) on a Raspberry Pi.
 
-This would allow you to connect an [RNode](https://github.com/markqvist/RNode_Firmware) (such as a Heltec v3) to the Rasbperry Pi via USB, and then access the Crosstalk Web UI from another machine on your network.
+This would allow you to connect an [RNode](https://github.com/markqvist/RNode_Firmware) (such as a Heltec v3) to the Rasbperry Pi via USB **or Bluetooth LE**, and then access the Crosstalk Web UI from another machine on your network.
+
+For Bluetooth LE setup details (pairing and `ble://` ports), see [rnode_bluetooth.md](./rnode_bluetooth.md).
 
 One useful setup is to run a Pi + RNode combo as a small always-on node, then access the Crosstalk Web UI via WiFi.
 

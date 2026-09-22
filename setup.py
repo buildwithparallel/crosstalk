@@ -30,6 +30,8 @@ setup(
                 # https://github.com/marcelotduarte/cx_Freeze/discussions/2039
                 # https://github.com/marcelotduarte/cx_Freeze/issues/2041
                 'RNS',
+                # RNS loads bleak dynamically for RNode BLE (ble://) connections
+                'bleak',
             ],
             # files that are required
             'include_files': [
