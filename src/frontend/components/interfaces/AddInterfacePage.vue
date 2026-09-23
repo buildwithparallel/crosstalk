@@ -219,16 +219,61 @@
                         </div>
                     </div>
 
-                    <!-- RNode interface -->
-                    <!-- interface port -->
-                    <div v-if="newInterfaceType === 'RNodeInterface'" class="mb-2">
-                        <FormLabel class="mb-1">Port</FormLabel>
-                        <select v-model="newInterfacePort" class="block w-full rounded-lg border p-2.5 text-sm">
-                            <option v-for="comport of comports" :value="comport.device">{{ comport.device }} (Product: {{ comport.product ?? '?' }}, Serial: {{ comport.serial ?? '?' }})</option>
-                        </select>
-                        <FormSubLabel>
-                            <div @click="loadComports" class="text-blue-500 underline cursor-pointer">Reload Ports</div>
-                        </FormSubLabel>
+                    <!-- RNode interface: USB serial, Bluetooth LE, or WiFi TCP -->
+                    <div v-if="newInterfaceType === 'RNodeInterface'" class="mb-2 space-y-3">
+                        <div>
+                            <FormLabel class="mb-1">Connection</FormLabel>
+                            <select v-model="rnodeConnectionMode" class="block w-full rounded-lg border p-2.5 text-sm">
+                                <option value="serial">USB Serial</option>
+                                <option value="ble">Bluetooth (BLE)</option>
+                                <option value="tcp">WiFi (TCP)</option>
+                            </select>
+                            <FormSubLabel>
+                                Heltec V3 and similar RNodes can connect over USB, Bluetooth LE, or WiFi. Pair the device in your OS Bluetooth settings before using BLE.
+                            </FormSubLabel>
+                        </div>
+
+                        <div v-if="rnodeConnectionMode === 'serial'">
+                            <FormLabel class="mb-1">Serial Port</FormLabel>
+                            <select v-model="newInterfacePort" class="block w-full rounded-lg border p-2.5 text-sm">
+                                <option v-for="comport of comports" :value="comport.device">{{ comport.device }} (Product: {{ comport.product ?? '?' }}, Serial: {{ comport.serial_number ?? comport.serial ?? '?' }})</option>
+                            </select>
+                            <FormSubLabel>
+                                <div @click="loadComports" class="text-blue-500 underline cursor-pointer">Reload Ports</div>
+                            </FormSubLabel>
+                        </div>
+
+                        <div v-else-if="rnodeConnectionMode === 'ble'" class="space-y-3">
+                            <div>
+                                <FormLabel class="mb-1">Bluetooth Target</FormLabel>
+                                <select v-model="rnodeBleTarget" class="block w-full rounded-lg border p-2.5 text-sm">
+                                    <option value="first">First paired RNode</option>
+                                    <option value="name">Device name</option>
+                                    <option value="address">MAC address</option>
+                                </select>
+                                <FormSubLabel>
+                                    Saves as a <code>ble://</code> port that Reticulum opens with bleak. The RNode must already be paired/bonded.
+                                </FormSubLabel>
+                            </div>
+                            <div v-if="rnodeBleTarget === 'name'">
+                                <FormLabel class="mb-1">Device Name</FormLabel>
+                                <input v-model="rnodeBleName" type="text" placeholder="RNode 3B87" class="block w-full rounded-lg border p-2.5 text-sm">
+                                <FormSubLabel>Exact Bluetooth advertisement name, for example <code>RNode 3B87</code>.</FormSubLabel>
+                            </div>
+                            <div v-if="rnodeBleTarget === 'address'">
+                                <FormLabel class="mb-1">MAC Address</FormLabel>
+                                <input v-model="rnodeBleAddress" type="text" placeholder="AA:BB:CC:DD:EE:FF" class="block w-full rounded-lg border p-2.5 text-sm">
+                                <FormSubLabel>Six colon-separated hex octets, for example <code>AA:BB:CC:DD:EE:FF</code>.</FormSubLabel>
+                            </div>
+                        </div>
+
+                        <div v-else-if="rnodeConnectionMode === 'tcp'">
+                            <FormLabel class="mb-1">RNode Host</FormLabel>
+                            <input v-model="rnodeTcpHost" type="text" placeholder="192.168.4.1" class="block w-full rounded-lg border p-2.5 text-sm">
+                            <FormSubLabel>
+                                Hostname or IP of a WiFi-connected RNode. Saved as <code>tcp://</code>host.
+                            </FormSubLabel>
+                        </div>
                     </div>
 
                     <!-- IridiumIMTInterface -->
@@ -291,6 +336,18 @@
                                 <FormSubLabel>A proof immediately cancels any remaining retry.</FormSubLabel>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- RNode LoRa regional starters (not universal radio defaults) -->
+                    <div v-if="newInterfaceType === 'RNodeInterface'" class="mb-2">
+                        <FormLabel class="mb-1">Regional Preset</FormLabel>
+                        <select v-model="rnodePresetId" @change="applyRNodePreset" class="block w-full rounded-lg border p-2.5 text-sm">
+                            <option value="">Custom / match my mesh</option>
+                            <option v-for="preset in rnodeRegionalPresets" :key="preset.id" :value="preset.id">{{ preset.label }}</option>
+                        </select>
+                        <FormSubLabel>
+                            {{ selectedRNodePresetDescription }}
+                        </FormSubLabel>
                     </div>
 
                     <!-- interface Frequency -->
@@ -928,6 +985,11 @@
 <script>
 import Utils from "../../js/Utils";
 import AutoInterfaceUtils from "../../js/AutoInterfaceUtils";
+import {
+    RNODE_REGIONAL_PRESETS,
+    findMatchingRNodePreset,
+    splitFrequencyHz,
+} from "../../js/RNodePresets";
 import DialogUtils from "../../js/DialogUtils";
 import ExpandingSection from "./ExpandingSection.vue";
 import FormLabel from "../forms/FormLabel.vue";
@@ -965,7 +1027,7 @@ export default {
                             {
                                 label: "Radio Hardware",
                                 options: [
-                                    { type: "RNodeInterface", name: "RNode (LoRa Radio)", icon: "broadcast", description: "Long-range, off-grid communication using an RNode LoRa radio device." },
+                                    { type: "RNodeInterface", name: "RNode (LoRa Radio)", icon: "broadcast", description: "Long-range, off-grid communication using an RNode LoRa radio over USB, Bluetooth LE, or WiFi." },
                                     { type: "RNodeMultiInterface", name: "RNode Multi", icon: "cell-tower", description: "For devices with multiple LoRa transceivers, such as the openCom XL." },
                                     { type: "IridiumIMTInterface", name: "RockBLOCK 9704 (Iridium)", icon: "planet", description: "Carry native Reticulum packets through Iridium Messaging Transport." },
                                     { type: "SerialInterface", name: "Serial Port", icon: "usb", description: "Connect through a raw serial port to custom hardware." },
@@ -1037,6 +1099,15 @@ export default {
             },
 
             newInterfacePort: null,
+            // RNode connection: serial path, ble://…, or tcp://…
+            rnodeConnectionMode: "serial",
+            rnodeBleTarget: "first",
+            rnodeBleName: "",
+            rnodeBleAddress: "",
+            rnodeTcpHost: "",
+            rnodePresetId: "",
+            rnodeRegionalPresets: RNODE_REGIONAL_PRESETS,
+            _applyingRNodePreset: false,
             RNodeGHzValue: 0,
             RNodeMHzValue: 0,
             RNodekHzValue: 0,
@@ -1153,12 +1224,22 @@ export default {
         enabledAutoInterfaceNames() {
             return this.enabledAutoInterfaces.map((iface) => `"${iface._name}"`).join(", ");
         },
+        selectedRNodePresetDescription() {
+            if(!this.rnodePresetId){
+                return "Presets are common regional starters only. If you are joining an existing mesh, enter that mesh's exact LoRa settings instead.";
+            }
+            const preset = this.rnodeRegionalPresets.find((entry) => entry.id === this.rnodePresetId);
+            return preset?.description ?? "";
+        },
     },
     watch: {
-        newInterfaceBandwidth: "updateRNodeCalculations",
-        newInterfaceSpreadingFactor: "updateRNodeCalculations",
-        newInterfaceCodingRate: "updateRNodeCalculations",
-        newInterfaceTxpower: "updateRNodeCalculations",
+        newInterfaceBandwidth: "onRNodeRadioFieldChanged",
+        newInterfaceSpreadingFactor: "onRNodeRadioFieldChanged",
+        newInterfaceCodingRate: "onRNodeRadioFieldChanged",
+        newInterfaceTxpower: "onRNodeRadioFieldChanged",
+        RNodeGHzValue: "onRNodeRadioFieldChanged",
+        RNodeMHzValue: "onRNodeRadioFieldChanged",
+        RNodekHzValue: "onRNodeRadioFieldChanged",
         'RNodeInterfaceLoRaParameters.antennaGain': "updateRNodeCalculations",
     },
     mounted() {
@@ -1225,6 +1306,60 @@ export default {
                 console.log(e);
             }
         },
+        /**
+         * Apply a regional starter preset to the LoRa radio fields.
+         */
+        applyRNodePreset() {
+            const preset = this.rnodeRegionalPresets.find((entry) => entry.id === this.rnodePresetId);
+            if(!preset){
+                return;
+            }
+            this._applyingRNodePreset = true;
+            try {
+                this.applyRNodeFrequencyHz(preset.frequency);
+                this.newInterfaceBandwidth = preset.bandwidth;
+                this.newInterfaceSpreadingFactor = preset.spreadingfactor;
+                this.newInterfaceCodingRate = preset.codingrate;
+                this.newInterfaceTxpower = preset.txpower;
+            } finally {
+                this._applyingRNodePreset = false;
+            }
+            this.rnodePresetId = preset.id;
+            this.updateRNodeCalculations();
+        },
+        /**
+         * Fill GHz / MHz / kHz inputs from a frequency in Hz.
+         * @param {number} frequencyHz
+         */
+        applyRNodeFrequencyHz(frequencyHz) {
+            const parts = splitFrequencyHz(frequencyHz);
+            this.RNodeGHzValue = parts.ghz;
+            this.RNodeMHzValue = parts.mhz;
+            this.RNodekHzValue = parts.khz;
+            this.newInterfaceFrequency = frequencyHz;
+        },
+        /**
+         * Keep bitrate calculations and preset selection in sync when radio fields change.
+         */
+        onRNodeRadioFieldChanged() {
+            if(!this._applyingRNodePreset){
+                this.syncRNodePresetSelection();
+            }
+            this.updateRNodeCalculations();
+        },
+        /**
+         * Mark the preset dropdown as Custom unless fields still match a starter.
+         */
+        syncRNodePresetSelection() {
+            const match = findMatchingRNodePreset({
+                frequency: this.calculateFrequencyInHz(),
+                bandwidth: this.newInterfaceBandwidth,
+                spreadingfactor: this.newInterfaceSpreadingFactor,
+                codingrate: this.newInterfaceCodingRate,
+                txpower: this.newInterfaceTxpower,
+            });
+            this.rnodePresetId = match?.id ?? "";
+        },
         async loadComports() {
             try {
                 const response = await window.axios.get(`/api/v1/comports`);
@@ -1232,6 +1367,94 @@ export default {
             } catch (e) {
                 // do nothing if failed to load interfaces
             }
+        },
+        /**
+         * Build the Reticulum RNode `port` value from the connection-mode form.
+         * Serial uses a device path; BLE/TCP use ble:// and tcp:// URIs.
+         */
+        resolveRNodePort() {
+            if(this.rnodeConnectionMode === "ble"){
+                if(this.rnodeBleTarget === "name"){
+                    return `ble://${(this.rnodeBleName || "").trim()}`;
+                }
+                if(this.rnodeBleTarget === "address"){
+                    return `ble://${(this.rnodeBleAddress || "").trim()}`;
+                }
+                return "ble://";
+            }
+            if(this.rnodeConnectionMode === "tcp"){
+                return `tcp://${(this.rnodeTcpHost || "").trim()}`;
+            }
+            return this.newInterfacePort;
+        },
+        /**
+         * Return a user-facing error if the RNode connection form is incomplete.
+         * @returns {string|null}
+         */
+        validateRNodePortForm() {
+            if(this.rnodeConnectionMode === "serial"){
+                if(!this.newInterfacePort){
+                    return "Choose a USB serial port, or switch Connection to Bluetooth or WiFi.";
+                }
+                return null;
+            }
+            if(this.rnodeConnectionMode === "ble"){
+                if(this.rnodeBleTarget === "name" && !(this.rnodeBleName || "").trim()){
+                    return "Enter the Bluetooth device name, for example RNode 3B87.";
+                }
+                if(this.rnodeBleTarget === "address"){
+                    const address = (this.rnodeBleAddress || "").trim();
+                    if(!/^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$/.test(address)){
+                        return "Enter a Bluetooth MAC address like AA:BB:CC:DD:EE:FF.";
+                    }
+                }
+                return null;
+            }
+            if(this.rnodeConnectionMode === "tcp"){
+                if(!(this.rnodeTcpHost || "").trim()){
+                    return "Enter the RNode hostname or IP address for WiFi (TCP).";
+                }
+                return null;
+            }
+            return null;
+        },
+        /**
+         * Populate connection-mode fields when editing an existing RNode port.
+         * @param {string|null|undefined} port
+         */
+        applyRNodePortToForm(port) {
+            const value = typeof port === "string" ? port : "";
+            const lower = value.toLowerCase();
+
+            this.rnodeConnectionMode = "serial";
+            this.rnodeBleTarget = "first";
+            this.rnodeBleName = "";
+            this.rnodeBleAddress = "";
+            this.rnodeTcpHost = "";
+
+            if(lower.startsWith("ble://")){
+                this.rnodeConnectionMode = "ble";
+                const bleTarget = value.slice("ble://".length);
+                if(bleTarget === ""){
+                    this.rnodeBleTarget = "first";
+                } else if(/^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$/.test(bleTarget)){
+                    this.rnodeBleTarget = "address";
+                    this.rnodeBleAddress = bleTarget;
+                } else {
+                    this.rnodeBleTarget = "name";
+                    this.rnodeBleName = bleTarget;
+                }
+                return;
+            }
+
+            if(lower.startsWith("tcp://")){
+                this.rnodeConnectionMode = "tcp";
+                this.rnodeTcpHost = value.slice("tcp://".length);
+                return;
+            }
+
+            this.rnodeConnectionMode = "serial";
+            this.newInterfacePort = value || null;
         },
         async loadInterfaceToEdit(interfaceName) {
             try {
@@ -1298,6 +1521,9 @@ export default {
 
                 // Port (For RNode, Serial, and KISS)
                 this.newInterfacePort = iface.port;
+                if(iface.type === "RNodeInterface"){
+                    this.applyRNodePortToForm(iface.port);
+                }
 
                 // RockBLOCK 9704 / Iridium IMT
                 this.iridiumIMTSettings.topic = iface.topic ?? 244;
@@ -1310,13 +1536,13 @@ export default {
 
                 // RNode Interface
                 this.newInterfaceFrequency = iface.frequency;
-                this.RNodeGHzValue = Math.floor(iface.frequency / 1e9);
-                this.RNodeMHzValue = Math.floor((iface.frequency % 1e9) / 1e6);
-                this.RNodekHzValue = Math.floor((iface.frequency % 1e6) / 1e3);
+                this.applyRNodeFrequencyHz(iface.frequency);
                 this.newInterfaceBandwidth = iface.bandwidth;
                 this.newInterfaceTxpower = iface.txpower;
                 this.newInterfaceSpreadingFactor = iface.spreadingfactor;
                 this.newInterfaceCodingRate = iface.codingrate;
+                this.syncRNodePresetSelection();
+                this.updateRNodeCalculations();
 
                 // RNode Multi Interface
                 this.RNodeMultiInterface.subInterfaces = iface.sub_interfaces;
@@ -1357,6 +1583,14 @@ export default {
         },
         async addInterface() {
             try {
+
+                if(this.newInterfaceType === "RNodeInterface"){
+                    const rnodePortError = this.validateRNodePortForm();
+                    if(rnodePortError){
+                        DialogUtils.alert(rnodePortError, { title: "Could Not Save" });
+                        return;
+                    }
+                }
 
                 if(this.newInterfaceType === "AutoInterface"){
                     const conflicting = AutoInterfaceUtils.conflictingEnabledAutoInterface(
@@ -1435,7 +1669,9 @@ export default {
                     peers: this.I2PSettings.newInterfacePeers.join(','),
 
                     // rnode interface
-                    port: this.newInterfacePort,
+                    port: this.newInterfaceType === "RNodeInterface"
+                        ? this.resolveRNodePort()
+                        : this.newInterfacePort,
                     frequency: this.calculateFrequencyInHz(),
                     bandwidth: this.newInterfaceBandwidth,
                     txpower: this.newInterfaceTxpower,

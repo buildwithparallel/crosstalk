@@ -1,4 +1,6 @@
 aiohttp>=3.13.3
+# Optional for RNS, required for RNode over Bluetooth (ble:// ports).
+bleak>=0.22.0
 cx_freeze>=7.0.0
 lxmf>=1.0.1
 peewee>=3.18.1,<4.0.0
