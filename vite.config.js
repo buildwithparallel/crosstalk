@@ -12,7 +12,21 @@ export default {
     // vite app is loaded from /src/frontend
     root: path.join(__dirname, "src", "frontend"),
 
+    // Whisper runs in a Web Worker. Transformers.js uses top-level await and
+    // should not be pre-bundled by esbuild.
+    optimizeDeps: {
+        exclude: [
+            "@huggingface/transformers",
+        ],
+    },
+
+    worker: {
+        format: "es",
+    },
+
     build: {
+
+        target: "es2022",
 
         // we want to compile vite app to /public which is bundled and served by the python executable
         outDir: path.join(__dirname, "public"),

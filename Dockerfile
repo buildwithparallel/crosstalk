@@ -6,6 +6,7 @@ WORKDIR /src
 # Copy required source files
 COPY *.json .
 COPY *.js .
+COPY scripts ./scripts
 COPY src/frontend ./src/frontend
 
 # Install NodeJS deps, exluding electron

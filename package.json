@@ -8,7 +8,8 @@
   "main": "electron/main.js",
   "scripts": {
     "watch": "npm run build-frontend -- --watch",
-    "build-frontend": "vite build",
+    "download-whisper-assets": "node scripts/download-whisper-assets.mjs",
+    "build-frontend": "npm run download-whisper-assets && vite build",
     "build-backend": "python setup.py build",
     "build": "npm run build-frontend && npm run build-backend",
     "electron-postinstall": "electron-builder install-app-deps",
@@ -23,6 +24,9 @@
     "electron": "^41.7.1",
     "electron-builder": "^26.15.3",
     "@phosphor-icons/core": "^2.1.1"
+  },
+  "overrides": {
+    "onnxruntime-web": "1.30.0"
   },
   "build": {
     "appId": "com.buildwithparallel.crosstalk",
@@ -41,7 +45,7 @@
       "hardenedRuntime": false,
       "artifactName": "Crosstalk-v${version}-macOS-${arch}.${ext}",
       "extendInfo": {
-        "NSMicrophoneUsageDescription": "Microphone access is needed for audio calls and voice messages",
+        "NSMicrophoneUsageDescription": "Crosstalk uses the microphone for audio calls, voice messages and on-device dictation.",
         "com.apple.security.device.audio-input": true
       },
       "extraFiles": [
@@ -102,6 +106,8 @@
     }
   },
   "dependencies": {
+    "@huggingface/transformers": "4.2.0",
+    "onnxruntime-web": "1.30.0",
     "@mdi/js": "^7.4.47",
     "@tailwindcss/forms": "^0.5.9",
     "@vitejs/plugin-vue": "^5.2.1",
