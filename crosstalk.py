@@ -48,6 +48,7 @@ from src.backend.outbound_identity import (
     parse_path_timeout,
     recall_send_identity,
     remember_destination_identity,
+    should_prefer_opportunistic_delivery,
 )
 from src.backend.reticulum_startup import start_reticulum
 from src.backend.rnode_ble import (
@@ -3469,8 +3470,12 @@ class Crosstalk:
                 "background_colour": db_lxmf_user_icon.background_colour,
             }
 
-        # get current hops away
-        hops = RNS.Transport.hops_to(bytes.fromhex(announce.destination_hash))
+        # Get the current Reticulum route. The interface name lets clients
+        # distinguish protocol-hop counts from physical radio distance on
+        # embedded bridge interfaces such as Prns Hopspot.
+        destination_hash = bytes.fromhex(announce.destination_hash)
+        hops = RNS.Transport.hops_to(destination_hash)
+        next_hop_interface = self.reticulum.get_next_hop_if_name(destination_hash)
 
         return {
             "id": announce.id,
@@ -3480,6 +3485,7 @@ class Crosstalk:
             "identity_public_key": announce.identity_public_key,
             "app_data": announce.app_data,
             "hops": hops,
+            "next_hop_interface": next_hop_interface,
             "rssi": announce.rssi,
             "snr": announce.snr,
             "quality": announce.quality,
@@ -3832,17 +3838,19 @@ class Crosstalk:
         elif delivery_method == "propagated":
             desired_delivery_method = LXMF.LXMessage.PROPAGATED
 
-        # determine how to send the message if the user didn't provide a method
+        # Determine how to send the message if the user didn't provide a
+        # method. Prefer a single opportunistic packet whenever an encryption
+        # ratchet is available, even if LXMF has a cached direct link. Mobile
+        # endpoints routinely sleep or move while that cached link remains in
+        # the router, and reusing it can leave a short message stuck outbound.
+        # LXMF automatically falls back to direct link delivery if the packed
+        # message is too large for a single packet.
         if desired_delivery_method is None:
-
-            # send messages over a direct link by default
             desired_delivery_method = LXMF.LXMessage.DIRECT
-            if not self.message_router.delivery_link_available(destination_hash) and RNS.Identity.current_ratchet_id(destination_hash) != None:
-
-                # since there's no link established to the destination, it's faster to send opportunistically
-                # this is because it takes several packets to establish a link, and then we still have to send the message over it
-                # oppotunistic mode will send the message in a single packet (if the message is small enough, otherwise it falls back to a direct link)
-                # we will only do this if an encryption ratchet is available, so single packet delivery is more secure
+            if should_prefer_opportunistic_delivery(
+                delivery_method,
+                RNS.Identity.current_ratchet_id(destination_hash) is not None,
+            ):
                 desired_delivery_method = LXMF.LXMessage.OPPORTUNISTIC
 
         # A small satellite chat message must use one packet instead of a

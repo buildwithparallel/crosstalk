@@ -108,11 +108,10 @@
                                     {{ formatTimeAgo(peer.updated_at) }}
                                 </span>
 
-                                <!-- hops away -->
-                                <span v-if="peer.hops != null && peer.hops !== 128" class="flex my-auto space-x-1">
+                                <!-- Do not present embedded Reticulum forwarding as physical RF distance. -->
+                                <span v-if="peer.hops != null && peer.hops !== 128" class="flex my-auto space-x-1" :title="getPathBadgeTitle(peer)">
                                     <span>•</span>
-                                    <span v-if="peer.hops === 0 || peer.hops === 1">Direct</span>
-                                    <span v-else>{{ peer.hops }} hops</span>
+                                    <span>{{ getPathBadge(peer) }}</span>
                                 </span>
 
                                 <!-- snr -->
@@ -154,6 +153,7 @@
 import Utils from "../../js/Utils";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import EmptyState from "../base/EmptyState.vue";
+import { formatPathBadge, pathBadgeTitle } from "../../js/PathUtils";
 
 export default {
     name: 'MessagesSidebar',
@@ -182,6 +182,12 @@ export default {
         },
         pathStatusTitle(hasPath) {
             return hasPath ? "Path available" : "No current path";
+        },
+        getPathBadge(path) {
+            return formatPathBadge(path);
+        },
+        getPathBadgeTitle(path) {
+            return pathBadgeTitle(path);
         },
     },
     computed: {

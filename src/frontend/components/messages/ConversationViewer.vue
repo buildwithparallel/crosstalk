@@ -46,10 +46,9 @@
                     <div class="inline-block">
                         <div class="flex space-x-1">
 
-                            <!-- hops away -->
-                            <span v-if="selectedPeerPath" @click="onDestinationPathClick(selectedPeerPath)" class="flex my-auto cursor-pointer">
-                                <span v-if="selectedPeerPath.hops === 0 || selectedPeerPath.hops === 1">Direct</span>
-                                <span v-else>{{ selectedPeerPath.hops }} hops away</span>
+                            <!-- Do not present embedded Reticulum forwarding as physical RF distance. -->
+                            <span v-if="selectedPeerPath" @click="onDestinationPathClick(selectedPeerPath)" class="flex my-auto cursor-pointer" :title="getPathBadgeTitle(selectedPeerPath)">
+                                <span>{{ getPathBadge(selectedPeerPath) }}</span>
                             </span>
 
                             <!-- snr -->
@@ -503,6 +502,7 @@ import CopyButton from "../CopyButton.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import EmptyState from "../base/EmptyState.vue";
 import { LAST_RESORT_HOP, LAST_RESORT_MAX_BYTES, truncateUtf8Bytes, utf8ByteLength } from "../../js/bridgeExtensions";
+import { formatPathBadge, formatPathDetails, pathBadgeTitle } from "../../js/PathUtils";
 
 export default {
     name: 'ConversationViewer',
@@ -1017,7 +1017,13 @@ export default {
             }
         },
         onDestinationPathClick(path) {
-            DialogUtils.alert(`${path.hops} ${ path.hops === 1 ? 'hop' : 'hops' } away via ${path.next_hop_interface}`, { title: "Network Path" });
+            DialogUtils.alert(formatPathDetails(path), { title: "Network Path" });
+        },
+        getPathBadge(path) {
+            return formatPathBadge(path);
+        },
+        getPathBadgeTitle(path) {
+            return pathBadgeTitle(path);
         },
         onStampInfoClick(stampInfo) {
 

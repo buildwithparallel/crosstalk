@@ -389,8 +389,9 @@ export default {
                 // initiate call
                 const response = await axios.get(`/api/v1/calls/initiate/${destinationHash}`, {
                     params: {
-                        timeout: 15, // how long to attempt to initiate call
+                        timeout: 45, // allow multi-hop low-bitrate radio paths to establish
                     },
+                    timeout: 50000,
                 });
 
                 // get audio call from response

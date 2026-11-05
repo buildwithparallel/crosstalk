@@ -7,7 +7,7 @@ from unittest.mock import patch
 import RNS
 from RNS.Interfaces.Interface import Interface
 from src.backend.interfaces.PrnsHopspotInterface import (
-    ACK_PREFIX, HELLO, MAX_MESSAGE, FrameDecoder, HopspotSession,
+    ACK_PREFIX, DEFAULT_LORA_BITRATE, HELLO, MAX_MESSAGE, FrameDecoder, HopspotSession,
     PrnsHopspotInterface, decode_message, frame_message, usb_device_id, validate_device_id,
 )
 
@@ -127,6 +127,7 @@ class HopspotRecoveryTest(unittest.TestCase):
             radio = PrnsHopspotInterface(owner, {"name": "duo2", "device_id": "usb:1209:0001:0:1"})
             try:
                 self.wait_for(lambda: radio.online)
+                self.assertEqual(radio.bitrate, DEFAULT_LORA_BITRATE)
                 first.failed = True
                 self.wait_for(lambda: radio.online and len(calls) >= 3)
                 self.assertTrue(first.closed)

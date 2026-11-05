@@ -18,6 +18,10 @@ from RNS.Interfaces.Interface import Interface
 USB_VENDOR = 0x1209
 USB_PRODUCT = 0x0001
 MAX_MESSAGE = 1 + 8192 + 64
+# SF7 at 500 kHz with coding rate 4/5 carries about 21.875 kbps. Reticulum
+# uses interface bitrate when sizing link timeouts, so advertising the USB bus
+# speed here makes multi-hop LoRa links expire before their replies arrive.
+DEFAULT_LORA_BITRATE = 21_875
 HELLO = b"\x01Prns\x02\x01"
 ACK_PREFIX = b"\x02Prns\x02\x01"
 DEVICE_PATTERN = re.compile(r"usb:1209:0001:\d+:\d+(?:\.\d+)*\Z")
@@ -274,7 +278,7 @@ class PrnsHopspotInterface(Interface):
         self.online = False
         self.detached = False
         self.IN = self.OUT = True
-        self.bitrate = 6_000_000
+        self.bitrate = DEFAULT_LORA_BITRATE
         self.HW_MTU = 8192
         self.last_error = ""
         self.session = None

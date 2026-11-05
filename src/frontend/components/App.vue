@@ -237,6 +237,7 @@
                                     class="block w-full rounded-lg border p-2 text-sm"
                                 >
                                     <option value="0">Disabled</option>
+                                    <option value="300">Every 5 Minutes</option>
                                     <option value="900">Every 15 Minutes</option>
                                     <option value="1800">Every 30 Minutes</option>
                                     <option value="3600">Every 1 Hour</option>

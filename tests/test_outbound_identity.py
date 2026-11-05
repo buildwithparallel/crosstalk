@@ -9,6 +9,7 @@ from src.backend.outbound_identity import (
     parse_path_timeout,
     recall_send_identity,
     remember_destination_identity,
+    should_prefer_opportunistic_delivery,
 )
 
 
@@ -42,6 +43,16 @@ class OutboundIdentityTest(unittest.TestCase):
         recalled = RNS.Identity.recall(destination_hash, _no_use=True)
         self.assertIsNotNone(recalled)
         self.assertEqual(recalled.get_public_key(), original.get_public_key())
+
+    def test_automatic_send_prefers_opportunistic_when_ratchet_exists(self):
+        self.assertTrue(should_prefer_opportunistic_delivery(None, True))
+
+    def test_automatic_send_uses_direct_without_ratchet(self):
+        self.assertFalse(should_prefer_opportunistic_delivery(None, False))
+
+    def test_explicit_delivery_method_is_preserved(self):
+        self.assertFalse(should_prefer_opportunistic_delivery("direct", True))
+        self.assertFalse(should_prefer_opportunistic_delivery("propagated", True))
 
 
 if __name__ == "__main__":

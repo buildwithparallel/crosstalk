@@ -25,6 +25,24 @@ def parse_path_timeout(raw_value, default=DEFAULT_SEND_PATH_TIMEOUT_SECONDS):
     return timeout
 
 
+def should_prefer_opportunistic_delivery(
+    explicit_delivery_method,
+    has_ratchet,
+):
+    """Use resilient single-packet delivery when Crosstalk chooses the method.
+
+    LXMF automatically falls back to direct link delivery when the packed
+    payload is too large for one packet. Prefer opportunistic delivery for an
+    automatic send whenever an encryption ratchet is available, even when the
+    router still has a cached direct link. A cached link can be half-open after
+    a mobile endpoint sleeps or moves, which otherwise leaves short messages
+    waiting on a link that is no longer useful.
+
+    Explicit user choices are always preserved.
+    """
+    return explicit_delivery_method is None and has_ratchet
+
+
 def identity_from_public_key_bytes(public_key):
     if not public_key:
         return None
