@@ -1,11 +1,16 @@
 import unittest
 from types import SimpleNamespace
+from unittest.mock import Mock, patch
+
+import RNS
+from RNS.Interfaces import RNodeInterface as rnode_module
 
 from src.backend.rnode_ble import (
     RNODE_UART_SERVICE_UUID,
     advertised_names,
     matches_rnode_device,
     scan_rnode_ble_devices,
+    install_rnode_ble_dependency_guard,
 )
 
 
@@ -114,6 +119,84 @@ class RNodeBleScanTest(unittest.IsolatedAsyncioTestCase):
             "system_name": "Meshtastic_ed54",
             "rssi": -53,
         }])
+
+
+class RNodeBleRecoveryTest(unittest.TestCase):
+    def setUp(self):
+        self.initialized = []
+        initialized = self.initialized
+
+        class Connection:
+            bleak = None
+
+            def __init__(self, owner=None, **kwargs):
+                initialized.append(owner)
+                self.connected = True
+                self.is_open = True
+                self.running = True
+                self.CONNECT_TIMEOUT = 0
+
+        self.connection = Connection
+        self.connection_patch = patch.object(rnode_module, "BLEConnection", Connection)
+        self.connection_patch.start()
+        self.addCleanup(self.connection_patch.stop)
+
+    def test_missing_ble_support_never_reaches_fatal_constructor(self):
+        install_rnode_ble_dependency_guard()
+        with patch("src.backend.rnode_ble.importlib.import_module", side_effect=ModuleNotFoundError("bleak")), patch.object(RNS, "panic") as panic:
+            for _ in range(3):
+                with self.assertRaisesRegex(RuntimeError, "Bluetooth support is unavailable"):
+                    self.connection(owner="radio")
+        panic.assert_not_called()
+        self.assertEqual(self.initialized, [])
+
+    def test_broken_native_dependency_is_a_connection_error(self):
+        install_rnode_ble_dependency_guard()
+        with patch("src.backend.rnode_ble.importlib.import_module", side_effect=OSError("native library unavailable")):
+            with self.assertRaisesRegex(RuntimeError, "Bluetooth support is unavailable"):
+                self.connection(owner="radio")
+
+    def test_guard_is_idempotent_and_supplies_frozen_dependency(self):
+        self.assertTrue(install_rnode_ble_dependency_guard())
+        self.assertFalse(install_rnode_ble_dependency_guard())
+        bleak = object()
+        with patch("src.backend.rnode_ble.importlib.import_module", return_value=bleak):
+            self.connection(owner="radio")
+        self.assertEqual(self.initialized, ["radio"])
+        self.assertIs(self.connection.bleak, bleak)
+
+    def test_reconnect_survives_failures_then_recovers_without_losing_config(self):
+        install_rnode_ble_dependency_guard()
+        radio = SimpleNamespace(
+            port=None, name="radio", online=False, detached=False,
+            reconnecting=False, use_ble=True, use_tcp=False, ble=None,
+            ble_name="RNode Test", ble_addr=None,
+        )
+        radio.open_port = lambda: rnode_module.RNodeInterface.open_port(radio)
+        radio.configure_device = Mock(side_effect=lambda: setattr(radio, "online", True))
+        with patch("src.backend.rnode_ble.importlib.import_module", side_effect=[ModuleNotFoundError("bleak"), OSError("device rebooting"), object()]), patch.object(rnode_module.time, "sleep"), patch.object(RNS, "log"), patch.object(RNS, "panic") as panic:
+            rnode_module.RNodeInterface.reconnect_port(radio)
+        panic.assert_not_called()
+        self.assertTrue(radio.online)
+        self.assertFalse(radio.reconnecting)
+        self.assertEqual(radio.ble_name, "RNode Test")
+        radio.configure_device.assert_called_once()
+
+    def test_unplugged_usb_radio_enters_reconnect(self):
+        serial = SimpleNamespace(
+            is_open=True, in_waiting=1,
+            read=Mock(side_effect=OSError("device unplugged")), close=Mock(),
+        )
+        radio = SimpleNamespace(
+            serial=serial, online=True, detached=False, reconnecting=False,
+            reconnect_port=Mock(),
+        )
+        with patch.object(RNS.Reticulum, "panic_on_interface_error", False, create=True), patch.object(RNS, "log"), patch.object(RNS, "panic") as panic:
+            rnode_module.RNodeInterface.readLoop(radio)
+        panic.assert_not_called()
+        self.assertFalse(radio.online)
+        serial.close.assert_called_once()
+        radio.reconnect_port.assert_called_once()
 
 
 if __name__ == "__main__":

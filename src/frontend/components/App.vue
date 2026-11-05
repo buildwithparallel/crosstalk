@@ -187,11 +187,11 @@
                                 </div>
                             </div>
                             <div class="ml-auto flex items-center gap-x-1.5">
-                                <a href="../call.html" target="_blank" title="View Calls" class="inline-flex items-center rounded-full bg-green-500 p-1.5 text-white hover:bg-green-400">
-                                    <PhosphorIcon name="phone" weight="fill" class="size-4"/>
+                                <a href="../call.html" target="_blank" title="Open call controls" aria-label="Open call controls" class="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-green-500 !text-white hover:bg-green-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-400">
+                                    <PhosphorIcon name="phone" weight="fill" class="size-5" aria-hidden="true"/>
                                 </a>
-                                <button title="Hang up all calls" @click="hangupAllCalls" type="button" class="inline-flex items-center rounded-full bg-red-500 p-1.5 text-white hover:bg-red-400">
-                                    <PhosphorIcon name="phone-disconnect" weight="fill" class="size-4"/>
+                                <button title="Hang up all calls" aria-label="Hang up all calls" @click="hangupAllCalls" type="button" class="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400">
+                                    <PhosphorIcon name="phone-disconnect" weight="fill" class="size-5" aria-hidden="true"/>
                                 </button>
                             </div>
                         </div>

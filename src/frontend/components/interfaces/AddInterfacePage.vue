@@ -146,6 +146,20 @@
                         </div>
                     </div>
 
+                    <div v-if="newInterfaceType === 'PrnsHopspotInterface'" class="space-y-3">
+                        <FormLabel>Hopspot USB device</FormLabel>
+                        <div class="flex gap-2">
+                            <select v-model="prnsUsbDeviceId" class="block w-full rounded-lg border p-2.5 text-sm">
+                                <option value="">Select a connected Hopspot</option>
+                                <option v-if="prnsUsbDeviceId && !prnsUsbDevices.some(d => d.device_id === prnsUsbDeviceId)" :value="prnsUsbDeviceId">Saved USB port — device disconnected</option>
+                                <option v-for="device of prnsUsbDevices" :key="device.device_id" :value="device.device_id">{{ device.label }}</option>
+                            </select>
+                            <button type="button" @click="scanPrnsUsb" :disabled="prnsUsbScanning" class="ct-secondary-button rounded-lg px-3 py-2 text-sm">{{ prnsUsbScanning ? 'Scanning…' : 'Find devices' }}</button>
+                        </div>
+                        <FormSubLabel>Connects directly to a board running Prns Hopspot firmware. Keep each board in its assigned USB port.</FormSubLabel>
+                        <div v-if="prnsUsbError" class="text-sm text-[var(--ct-red)]">{{ prnsUsbError }}</div>
+                    </div>
+
                     <!-- TCPClientInterface -->
                     <!-- interface target host -->
                     <div v-if="usesTCPClientFields" class="mb-2">
@@ -1054,6 +1068,10 @@ export default {
             existingInterfaces: {},
 
             comports: [],
+            prnsUsbDeviceId: "",
+            prnsUsbDevices: [],
+            prnsUsbScanning: false,
+            prnsUsbError: "",
 
             // guided picker: plain-language connection types
                         interfaceTypeGroups: [
@@ -1068,6 +1086,7 @@ export default {
                                 label: "Radio Hardware",
                                 options: [
                                     { type: "RNodeInterface", name: "RNode (LoRa Radio)", icon: "broadcast", description: "Long-range, off-grid communication using an RNode LoRa radio over USB, Bluetooth LE, or WiFi." },
+                                    { type: "PrnsHopspotInterface", name: "Prns Hopspot (USB)", icon: "usb", description: "Connect directly to a Prns Hopspot, including the muzi works Base Duo." },
                                     { type: "RNodeMultiInterface", name: "RNode Multi", icon: "cell-tower", description: "For devices with multiple LoRa transceivers, such as the openCom XL." },
                                     { type: "IridiumIMTInterface", name: "RockBLOCK 9704 (Iridium)", icon: "planet", description: "Carry native Reticulum packets through Iridium Messaging Transport." },
                                     { type: "SerialInterface", name: "Serial Port", icon: "usb", description: "Connect through a raw serial port to custom hardware." },
@@ -1278,6 +1297,11 @@ export default {
         },
     },
     watch: {
+        newInterfaceType(value) {
+            if(value === "PrnsHopspotInterface"){
+                this.scanPrnsUsb();
+            }
+        },
         newInterfaceBandwidth: "onRNodeRadioFieldChanged",
         newInterfaceSpreadingFactor: "onRNodeRadioFieldChanged",
         newInterfaceCodingRate: "onRNodeRadioFieldChanged",
@@ -1308,6 +1332,22 @@ export default {
 
     },
     methods: {
+        async scanPrnsUsb() {
+            if(this.prnsUsbScanning) return;
+            this.prnsUsbScanning = true;
+            this.prnsUsbError = "";
+            try {
+                const response = await window.axios.get("/api/v1/prns/usb/devices", { timeout: 5000 });
+                this.prnsUsbDevices = response.data.devices;
+                if(this.prnsUsbDevices.length === 0){
+                    this.prnsUsbError = "No Hopspot found. Connect a board running Prns Hopspot firmware, then try again.";
+                }
+            } catch(error) {
+                this.prnsUsbError = error.response?.data?.message || "Could not discover USB Hopspots.";
+            } finally {
+                this.prnsUsbScanning = false;
+            }
+        },
         async getConfig() {
             try {
                 const response = await window.axios.get(`/api/v1/config`);
@@ -1556,6 +1596,7 @@ export default {
                 // set form values
                 this.newInterfaceName = interfaceName;
                 this.newInterfaceType = iface.type;
+                this.prnsUsbDeviceId = iface.device_id || "";
 
                 // AutoInterface additional settings
                 this.newInterfaceGroupID = iface.group_id;
@@ -1662,6 +1703,10 @@ export default {
         },
         async addInterface() {
             try {
+                if(this.newInterfaceType === "PrnsHopspotInterface" && !this.prnsUsbDeviceId){
+                    DialogUtils.alert("Select a Hopspot USB device.", { title: "Could Not Save" });
+                    return;
+                }
 
                 if(this.newInterfaceType === "RNodeInterface"){
                     const rnodePortError = this.validateRNodePortForm();
@@ -1716,6 +1761,8 @@ export default {
                     // required values
                     name: this.newInterfaceName,
                     type: this.interfaceTypeForSave,
+                    transport: this.newInterfaceType === "PrnsHopspotInterface" ? "usb" : undefined,
+                    device_id: this.newInterfaceType === "PrnsHopspotInterface" ? this.prnsUsbDeviceId : undefined,
 
                     // AutoInterface
                     group_id: this.newInterfaceGroupID,

@@ -83,7 +83,8 @@ const ICONS = {
 function normalizeName(name) {
     return String(name ?? "")
         .trim()
-        .replace(/^ph[-_]?/i, "")
+        // Strip explicit icon namespaces, preserving names such as "phone".
+        .replace(/^ph[-_]/i, "")
         .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
         .replace(/[_\s]+/g, "-")
         .toLowerCase();

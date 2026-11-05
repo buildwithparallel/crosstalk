@@ -1,9 +1,11 @@
 import unittest
+from unittest.mock import patch
 
 import RNS
 
 from src.backend.reticulum_startup import (
     disable_interface_in_config,
+    defer_initial_radio_connection,
     recover_failed_interfaces,
 )
 
@@ -120,6 +122,42 @@ class ReticulumStartupTest(unittest.TestCase):
             "true",
         )
         self.assertEqual(reticulum.config.writes, 0)
+
+    def test_legacy_panic_setting_is_disabled_before_devices_start(self):
+        reticulum = FakeReticulum({"radio": {"type": "RNodeInterface"}})
+        observed = []
+
+        def synthesize(self, config, name, instance_init=False):
+            observed.append(RNS.Reticulum.panic_on_interface_error)
+
+        with patch.object(RNS.Reticulum, "_synthesize_interface", synthesize), patch.object(RNS.Reticulum, "panic_on_interface_error", True, create=True):
+            with recover_failed_interfaces([]):
+                RNS.Reticulum._synthesize_interface(reticulum, reticulum.config["interfaces"]["radio"], "radio")
+        self.assertEqual(observed, [False])
+        self.assertEqual(reticulum.config.writes, 0)
+
+    def test_initial_radio_connection_is_deferred_and_can_connect_later(self):
+        class Radio:
+            def __init__(self):
+                self.settings = {"port": "configured-radio"}
+                self.online = False
+                self.retry_scheduled = False
+                try:
+                    self.open_port()
+                except ConnectionError:
+                    self.retry_scheduled = True
+
+            def open_port(self):
+                self.online = True
+
+        self.assertTrue(defer_initial_radio_connection(Radio))
+        self.assertFalse(defer_initial_radio_connection(Radio))
+        radio = Radio()
+        self.assertTrue(radio.retry_scheduled)
+        self.assertFalse(radio.online)
+        radio.open_port()
+        self.assertTrue(radio.online)
+        self.assertEqual(radio.settings, {"port": "configured-radio"})
 
 
 if __name__ == "__main__":

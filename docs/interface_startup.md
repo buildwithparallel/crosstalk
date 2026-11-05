@@ -22,3 +22,19 @@ copy is unnecessary, and Save asks before creating a duplicate.
 
 A broken config file, or two interfaces that share the same name, is still
 fatal. Those are not recoverable interface start errors.
+
+## Disconnected devices and restarts
+
+An unplugged USB radio, a rebooting device, an unavailable BLE target, or an
+unreachable TCP peer stays offline while Reticulum retries the connection.
+These temporary failures do not disable the saved interface or close Crosstalk.
+Initial RNode connections also run in the normal reconnect worker so a missing
+radio or Bluetooth pairing prompt does not hold up the app's startup.
+Crosstalk treats runtime interface errors as nonfatal even if an older config
+sets `panic_on_interface_error = Yes`; the saved setting is not rewritten.
+
+Missing or broken Bluetooth support is also a connection failure, including
+during background retries after startup. It is reported in Diagnostics instead
+of terminating the backend. Desktop packages include `bleak` and its native
+dependencies; a damaged installation can be repaired without removing radio
+settings or chat history.

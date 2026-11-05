@@ -43,6 +43,7 @@ from src.backend.async_utils import AsyncUtils
 from src.backend.colour_utils import ColourUtils
 from src.backend.interface_config_parser import InterfaceConfigParser
 from src.backend.interface_editor import InterfaceEditor
+from src.backend.interfaces.PrnsHopspotInterface import discover_usb_devices, validate_device_id
 from src.backend.outbound_identity import (
     parse_path_timeout,
     recall_send_identity,
@@ -162,7 +163,7 @@ def resolve_reticulum_config_dir(config_dir):
 
 def ensure_bundled_reticulum_interfaces(config_dir):
     """Install app-managed external RNS interfaces into the active config."""
-    interface_names = ("IridiumIMTInterface.py",)
+    interface_names = ("IridiumIMTInterface.py", "PrnsHopspotInterface.py")
     interface_dir = os.path.join(
         resolve_reticulum_config_dir(config_dir),
         "interfaces",
@@ -577,6 +578,17 @@ class Crosstalk:
                 "comports": comports,
             })
 
+        @routes.get("/api/v1/prns/usb/devices")
+        async def prns_usb_devices(request):
+            try:
+                devices = await asyncio.to_thread(discover_usb_devices)
+                return web.json_response({"devices": devices})
+            except Exception:
+                return web.json_response({
+                    "message": "Could not discover Hopspots. Check USB permissions and the Crosstalk USB dependencies.",
+                    "devices": [],
+                }, status=503)
+
         # Scan for RNodes using their Nordic UART BLE service. On macOS the
         # returned identifier is a CoreBluetooth UUID rather than a MAC.
         @routes.get("/api/v1/rnode/ble/scan")
@@ -844,6 +856,21 @@ class Crosstalk:
 
                 # set optional UDPInterface options
                 InterfaceEditor.update_value(interface_details, data, "device")
+
+            if interface_type == "PrnsHopspotInterface":
+                if data.get("transport", "usb") != "usb":
+                    return web.json_response({"message": "Only USB Hopspot connections are currently available."}, status=422)
+                try:
+                    device_id = validate_device_id(data.get("device_id"))
+                except ValueError as error:
+                    return web.json_response({"message": str(error)}, status=422)
+                for other_name, other in interfaces.items():
+                    if (other_name != interface_name and other.get("type") == interface_type
+                            and other.get("device_id") == device_id
+                            and is_interface_config_enabled(other)):
+                        return web.json_response({"message": "This Hopspot is already assigned to another enabled interface."}, status=422)
+                interface_details["transport"] = "usb"
+                interface_details["device_id"] = device_id
 
             # handle RNodeInterface
             if interface_type == "RNodeInterface":
@@ -2185,6 +2212,12 @@ class Crosstalk:
                     interface["interface_name"] = interface["short_name"]
 
                 interface_name = interface.get("short_name")
+
+                if interface.get("type") == "PrnsHopspotInterface":
+                    for live_interface in RNS.Transport.interfaces:
+                        if getattr(live_interface, "name", None) == interface_name:
+                            interface["last_error"] = getattr(live_interface, "last_error", "")
+                            break
 
                 # Reticulum's standard interface statistics intentionally only
                 # contain transport-level fields. Add the small amount of

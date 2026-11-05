@@ -13,8 +13,11 @@ Bleak/CoreBluetooth still performs the real connection and authentication.
 
 from __future__ import annotations
 
+import asyncio
+import importlib
 import platform
 import time
+from functools import wraps
 from typing import Any
 
 
@@ -109,6 +112,39 @@ async def scan_rnode_ble_devices(timeout: float = 6.0, scanner_class=None) -> li
 
     # A stable order prevents the buttons jumping between scans.
     return sorted(devices, key=lambda item: (item["name"].casefold(), item["identifier"]))
+
+
+def install_rnode_ble_dependency_guard() -> bool:
+    """Make missing BLE support recoverable on initial connection and retries."""
+    from RNS.Interfaces.RNodeInterface import BLEConnection
+
+    original_init = BLEConnection.__init__
+    if getattr(original_init, "_crosstalk_dependency_guard", False):
+        return False
+
+    @wraps(original_init)
+    def guarded_init(self, *args, **kwargs):
+        try:
+            bleak = importlib.import_module("bleak")
+        except (ImportError, OSError) as error:
+            # Upstream calls RNS.panic() here, including from its reconnect
+            # thread after startup protection has ended. Raise an ordinary
+            # connection error instead so that thread can keep retrying.
+            raise RuntimeError(
+                "Bluetooth support is unavailable. This radio will stay offline "
+                "while Crosstalk keeps running; repair the Crosstalk installation "
+                "to restore Bluetooth support."
+            ) from error
+
+        # Frozen packages can import bleak without exposing a find_spec result.
+        # Supply the modules before upstream's dynamic dependency detection.
+        BLEConnection.bleak = bleak
+        BLEConnection.asyncio = asyncio
+        return original_init(self, *args, **kwargs)
+
+    guarded_init._crosstalk_dependency_guard = True
+    BLEConnection.__init__ = guarded_init
+    return True
 
 
 def apply_macos_rnode_ble_compatibility() -> bool:

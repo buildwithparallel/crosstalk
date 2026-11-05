@@ -1,8 +1,9 @@
 class AudioProcessor extends AudioWorkletProcessor {
 
-    constructor() {
+    constructor(options) {
         super();
-        this.bufferSize = 4096; // Adjust the buffer size as needed
+        // Live calls request complete Codec2 frames; recordings keep their default.
+        this.bufferSize = options?.processorOptions?.bufferSize ?? 4096;
         this.sampleRate = 8000; // Target sample rate
         this.inputBuffer = new Float32Array(this.bufferSize);
         this.bufferIndex = 0;

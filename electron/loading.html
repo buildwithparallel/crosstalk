@@ -104,6 +104,9 @@
 
 <script>
 
+    const params = new URLSearchParams(window.location.search);
+    const backendOrigin = params.get('backendOrigin') || 'http://localhost:9337';
+
     showAppVersion();
     check();
 
@@ -117,7 +120,7 @@
         try {
 
             // fetch status api
-            const url = "http://localhost:9337/api/v1/status";
+            const url = backendOrigin + "/api/v1/status";
             const result = await fetch(url, {
                 cache: "no-store", // don't read page from cache, we want to make sure server is up
             });
@@ -140,9 +143,8 @@
     function onReady() {
         // redirect to crosstalk and bypass browser cache
         var timestamp = (new Date()).getTime();
-        const params = new URLSearchParams(window.location.search);
         const returnRoute = params.get("returnRoute") || "";
-        window.location.href = "http://localhost:9337/?nocache=" + timestamp + returnRoute;
+        window.location.href = backendOrigin + "/?nocache=" + timestamp + returnRoute;
     }
 
 </script>

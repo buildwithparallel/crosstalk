@@ -1,4 +1,7 @@
 import json
+import ctypes.util
+import os
+import sys
 from pathlib import Path
 
 from cx_Freeze import setup, Executable
@@ -6,6 +9,12 @@ from cx_Freeze import setup, Executable
 
 project_dir = Path(__file__).resolve().parent
 package_metadata = json.loads((project_dir / 'package.json').read_text(encoding='utf-8'))
+
+usb_libraries = []
+if sys.platform == "darwin":
+    libusb = ctypes.util.find_library("usb-1.0")
+    if libusb and os.path.isfile(libusb):
+        usb_libraries.append((os.path.realpath(libusb), "lib/libusb-1.0.dylib"))
 
 
 setup(
@@ -32,6 +41,7 @@ setup(
                 'RNS',
                 # RNS loads bleak dynamically for RNode BLE (ble://) connections
                 'bleak',
+                'usb',
             ],
             # files that are required
             'include_files': [
@@ -41,7 +51,11 @@ setup(
                     'src/backend/interfaces/IridiumIMTInterface.py',
                     'src/backend/interfaces/IridiumIMTInterface.py',
                 ),
-            ],
+                (
+                    'src/backend/interfaces/PrnsHopspotInterface.py',
+                    'src/backend/interfaces/PrnsHopspotInterface.py',
+                ),
+            ] + usb_libraries,
             # slim down the build by excluding these unused libs
             'excludes': [
                 'PIL', # saves ~200MB

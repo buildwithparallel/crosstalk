@@ -2,6 +2,13 @@ const { app, BrowserWindow, dialog, ipcMain, shell, systemPreferences, Menu } = 
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('node:path');
+const { instanceOptions } = require('./instance-options');
+
+const instance = instanceOptions(process.argv, process.defaultApp);
+if(instance.userData){
+    fs.mkdirSync(instance.userData, { recursive: true });
+    app.setPath('userData', instance.userData);
+}
 
 // remember main window
 var mainWindow = null;
@@ -232,8 +239,7 @@ app.whenReady().then(async () => {
     }
 
     // get arguments passed to application, and remove the provided application path
-    const ignoredArguments = ["--no-sandbox", "--ozone-platform-hint=auto"];
-    const userProvidedArguments = process.argv.slice(1).filter((arg) => !ignoredArguments.includes(arg));
+    const userProvidedArguments = instance.args;
     const shouldLaunchHeadless = userProvidedArguments.includes("--headless");
 
     if(!shouldLaunchHeadless){
@@ -248,6 +254,12 @@ app.whenReady().then(async () => {
                 preload: path.join(__dirname, 'preload.js'),
             },
         });
+        if(instance.label){
+            mainWindow.on('page-title-updated', (event) => {
+                event.preventDefault();
+                mainWindow.setTitle(`Crosstalk — ${instance.label}`);
+            });
+        }
 
         // show a native right click menu, electron has none by default so paste into inputs was impossible
         mainWindow.webContents.on('context-menu', (event, params) => {
@@ -294,7 +306,9 @@ app.whenReady().then(async () => {
         });
 
         // navigate to loading page
-        await mainWindow.loadFile(path.join(__dirname, 'loading.html'));
+        await mainWindow.loadFile(path.join(__dirname, 'loading.html'), {
+            query: { backendOrigin: instance.backendOrigin },
+        });
 
     }
 
@@ -312,7 +326,7 @@ app.whenReady().then(async () => {
         // arguments we always want to pass in
         const requiredArguments = [
             '--headless', // reticulum crosstalk usually launches default web browser, we don't want this when using electron
-            '--port', '9337', // FIXME: let system pick a random unused port?
+            '--port', String(instance.port),
             // '--test-exception-message', 'Test Exception Message', // uncomment to test the crash dialog
         ];
 
@@ -441,9 +455,10 @@ async function restartBackend(returnRoute = null) {
 
         if(mainWindow && !mainWindow.isDestroyed()){
             await mainWindow.loadFile(path.join(__dirname, 'loading.html'), {
-                query: returnRoute ? {
-                    returnRoute: returnRoute,
-                } : {},
+                query: {
+                    backendOrigin: instance.backendOrigin,
+                    ...(returnRoute ? { returnRoute } : {}),
+                },
             });
         }
 

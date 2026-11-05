@@ -279,6 +279,8 @@
 
 <script>
 import protobuf from "protobufjs";
+import { markRaw } from "vue";
+import CallAudioPlayer, { CALL_CAPTURE_SAMPLES } from "../../js/CallAudioPlayer";
 import DialogUtils from "../../js/DialogUtils";
 import ElectronUtils from "../../js/ElectronUtils";
 import CopyButton from "../CopyButton.vue";
@@ -320,6 +322,9 @@ export default {
             mediaStreamSource: null,
             audioWorkletNode: null,
             microphoneMediaStream: null,
+            audioPlayer: null,
+            audioGeneration: 0,
+            callsTimer: null,
 
         };
     },
@@ -332,7 +337,7 @@ export default {
         this.updateCallsList();
 
         // update calls list every 3 seconds
-        setInterval(() => {
+        this.callsTimer = setInterval(() => {
             this.updateCallsList();
         }, 3000);
 
@@ -345,6 +350,15 @@ export default {
             this.destinationHash = queryDestinationHash;
         }
 
+    },
+    beforeUnmount() {
+        clearInterval(this.callsTimer);
+        this.leaveCall();
+    },
+    watch: {
+        isSoundMuted(muted) {
+            if(muted) this.audioPlayer?.clear();
+        },
     },
     methods: {
         async initiateCall(destinationHash) {
@@ -400,6 +414,12 @@ export default {
 
         },
         async joinCall(callHash) {
+            this.leaveCall();
+            const generation = this.audioGeneration;
+            const playbackContext = new AudioContext({ latencyHint: 'interactive' });
+            this.audioPlayer = markRaw(new CallAudioPlayer(playbackContext,
+                (mode, encoded) => Codec2Lib.runDecode(mode, encoded)));
+            await playbackContext.resume();
 
             // update ui
             this.callHash = callHash;
@@ -411,24 +431,29 @@ export default {
 
             // load protobufs
             const root = await protobuf.load("assets/proto/audio_call.proto");
+            if(generation !== this.audioGeneration) return;
             const AudioCallPayload = root.lookupType("AudioCallPayload");
             const Codec2AudioMode = root.lookupEnum("Codec2Audio.Mode");
 
             // connect to websocket
             this.ws = new WebSocket(location.origin.replace(/^http/, 'ws') + `/api/v1/calls/${callHash}/audio`);
+            const socket = this.ws;
+            socket.binaryType = 'arraybuffer';
 
             this.ws.addEventListener('open', async () => {
+                if(this.ws !== socket) return;
 
                 // we are now connected
                 this.isWebsocketConnected = true;
 
                 await this.updateCall(callHash);
+                if(this.ws !== socket) return;
 
                 // send mic audio over call
                 await this.startRecordingMicrophone((codec2Mode, encoded) => {
 
                     // do nothing if websocket closed
-                    if(this.ws.readyState !== WebSocket.OPEN){
+                    if(this.ws !== socket || socket.readyState !== WebSocket.OPEN){
                         return;
                     }
 
@@ -448,7 +473,7 @@ export default {
                     })).finish();
 
                     // send payload to websocket
-                    this.ws.send(audioCallPayload);
+                    socket.send(audioCallPayload);
 
                     // update stats
                     this.txBytes += audioCallPayload.length;
@@ -458,6 +483,7 @@ export default {
             });
 
             this.ws.addEventListener('close', () => {
+                if(this.ws !== socket) return;
                 this.isWebsocketConnected = false;
                 this.leaveCall();
                 this.updateCallsList();
@@ -468,10 +494,11 @@ export default {
             });
 
             // listen to audio from call
-            this.ws.onmessage = async (event) => {
+            this.ws.onmessage = (event) => {
+                if(this.ws !== socket) return;
 
                 // get audio call payload bytes from websocket message
-                const payload = new Uint8Array(await event.data.arrayBuffer());
+                const payload = new Uint8Array(event.data);
 
                 // update stats
                 this.rxBytes += payload.length;
@@ -499,19 +526,8 @@ export default {
                             return;
                         }
 
-                        // decode codec2 audio
-                        const decoded = await Codec2Lib.runDecode(mode, encoded);
-
-                        // convert decoded codec2 to wav audio
-                        const wavAudio = await Codec2Lib.rawToWav(decoded);
-
-                        // play wav audio buffer
-                        let audioCtx = new AudioContext()
-                        const audioBuffer = await audioCtx.decodeAudioData(wavAudio.buffer);
-                        const sampleSource = audioCtx.createBufferSource();
-                        sampleSource.buffer = audioBuffer;
-                        sampleSource.connect(audioCtx.destination)
-                        sampleSource.start(0);
+                        // Decode in arrival order and schedule on one playback clock.
+                        this.audioPlayer?.enqueue(mode, encoded);
 
                     }
 
@@ -544,68 +560,90 @@ export default {
 
         },
         leaveCall: function() {
+            this.audioGeneration++;
+            this.audioPlayer?.close();
+            this.audioPlayer = null;
+            this.isWebsocketConnected = false;
 
             // disconnect websocket
             if(this.ws){
-                this.ws.close();
+                const socket = this.ws;
+                this.ws = null;
+                socket.close();
             }
 
             // disconnect media stream source
             if(this.mediaStreamSource){
                 this.mediaStreamSource.disconnect();
+                this.mediaStreamSource = null;
             }
 
             // stop using microphone
             if(this.microphoneMediaStream){
                 this.microphoneMediaStream.getTracks().forEach(track => track.stop());
+                this.microphoneMediaStream = null;
             }
 
             // disconnect the audio worklet node
             if(this.audioWorkletNode){
+                this.audioWorkletNode.port.onmessage = null;
                 this.audioWorkletNode.disconnect();
+                this.audioWorkletNode = null;
             }
 
             // close audio context
             if(this.audioContext && this.audioContext.state !== "closed"){
-                this.audioContext.close();
+                this.audioContext.close().catch(console.warn);
             }
+            this.audioContext = null;
 
         },
         async startRecordingMicrophone(onAudioAvailable) {
+            const generation = this.audioGeneration;
             try {
 
                 if(!await ElectronUtils.ensureMicrophoneAccess()){
                     DialogUtils.toast("Microphone access is required for audio calls.", "error");
                     return;
                 }
+                if(generation !== this.audioGeneration) return;
 
                 // load audio worklet module
                 this.audioContext = new AudioContext({ sampleRate: this.sampleRate });
-                await this.audioContext.audioWorklet.addModule('assets/js/codec2-emscripten/processor.js');
-                this.audioWorkletNode = new AudioWorkletNode(this.audioContext, 'audio-processor');
+                const context = this.audioContext;
+                await context.audioWorklet.addModule('assets/js/codec2-emscripten/processor.js');
+                if(generation !== this.audioGeneration) return;
+                this.audioWorkletNode = new AudioWorkletNode(context, 'audio-processor', {
+                    processorOptions: { bufferSize: CALL_CAPTURE_SAMPLES },
+                });
 
                 // handle audio received from audio worklet
-                this.audioWorkletNode.port.onmessage = async (event) => {
-
-                    // convert audio received from worklet processor to wav
-                    const buffer = this.encodeWAV(event.data, this.sampleRate);
-
-                    // convert codec mode string from ui, to expected mode
+                let encodeTail = Promise.resolve();
+                let pending = 0;
+                this.audioWorkletNode.port.onmessage = (event) => {
+                    if(generation !== this.audioGeneration || this.isMicMuted || pending >= 3) return;
+                    const samples = event.data;
                     const codecMode = this.codecMode.replace("MODE_", "");
-
-                    // convert wav audio to codec2
-                    const rawBuffer = await Codec2Lib.audioFileToRaw(buffer, "audio.wav");
-                    const encoded = await Codec2Lib.runEncode(codecMode, rawBuffer);
-
-                    // pass encoded audio to callback
-                    onAudioAvailable(codecMode, new Uint8Array(encoded.buffer));
-
+                    pending++;
+                    encodeTail = encodeTail.then(async () => {
+                        if(generation !== this.audioGeneration || this.isMicMuted) return;
+                        const buffer = this.encodeWAV(samples, this.sampleRate);
+                        const rawBuffer = await Codec2Lib.audioFileToRaw(buffer, "audio.wav");
+                        const encoded = await Codec2Lib.runEncode(codecMode, rawBuffer);
+                        if(generation === this.audioGeneration) onAudioAvailable(codecMode, new Uint8Array(encoded));
+                    }).catch(error => console.warn('Call audio encode failed', error))
+                        .finally(() => pending--);
                 };
 
                 // request access to the microphone
-                this.microphoneMediaStream = await navigator.mediaDevices.getUserMedia({
+                const stream = await navigator.mediaDevices.getUserMedia({
                     audio: true,
                 });
+                if(generation !== this.audioGeneration) {
+                    stream.getTracks().forEach(track => track.stop());
+                    return;
+                }
+                this.microphoneMediaStream = stream;
 
                 // send mic audio to audio worklet
                 this.mediaStreamSource = this.audioContext.createMediaStreamSource(this.microphoneMediaStream);
