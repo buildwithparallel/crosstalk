@@ -1,0 +1,97 @@
+#!/data/data/com.termux/files/usr/bin/sh
+set -eu
+
+home=${CROSSTALK_HOME:-}
+if [ -z "$home" ]; then
+    for candidate in "$HOME/apps/crosstalk" "$HOME/crosstalk"; do
+        if [ -r "$candidate/crosstalk.py" ]; then
+            home=$candidate
+            break
+        fi
+    done
+fi
+
+data=${CROSSTALK_STORAGE_DIR:-"$HOME/.local/share/crosstalk"}
+runtime=${CROSSTALK_RUNTIME_DIR:-"$HOME/.cache"}
+pidfile="$runtime/crosstalk.pid"
+log="$runtime/crosstalk.log"
+url=http://127.0.0.1:8000
+
+find_python() {
+    for candidate in "$home/.venv/bin/python" "$HOME/.venvs/crosstalk/bin/python" "$PREFIX/bin/python"; do
+        if [ -x "$candidate" ]; then
+            printf '%s' "$candidate"
+            return 0
+        fi
+    done
+    return 1
+}
+
+running_pid() {
+    pid=$(sed -n '1p' "$pidfile" 2>/dev/null || printf 0)
+    case "$pid" in ''|*[!0-9]*) return 1 ;; esac
+    [ "$pid" -gt 1 ] && kill -0 "$pid" 2>/dev/null || return 1
+    tr '\000' ' ' < "/proc/$pid/cmdline" 2>/dev/null | grep -Fq "$home/crosstalk.py" || return 1
+    printf '%s' "$pid"
+}
+
+start_server() {
+    if pid=$(running_pid); then
+        printf 'Crosstalk already running (pid %s)\n%s\n' "$pid" "$url"
+        return 0
+    fi
+    [ -n "$home" ] && [ -r "$home/crosstalk.py" ] || {
+        printf 'Crosstalk source not found; set CROSSTALK_HOME\n' >&2
+        return 1
+    }
+    python=$(find_python) || {
+        printf 'Crosstalk Python environment not found\n' >&2
+        return 1
+    }
+    mkdir -p "$data" "$runtime"
+    cd "$home"
+    nohup "$python" "$home/crosstalk.py" --headless --host 127.0.0.1 --port 8000 \
+        --storage-dir "$data" >>"$log" 2>&1 </dev/null &
+    pid=$!
+    printf '%s\n' "$pid" > "$pidfile"
+    attempt=0
+    while [ "$attempt" -lt 20 ]; do
+        if curl -fsS --max-time 2 "$url/api/v1/status" >/dev/null 2>&1; then
+            printf 'Crosstalk ready (pid %s)\n%s\n' "$pid" "$url"
+            return 0
+        fi
+        kill -0 "$pid" 2>/dev/null || break
+        attempt=$((attempt + 1))
+        sleep 1
+    done
+    printf 'Crosstalk failed to start; inspect %s\n' "$log" >&2
+    return 1
+}
+
+stop_server() {
+    if ! pid=$(running_pid); then
+        rm -f "$pidfile"
+        printf 'Crosstalk is stopped\n'
+        return 0
+    fi
+    kill "$pid"
+    attempt=0
+    while kill -0 "$pid" 2>/dev/null && [ "$attempt" -lt 10 ]; do
+        attempt=$((attempt + 1))
+        sleep 1
+    done
+    kill -0 "$pid" 2>/dev/null && kill -KILL "$pid" 2>/dev/null || true
+    rm -f "$pidfile"
+    printf 'Crosstalk stopped\n'
+}
+
+case "${1:-start}" in
+    start) start_server ;;
+    stop) stop_server ;;
+    restart) stop_server; start_server ;;
+    status)
+        if pid=$(running_pid); then printf 'RUNNING pid=%s url=%s\n' "$pid" "$url"; else printf 'STOPPED\n'; exit 1; fi
+        ;;
+    logs) tail -n 80 "$log" ;;
+    *) printf 'Usage: crosstalk-android-server {start|stop|restart|status|logs}\n' >&2; exit 64 ;;
+esac
