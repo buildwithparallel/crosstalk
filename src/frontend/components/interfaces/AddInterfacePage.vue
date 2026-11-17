@@ -157,6 +157,26 @@
                             <button type="button" @click="scanPrnsUsb" :disabled="prnsUsbScanning" class="ct-secondary-button rounded-lg px-3 py-2 text-sm">{{ prnsUsbScanning ? 'Scanning…' : 'Find devices' }}</button>
                         </div>
                         <FormSubLabel>Connects directly to a board running Prns Hopspot firmware. Keep each board in its assigned USB port.</FormSubLabel>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <FormLabel>Spreading factor</FormLabel>
+                                <input type="number" min="5" max="12" v-model.number="prnsSpreadingFactor" class="block w-full rounded-lg border p-2.5 text-sm">
+                            </div>
+                            <div>
+                                <FormLabel>Bandwidth (kHz)</FormLabel>
+                                <input type="number" min="1" v-model.number="prnsBandwidthKhz" class="block w-full rounded-lg border p-2.5 text-sm">
+                            </div>
+                            <div>
+                                <FormLabel>Coding rate</FormLabel>
+                                <select v-model.number="prnsCodingRate" class="block w-full rounded-lg border p-2.5 text-sm">
+                                    <option :value="5">4/5</option>
+                                    <option :value="6">4/6</option>
+                                    <option :value="7">4/7</option>
+                                    <option :value="8">4/8</option>
+                                </select>
+                            </div>
+                        </div>
+                        <FormSubLabel>Reticulum sizes link timeouts from this profile. It must match the LoRa profile saved on the Hopspot. The tested voice profile is SF7, 500 kHz, 4/5.</FormSubLabel>
                         <div v-if="prnsUsbError" class="text-sm text-[var(--ct-red)]">{{ prnsUsbError }}</div>
                     </div>
 
@@ -1069,6 +1089,9 @@ export default {
 
             comports: [],
             prnsUsbDeviceId: "",
+            prnsSpreadingFactor: 7,
+            prnsBandwidthKhz: 500,
+            prnsCodingRate: 5,
             prnsUsbDevices: [],
             prnsUsbScanning: false,
             prnsUsbError: "",
@@ -1597,6 +1620,10 @@ export default {
                 this.newInterfaceName = interfaceName;
                 this.newInterfaceType = iface.type;
                 this.prnsUsbDeviceId = iface.device_id || "";
+                this.prnsSpreadingFactor = Number(iface.spreadingfactor || 7);
+                const savedBandwidth = Number(iface.bandwidth || 500000);
+                this.prnsBandwidthKhz = savedBandwidth > 10000 ? savedBandwidth / 1000 : savedBandwidth;
+                this.prnsCodingRate = Number(iface.codingrate || 5);
 
                 // AutoInterface additional settings
                 this.newInterfaceGroupID = iface.group_id;
@@ -1799,10 +1826,10 @@ export default {
                         ? this.resolveRNodePort()
                         : this.newInterfacePort,
                     frequency: this.calculateFrequencyInHz(),
-                    bandwidth: this.newInterfaceBandwidth,
+                    bandwidth: this.newInterfaceType === "PrnsHopspotInterface" ? Math.round(Number(this.prnsBandwidthKhz) * 1000) : this.newInterfaceBandwidth,
                     txpower: this.newInterfaceTxpower,
-                    spreadingfactor: this.newInterfaceSpreadingFactor,
-                    codingrate: this.newInterfaceCodingRate,
+                    spreadingfactor: this.newInterfaceType === "PrnsHopspotInterface" ? this.prnsSpreadingFactor : this.newInterfaceSpreadingFactor,
+                    codingrate: this.newInterfaceType === "PrnsHopspotInterface" ? this.prnsCodingRate : this.newInterfaceCodingRate,
 
                     // RockBLOCK 9704 / Iridium IMT
                     topic: this.iridiumIMTSettings.topic,

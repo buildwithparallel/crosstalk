@@ -13,7 +13,8 @@ Each interface opens only its saved physical USB port. Keep the two test
 boards in their assigned ports. It refuses an ambiguous match and never falls
 back to another board. An unplugged, busy, rebooting, or unavailable board stays
 offline while the app continues and retries. USB operations and handshakes have
-finite time limits. Outgoing packets are not stored for later replay while offline.
+finite time limits. One in-flight voice or link packet is kept across a USB
+reconnect. Announces and path requests wait for airtime at the saved bitrate.
 
 USB access needs PyUSB and native libusb. On a development Mac, install libusb
 with Homebrew and install the project's Python requirements. macOS packaging
@@ -26,5 +27,8 @@ implementing its own discovery and framing.
 
 This interface never flashes boards, enrolls controller grants, changes radio
 configuration, or accesses private device keys. Configure LoRa and controller
-permissions through Prns separately. Keep LAN and TCP interfaces off during an
+permissions through Prns separately. The spreading factor, bandwidth, and
+coding rate saved on this interface only tell Reticulum the bitrate to use for
+link timers. They default to SF7, 500 kHz, 4/5 (21,875 bps) and must match the
+profile saved on the board. Keep LAN and TCP interfaces off during an
 over-the-air test so the two Crosstalk instances cannot bypass the radios.

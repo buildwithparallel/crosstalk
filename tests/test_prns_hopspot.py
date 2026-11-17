@@ -7,8 +7,9 @@ from unittest.mock import patch
 import RNS
 from RNS.Interfaces.Interface import Interface
 from src.backend.interfaces.PrnsHopspotInterface import (
-    ACK_PREFIX, DEFAULT_LORA_BITRATE, HELLO, MAX_MESSAGE, FrameDecoder, HopspotSession,
-    PrnsHopspotInterface, decode_message, frame_message, usb_device_id, validate_device_id,
+    ACK_PREFIX, DEFAULT_LORA_BITRATE, HELLO, MAX_MESSAGE, DEFERRED_LIMIT, FrameDecoder, HopspotSession,
+    PrnsHopspotInterface, configured_bitrate, decode_message, frame_message, lora_phy_bitrate,
+    packet_should_wait, usb_device_id, validate_device_id,
 )
 
 
@@ -138,6 +139,86 @@ class HopspotRecoveryTest(unittest.TestCase):
                 radio._worker.join(timeout=1)
             self.assertFalse(radio._worker.is_alive())
             self.assertTrue(second.closed)
+
+
+class HopspotPacingTest(unittest.TestCase):
+    def radio(self, **config):
+        import src.backend.interfaces.PrnsHopspotInterface as module
+        owner = SimpleNamespace(inbound=lambda *args: None)
+        def init(interface):
+            interface.rxb = interface.txb = 0
+        with patch.object(Interface, "__init__", init), patch.object(module, "PrnsUsbTransport", side_effect=OSError("unplugged")), patch.object(PrnsHopspotInterface, "RECONNECT_INTERVAL", 0.05), patch.object(RNS, "log"), patch.object(RNS, "panic"):
+            radio = PrnsHopspotInterface(owner, {"name": "duo", "device_id": "usb:1209:0001:0:1", **config})
+            radio.detach()
+            radio._worker.join(timeout=1)
+        radio.online = False
+        radio.session = None
+        return radio
+
+    def test_profile_bitrate_matches_sf7_500khz_and_explicit_bitrate_is_kept(self):
+        self.assertEqual(lora_phy_bitrate(7, 500_000, 5), 21_875)
+        self.assertEqual(lora_phy_bitrate(7, 500, 5), 21_875)
+        self.assertEqual(configured_bitrate({"bitrate": ""}), DEFAULT_LORA_BITRATE)
+        self.assertEqual(configured_bitrate({"bitrate": 10_000}), 10_000)
+        self.assertEqual(configured_bitrate({"spreadingfactor": 7, "bandwidth": 500000, "codingrate": 5, "bitrate": 1}), 21_875)
+
+    def test_offline_radio_holds_one_priority_packet_and_queues_announces(self):
+        radio = self.radio()
+        priority = bytes([RNS.Packet.LINKREQUEST, 0]) + b"\x01" * 20
+        newer = bytes([RNS.Packet.PROOF, 0]) + b"\x02" * 20
+        announce = bytes([RNS.Packet.ANNOUNCE, 0]) + b"\x03" * 20
+        radio.process_outgoing(priority)
+        radio.process_outgoing(newer)
+        radio.process_outgoing(announce)
+        self.assertEqual(radio._held_priority, newer)
+        self.assertEqual(list(radio._deferred), [announce])
+        self.assertTrue(packet_should_wait(announce))
+        self.assertFalse(packet_should_wait(newer))
+
+    def test_held_priority_is_sent_before_a_queued_announce_after_reconnect(self):
+        radio = self.radio()
+        sent = []
+
+        class Session:
+            confirmed = True
+            def send_packet(self, packet):
+                sent.append(packet)
+
+        priority = bytes([RNS.Packet.DATA, 0, 9]) + b"voice"
+        announce = bytes([RNS.Packet.ANNOUNCE, 0]) + b"announce"
+        radio.process_outgoing(priority)
+        radio.process_outgoing(announce)
+        radio.session = Session()
+        radio.online = True
+        radio._flush_held()
+        radio._drain_deferred()
+        self.assertEqual(sent, [priority])
+        self.assertEqual(list(radio._deferred), [announce])
+        radio._deferred_allowed_at = 0
+        radio._drain_deferred()
+        self.assertEqual(sent, [priority, announce])
+
+    def test_announce_queue_drops_the_oldest_past_the_cap(self):
+        radio = self.radio()
+        for index in range(DEFERRED_LIMIT + 3):
+            radio.process_outgoing(bytes([RNS.Packet.ANNOUNCE, index]) + b"x")
+        self.assertEqual(len(radio._deferred), DEFERRED_LIMIT)
+        self.assertEqual(radio._deferred[0][1], 3)
+
+    def test_failed_write_keeps_the_priority_packet_for_the_next_session(self):
+        radio = self.radio()
+
+        class Session:
+            confirmed = True
+            def send_packet(self, packet):
+                raise OSError("usb")
+
+        radio.session = Session()
+        radio.online = True
+        priority = bytes([RNS.Packet.LINKREQUEST, 0]) + b"link"
+        radio.process_outgoing(priority)
+        self.assertFalse(radio.online)
+        self.assertEqual(radio._held_priority, priority)
 
 
 if __name__ == "__main__":

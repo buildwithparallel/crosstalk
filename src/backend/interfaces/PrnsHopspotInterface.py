@@ -11,6 +11,7 @@ import re
 import sys
 import threading
 import time
+from collections import deque
 
 import RNS
 from RNS.Interfaces.Interface import Interface
@@ -22,7 +23,9 @@ MAX_MESSAGE = 1 + 8192 + 64
 # uses interface bitrate when sizing link timeouts, so advertising the USB bus
 # speed here makes multi-hop LoRa links expire before their replies arrive.
 DEFAULT_LORA_BITRATE = 21_875
+DEFERRED_LIMIT = 8
 HELLO = b"\x01Prns\x02\x01"
+_PATH_REQUEST_HASH = None
 ACK_PREFIX = b"\x02Prns\x02\x01"
 DEVICE_PATTERN = re.compile(r"usb:1209:0001:\d+:\d+(?:\.\d+)*\Z")
 
@@ -31,6 +34,79 @@ def validate_device_id(value):
     if not isinstance(value, str) or not DEVICE_PATTERN.fullmatch(value):
         raise ValueError("Select a Prns Hopspot USB device before saving.")
     return value
+
+
+def lora_phy_bitrate(spreading_factor, bandwidth_hz, coding_rate):
+    """Bitrate for a LoRa profile. Coding rate 5 means 4/5."""
+    sf = int(spreading_factor)
+    bandwidth = int(bandwidth_hz)
+    rate = int(coding_rate)
+    if bandwidth < 10_000:
+        bandwidth *= 1000
+    if not (5 <= sf <= 12 and bandwidth > 0 and 5 <= rate <= 8):
+        raise ValueError("LoRa profile must use spreading factor 5–12, a positive bandwidth, and coding rate 4/5 through 4/8.")
+    return max(1, (sf * bandwidth * 4) // ((1 << sf) * rate))
+
+
+def configured_bitrate(config):
+    def present(key):
+        return config.get(key) not in (None, "")
+
+    if present("spreadingfactor") or present("bandwidth") or present("codingrate"):
+        try:
+            return lora_phy_bitrate(
+                config.get("spreadingfactor", 7),
+                config.get("bandwidth", 500_000),
+                config.get("codingrate", 5),
+            )
+        except (TypeError, ValueError):
+            pass
+    raw = config.get("bitrate")
+    if raw not in (None, ""):
+        try:
+            value = int(raw)
+            if value > 0:
+                return value
+        except (TypeError, ValueError):
+            pass
+    return DEFAULT_LORA_BITRATE
+
+
+def hopspot_profile_from_request(data):
+    raw_sf = data.get("spreadingfactor")
+    raw_bandwidth = data.get("bandwidth")
+    raw_rate = data.get("codingrate")
+    if raw_sf in (None, "") and raw_bandwidth in (None, "") and raw_rate in (None, ""):
+        raw_sf, raw_bandwidth, raw_rate = 7, 500_000, 5
+    bitrate = lora_phy_bitrate(raw_sf or 7, raw_bandwidth or 500_000, raw_rate or 5)
+    bandwidth = int(raw_bandwidth or 500_000)
+    if bandwidth < 10_000:
+        bandwidth *= 1000
+    return int(raw_sf or 7), bandwidth, int(raw_rate or 5), bitrate
+
+
+def path_request_destination_hash():
+    global _PATH_REQUEST_HASH
+    if _PATH_REQUEST_HASH is None:
+        _PATH_REQUEST_HASH = RNS.Destination.hash(None, RNS.Transport.APP_NAME, "path", "request")
+    return _PATH_REQUEST_HASH
+
+
+def packet_should_wait(data):
+    """Announces and path requests wait for airtime. Voice and link packets do not."""
+    if not data or len(data) < 2:
+        return False
+    packet_type = data[0] & 0b11
+    if packet_type == RNS.Packet.ANNOUNCE:
+        return True
+    if packet_type != RNS.Packet.DATA:
+        return False
+    header_type = (data[0] & 0b01000000) >> 6
+    destination_length = RNS.Reticulum.TRUNCATED_HASHLENGTH // 8
+    hash_at = 2 + destination_length if header_type == RNS.Packet.HEADER_2 else 2
+    if len(data) < hash_at + destination_length:
+        return False
+    return data[hash_at:hash_at + destination_length] == path_request_destination_hash()
 
 
 def frame_message(payload):
@@ -278,10 +354,14 @@ class PrnsHopspotInterface(Interface):
         self.online = False
         self.detached = False
         self.IN = self.OUT = True
-        self.bitrate = DEFAULT_LORA_BITRATE
+        self.bitrate = configured_bitrate(config)
         self.HW_MTU = 8192
         self.last_error = ""
         self.session = None
+        self.connected_at = None
+        self._held_priority = None
+        self._deferred = deque()
+        self._deferred_allowed_at = 0
         self._session_lock = threading.Lock()
         self._stop = threading.Event()
         self._worker = threading.Thread(target=self._run, name="Hopspot " + self.name, daemon=True)
@@ -302,8 +382,11 @@ class PrnsHopspotInterface(Interface):
                 with self._session_lock:
                     self.session = session
                     self.online = True
+                    self.connected_at = time.time()
                 self.last_error = ""
                 RNS.log(str(self) + " connected over USB", RNS.LOG_NOTICE)
+                self._flush_held()
+                self._drain_deferred()
                 self._incoming(pending)
                 next_probe = time.monotonic() + 2
                 while not self._stop.is_set():
@@ -312,6 +395,7 @@ class PrnsHopspotInterface(Interface):
                     if time.monotonic() >= next_probe:
                         session.hello()
                         next_probe = time.monotonic() + 2
+                    self._drain_deferred()
                     self._incoming(session.receive())
                     if time.monotonic() - session.last_seen > 6:
                         raise TimeoutError("Hopspot stopped answering USB heartbeats.")
@@ -333,21 +417,74 @@ class PrnsHopspotInterface(Interface):
                             pass
             self._stop.wait(self.RECONNECT_INTERVAL)
 
+    def _airtime(self, data):
+        return max(0.05, (len(data) * 8) / max(int(self.bitrate or 1), 1))
+
+    def _keep(self, raw):
+        if packet_should_wait(raw):
+            self._deferred.appendleft(raw)
+            while len(self._deferred) > DEFERRED_LIMIT:
+                self._deferred.pop()
+            return
+        self._held_priority = raw
+
+    def _write(self, raw):
+        with self._session_lock:
+            session = self.session
+            if not self.online or session is None:
+                self._keep(raw)
+                return
+            try:
+                session.send_packet(raw)
+                self.txb += len(raw)
+                self._deferred_allowed_at = time.monotonic() + self._airtime(raw)
+            except Exception:
+                self.online = False
+                session.confirmed = False
+                self._keep(raw)
+
+    def _defer(self, raw):
+        send_now = None
+        with self._session_lock:
+            self._deferred.append(raw)
+            while len(self._deferred) > DEFERRED_LIMIT:
+                self._deferred.popleft()
+            if (self.online and self.session is not None and self._held_priority is None
+                    and time.monotonic() >= self._deferred_allowed_at and self._deferred):
+                send_now = self._deferred.popleft()
+        if send_now is not None:
+            self._write(send_now)
+
+    def _flush_held(self):
+        with self._session_lock:
+            raw = self._held_priority
+            if raw is None or not self.online or self.session is None:
+                return
+            self._held_priority = None
+        self._write(raw)
+
+    def _drain_deferred(self):
+        with self._session_lock:
+            if self._held_priority is not None or not self.online or self.session is None:
+                return
+            if time.monotonic() < self._deferred_allowed_at or not self._deferred:
+                return
+            raw = self._deferred.popleft()
+        self._write(raw)
+
     def process_outgoing(self, data):
         if len(data) > self.HW_MTU:
             RNS.log(str(self) + " dropped an oversized packet", RNS.LOG_WARNING)
             return
+        raw = bytes(data)
+        if packet_should_wait(raw):
+            self._defer(raw)
+            return
         with self._session_lock:
-            if self.online and self.session is not None:
-                try:
-                    self.session.send_packet(data)
-                    self.txb += len(data)
-                except Exception:
-                    self.online = False
-                    self.session.confirmed = False
-
-    def should_ingress_limit(self):
-        return False
+            if not (self.online and self.session is not None):
+                self._held_priority = raw
+                return
+        self._write(raw)
 
     def detach(self):
         self.detached = True

@@ -43,7 +43,15 @@ from src.backend.async_utils import AsyncUtils
 from src.backend.colour_utils import ColourUtils
 from src.backend.interface_config_parser import InterfaceConfigParser
 from src.backend.interface_editor import InterfaceEditor
-from src.backend.interfaces.PrnsHopspotInterface import discover_usb_devices, validate_device_id
+from src.backend.interfaces.PrnsHopspotInterface import discover_usb_devices, hopspot_profile_from_request, validate_device_id
+from src.backend.path_refresh import (
+    DEFAULT_PATH_MAX_AGE_SECONDS,
+    PATH_REQUEST_BUDGET,
+    ensure_fresh_path,
+    forget_path,
+    path_is_usable,
+    route_max_age_seconds,
+)
 from src.backend.outbound_identity import (
     parse_path_timeout,
     recall_send_identity,
@@ -872,6 +880,14 @@ class Crosstalk:
                         return web.json_response({"message": "This Hopspot is already assigned to another enabled interface."}, status=422)
                 interface_details["transport"] = "usb"
                 interface_details["device_id"] = device_id
+                try:
+                    spreading_factor, bandwidth, coding_rate, hopspot_bitrate = hopspot_profile_from_request(data)
+                except ValueError as error:
+                    return web.json_response({"message": str(error)}, status=422)
+                interface_details["spreadingfactor"] = spreading_factor
+                interface_details["bandwidth"] = bandwidth
+                interface_details["codingrate"] = coding_rate
+                interface_details["bitrate"] = hopspot_bitrate
 
             # handle RNodeInterface
             if interface_type == "RNodeInterface":
@@ -1098,6 +1114,10 @@ class Crosstalk:
 
             # set common interface options
             InterfaceEditor.update_value(interface_details, data, "bitrate")
+            if interface_type == "PrnsHopspotInterface":
+                # The shared bitrate field is empty for a Hopspot. Keep the
+                # value computed from the LoRa profile above.
+                interface_details["bitrate"] = hopspot_bitrate
             InterfaceEditor.update_value(interface_details, data, "mode")
             InterfaceEditor.update_value(interface_details, data, "network_name")
             InterfaceEditor.update_value(interface_details, data, "passphrase")
@@ -1480,7 +1500,11 @@ class Crosstalk:
             # initiate audio call
             try:
 
-                audio_call = await self.audio_call_manager.initiate(destination_hash, timeout_seconds)
+                audio_call = await self.audio_call_manager.initiate(
+                    destination_hash,
+                    timeout_seconds,
+                    max_age_seconds=self._route_max_age_seconds(),
+                )
                 return web.json_response({
                     "audio_call": self.convert_audio_call_to_dict(audio_call),
                 })
@@ -1913,22 +1937,17 @@ class Crosstalk:
             # check if user wants to request the path from the network right now
             request_query_param = request.query.get("request", "false")
             should_request_now = request_query_param == "true" or request_query_param == "1"
+            max_age_seconds = self._route_max_age_seconds()
             if should_request_now:
 
                 # determine how long we should wait for a path response
                 timeout_seconds = int(request.query.get("timeout", 15))
-                timeout_after_seconds = time.time() + timeout_seconds
 
-                # request path if we don't have it
-                if not RNS.Transport.has_path(destination_hash):
-                    RNS.Transport.request_path(destination_hash)
-
-                # wait until we have a path, or give up after the configured timeout
-                while not RNS.Transport.has_path(destination_hash) and time.time() < timeout_after_seconds:
-                    await asyncio.sleep(0.1)
+                # A stale path still counts as known. Drop it and ask again.
+                await ensure_fresh_path(destination_hash, timeout_seconds, max_age_seconds)
 
             # ensure path is known
-            if not RNS.Transport.has_path(destination_hash):
+            if not path_is_usable(destination_hash, max_age_seconds):
                 return web.json_response({
                     "path": None,
                 })
@@ -1964,8 +1983,9 @@ class Crosstalk:
             # convert destination hash to bytes
             destination_hash = bytes.fromhex(destination_hash)
 
-            # drop path
+            # drop path. expire_path leaves the entry in place, so remove it.
             self.reticulum.drop_path(destination_hash)
+            forget_path(destination_hash)
 
             return web.json_response({
                 "message": "Path has been dropped",
@@ -2045,17 +2065,10 @@ class Crosstalk:
             # convert destination hash to bytes
             destination_hash = bytes.fromhex(destination_hash)
 
-            # determine how long until we should time out
+            # Path lookup and the proof each get the full timeout.
             timeout_seconds = int(request.query.get("timeout", 15))
+            await ensure_fresh_path(destination_hash, timeout_seconds, self._route_max_age_seconds())
             timeout_after_seconds = time.time() + timeout_seconds
-
-            # request path if we don't have it
-            if not RNS.Transport.has_path(destination_hash):
-                RNS.Transport.request_path(destination_hash)
-
-            # wait until we have a path, or give up after the configured timeout
-            while not RNS.Transport.has_path(destination_hash) and time.time() < timeout_after_seconds:
-                await asyncio.sleep(0.1)
 
             # find destination identity
             destination_identity = RNS.Identity.recall(destination_hash)
@@ -2445,16 +2458,20 @@ class Crosstalk:
 
             requested = 0
             already_known = 0
+            max_age_seconds = self._route_max_age_seconds()
             for announce in query_results:
                 try:
                     destination_hash = bytes.fromhex(announce.destination_hash)
                 except:
                     continue
-                # skip if we already have a path to this destination
-                if RNS.Transport.has_path(destination_hash):
+                # A stale path is not a reason to skip. Cap the burst so one
+                # click does not fill the radio with path requests.
+                if path_is_usable(destination_hash, max_age_seconds):
                     already_known += 1
                     continue
-                # fire a non-blocking path request; the response arrives asynchronously
+                if requested >= PATH_REQUEST_BUDGET:
+                    continue
+                forget_path(destination_hash)
                 RNS.Transport.request_path(destination_hash)
                 requested += 1
 
@@ -3295,7 +3312,7 @@ class Crosstalk:
                 }
 
         return {
-            "hash": audio_call.link.hash.hex(),
+            "hash": audio_call.lookup_hash.hex(),
             "remote_destination_hash": remote_destination_hash_hex,
             "remote_identity_hash": remote_identity_hash,
             "is_active": audio_call.is_active(),
@@ -3801,20 +3818,16 @@ class Crosstalk:
                 has_path=RNS.Transport.has_path(destination_hash),
             )
         else:
-            # A reply is a new outbound delivery. Request a path if needed,
-            # but do not fail the send because the inbound link went idle.
-            if not RNS.Transport.has_path(destination_hash):
-                RNS.Transport.request_path(destination_hash)
-
-            timeout_after_seconds = time.time() + max(float(path_timeout_seconds), 0)
-            while (
-                path_timeout_seconds > 0
-                and not RNS.Transport.has_path(destination_hash)
-                and self._announce_public_key_b64(destination_hash) is None
-                and RNS.Identity.recall(destination_hash) is None
-                and time.time() < timeout_after_seconds
-            ):
-                await asyncio.sleep(0.1)
+            # A reply is a new outbound delivery. Refresh a stale path, but
+            # do not fail the send because the inbound link went idle.
+            # Satellite links never reach this branch, so they still do not
+            # emit automatic path requests.
+            max_age_seconds = self._route_max_age_seconds()
+            await ensure_fresh_path(
+                destination_hash,
+                max(float(path_timeout_seconds), 0),
+                max_age_seconds,
+            )
 
         destination_identity = recall_send_identity(
             destination_hash,
@@ -4170,6 +4183,9 @@ class Crosstalk:
         except Exception:
             return False
 
+    def _route_max_age_seconds(self):
+        return route_max_age_seconds(self.config.auto_announce_interval_seconds.get())
+
     # get name to show for an lxmf conversation
     # currently, this will use the app data from the most recent announce
     # TODO: we should fetch this from our contacts database, when it gets implemented, and if not found, fallback to app data
@@ -4429,21 +4445,9 @@ class NomadnetDownloader:
                 self.link_established(link)
                 return
 
-        # determine when to timeout
-        timeout_after_seconds = time.time() + path_lookup_timeout
-
-        # check if we have a path to the destination
-        if not RNS.Transport.has_path(self.destination_hash):
-
-            # we don't have a path, so we need to request it
-            RNS.Transport.request_path(self.destination_hash)
-
-            # wait until we have a path, or give up after the configured timeout
-            while not RNS.Transport.has_path(self.destination_hash) and time.time() < timeout_after_seconds:
-                await asyncio.sleep(0.1)
-
-        # if we still don't have a path, we can't establish a link, so bail out
-        if not RNS.Transport.has_path(self.destination_hash):
+        # A stale path still counts as known. Drop it and ask again, on its
+        # own clock, before the link timeout starts.
+        if not await ensure_fresh_path(self.destination_hash, path_lookup_timeout, DEFAULT_PATH_MAX_AGE_SECONDS):
             self.on_download_failure("Could not find path to destination.")
             return
 
