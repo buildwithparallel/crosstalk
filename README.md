@@ -31,6 +31,7 @@ Crosstalk keeps MeshChat's LXMF messaging, attachments, audio calls, propagation
 - Failed interfaces are turned off on startup instead of taking the whole app down. See [Interface startup recovery](./docs/interface_startup.md).
 - Adding Local Network (Auto) warns if an AutoInterface is already enabled, so a second copy does not bind the same LAN ports.
 - RNode interfaces can use USB serial, Bluetooth LE (`ble://`), or WiFi TCP (`tcp://`), with regional LoRa starter presets. See [RNode over Bluetooth](./docs/rnode_bluetooth.md).
+- A Prns Hopspot, including the muzi works Base Duo, connects over USB when the board is already running Prns Hopspot firmware. See [Prns Hopspot over USB](./docs/prns_hopspot.md).
 
 ### Better everyday UI
 
@@ -109,7 +110,7 @@ Pull requests are welcome when they improve something Crosstalk already does, or
 
 Crosstalk is based on [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) and remains compatible with LXMF clients such as [Sideband](https://github.com/markqvist/Sideband) and [NomadNet](https://github.com/markqvist/nomadnet).
 
-It uses the [Reticulum Network Stack](https://github.com/markqvist/Reticulum) and can communicate over any configured Reticulum interface, including TCP, local networks, RNode/LoRa, and templates for exotic links such as Iridium IMT.
+It uses the [Reticulum Network Stack](https://github.com/markqvist/Reticulum) and can communicate over any configured Reticulum interface, including TCP, local networks, RNode/LoRa, Prns Hopspot over USB, and templates for exotic links such as Iridium IMT.
 
 ## License
 
