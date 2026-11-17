@@ -21,14 +21,19 @@ with Homebrew and install the project's Python requirements. macOS packaging
 includes the discovered native library in the backend's lib directory.
 
 The USB stream, framing/session handling, and Reticulum interface are separate.
-Bluetooth is not implemented yet and is rejected if selected in config. A
-future Prns Bluetooth transport can reuse the Reticulum packet handling while
-implementing its own discovery and framing.
+Crosstalk does not speak Prns Bluetooth. Selecting Bluetooth as this
+interface's transport is rejected. The board itself may still be running
+Bluetooth.
 
-This interface never flashes boards, enrolls controller grants, changes radio
-configuration, or accesses private device keys. Configure LoRa and controller
-permissions through Prns separately. The spreading factor, bandwidth, and
-coding rate saved on this interface only tell Reticulum the bitrate to use for
-link timers. They default to SF7, 500 kHz, 4/5 (21,875 bps) and must match the
-profile saved on the board. Keep LAN and TCP interfaces off during an
-over-the-air test so the two Crosstalk instances cannot bypass the radios.
+USB Auto only carries Reticulum packets. It does not report the board's LoRa
+profile, and it does not say which of the board's radios forwarded a packet.
+A muzi Base Duo runs LoRa and Bluetooth together. Packets Crosstalk sends over
+USB enter that node, and the node picks the path. A nearby Bluetooth peer can
+carry the traffic even when the only Crosstalk interface is the Hopspot.
+
+The LoRa profile is set when the board is flashed, or later by a paired Prns
+controller. Crosstalk does not enroll as a controller and does not change
+radio settings. Link timers use a fixed estimate of 21,875 bps because the
+board does not report its profile on this connection. Keep LAN and TCP
+interfaces off during an over-the-air test so the two Crosstalk instances
+cannot bypass the radios.

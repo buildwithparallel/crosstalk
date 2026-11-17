@@ -43,13 +43,19 @@ from src.backend.async_utils import AsyncUtils
 from src.backend.colour_utils import ColourUtils
 from src.backend.interface_config_parser import InterfaceConfigParser
 from src.backend.interface_editor import InterfaceEditor
-from src.backend.interfaces.PrnsHopspotInterface import discover_usb_devices, hopspot_profile_from_request, validate_device_id
+from src.backend.interfaces.PrnsHopspotInterface import (
+    DEFAULT_LORA_BITRATE,
+    discover_usb_devices,
+    hopspot_usb_product,
+    validate_device_id,
+)
 from src.backend.path_refresh import (
     DEFAULT_PATH_MAX_AGE_SECONDS,
     PATH_REQUEST_BUDGET,
     ensure_fresh_path,
     forget_path,
     path_is_usable,
+    normalize_auto_announce_interval_seconds,
     route_max_age_seconds,
 )
 from src.backend.outbound_identity import (
@@ -880,14 +886,14 @@ class Crosstalk:
                         return web.json_response({"message": "This Hopspot is already assigned to another enabled interface."}, status=422)
                 interface_details["transport"] = "usb"
                 interface_details["device_id"] = device_id
-                try:
-                    spreading_factor, bandwidth, coding_rate, hopspot_bitrate = hopspot_profile_from_request(data)
-                except ValueError as error:
-                    return web.json_response({"message": str(error)}, status=422)
-                interface_details["spreadingfactor"] = spreading_factor
-                interface_details["bandwidth"] = bandwidth
-                interface_details["codingrate"] = coding_rate
-                interface_details["bitrate"] = hopspot_bitrate
+                # The USB packet link does not report or set the board's radios.
+                # A saved spreading factor would only look like Crosstalk chose it.
+                for stale in ("spreadingfactor", "bandwidth", "codingrate", "frequency", "txpower"):
+                    interface_details.pop(stale, None)
+                product = hopspot_usb_product(data.get("usb_product"))
+                if product:
+                    interface_details["usb_product"] = product
+                hopspot_bitrate = DEFAULT_LORA_BITRATE
 
             # handle RNodeInterface
             if interface_type == "RNodeInterface":
@@ -1115,8 +1121,8 @@ class Crosstalk:
             # set common interface options
             InterfaceEditor.update_value(interface_details, data, "bitrate")
             if interface_type == "PrnsHopspotInterface":
-                # The shared bitrate field is empty for a Hopspot. Keep the
-                # value computed from the LoRa profile above.
+                # Link timers need a bitrate. USB Auto does not report the
+                # board's LoRa profile, so this is only a timer estimate.
                 interface_details["bitrate"] = hopspot_bitrate
             InterfaceEditor.update_value(interface_details, data, "mode")
             InterfaceEditor.update_value(interface_details, data, "network_name")
@@ -2857,8 +2863,8 @@ class Crosstalk:
         if "auto_announce_interval_seconds" in data:
 
             # auto auto announce interval
-            auto_announce_interval_seconds = int(data["auto_announce_interval_seconds"])
-            self.config.auto_announce_interval_seconds.set(data["auto_announce_interval_seconds"])
+            auto_announce_interval_seconds = normalize_auto_announce_interval_seconds(data["auto_announce_interval_seconds"])
+            self.config.auto_announce_interval_seconds.set(auto_announce_interval_seconds)
 
             # enable or disable auto announce based on interval
             if auto_announce_interval_seconds > 0:

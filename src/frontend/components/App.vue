@@ -231,21 +231,20 @@
                             </div>
                             <div>
                                 <div class="ct-section-label mb-1">Auto Announce</div>
-                                <select
-                                    v-model="config.auto_announce_interval_seconds"
-                                    @change="onAnnounceIntervalSecondsChange"
-                                    class="block w-full rounded-lg border p-2 text-sm"
-                                >
-                                    <option value="0">Disabled</option>
-                                    <option value="300">Every 5 Minutes</option>
-                                    <option value="900">Every 15 Minutes</option>
-                                    <option value="1800">Every 30 Minutes</option>
-                                    <option value="3600">Every 1 Hour</option>
-                                    <option value="10800">Every 3 Hours</option>
-                                    <option value="21600">Every 6 Hours</option>
-                                    <option value="43200">Every 12 Hours</option>
-                                    <option value="86400">Every 24 Hours</option>
-                                </select>
+                                <div class="flex items-center gap-x-2">
+                                    <input
+                                        :value="announceIntervalMinutes"
+                                        @change="onAnnounceIntervalMinutesChange"
+                                        type="number"
+                                        min="0"
+                                        max="10080"
+                                        step="1"
+                                        inputmode="numeric"
+                                        class="block w-24 rounded-lg border p-2 text-sm"
+                                    >
+                                    <span class="text-sm text-[var(--ct-dim)]">minutes</span>
+                                </div>
+                                <div class="mt-1 text-xs text-[var(--ct-dim)]">0 turns this off. The shortest interval is 1 minute.</div>
                                 <div class="mt-1 text-xs text-[var(--ct-dim)]">
                                     <span v-if="config.last_announced_at">Last announced {{ formatSecondsAgo(config.last_announced_at) }}</span>
                                     <span v-else>Never announced</span>
@@ -270,7 +269,7 @@
                                     :destination-hash="config?.lxmf_address_hash"/>
                             </RouterLink>
                             <div class="min-w-0 flex-1">
-                                <div class="truncate text-sm font-semibold text-[var(--ct-text)]">{{ config.display_name || 'Anonymous Peer' }}</div>
+                                <div class="truncate text-sm font-semibold text-[var(--ct-text)]">{{ localIdentityLabel }}</div>
                                 <div class="ct-hash truncate">{{ truncatedAddress }}</div>
                             </div>
                             <PhosphorIcon name="caret-up" weight="bold" class="size-4 shrink-0 text-[var(--ct-dim)] transition" :class="{ 'rotate-180': isShowingIdentitySettings }"/>
@@ -438,9 +437,15 @@ export default {
             });
             DialogUtils.toast("Display name saved", "success");
         },
-        async onAnnounceIntervalSecondsChange() {
+        async onAnnounceIntervalMinutesChange(event) {
+            let minutes = Number.parseInt(event.target.value, 10);
+            if(!Number.isFinite(minutes) || minutes < 0){
+                minutes = 0;
+            }
+            minutes = Math.min(minutes, 10080);
+            event.target.value = String(minutes);
             await this.updateConfig({
-                "auto_announce_interval_seconds": this.config.auto_announce_interval_seconds,
+                "auto_announce_interval_seconds": minutes * 60,
             });
         },
         async composeNewMessage() {
@@ -580,6 +585,16 @@ export default {
         },
         runningBridges() {
             return runningBridgeShortcuts(this.hfBridgeProcesses);
+        },
+        localIdentityLabel() {
+            return Utils.localIdentityLabel(this.config?.display_name);
+        },
+        announceIntervalMinutes() {
+            const seconds = Number(this.config?.auto_announce_interval_seconds);
+            if(!Number.isFinite(seconds) || seconds <= 0){
+                return 0;
+            }
+            return Math.min(10080, Math.max(1, Math.round(seconds / 60)));
         },
         truncatedAddress() {
             const hash = this.config?.lxmf_address_hash ?? "";

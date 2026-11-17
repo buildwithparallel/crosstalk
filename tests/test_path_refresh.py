@@ -12,6 +12,7 @@ from src.backend.path_refresh import (
     path_is_stale,
     path_is_usable,
     path_retry_seconds,
+    normalize_auto_announce_interval_seconds,
     route_max_age_seconds,
 )
 
@@ -28,6 +29,14 @@ class PathRefreshTest(unittest.TestCase):
 
     def entry(self, timestamp, interface=None):
         return [timestamp, b"\x22" * 16, 1, timestamp + 3600, [], interface, b"\x33" * 16]
+
+    def test_announce_interval_is_minutes_or_off(self):
+        self.assertEqual(normalize_auto_announce_interval_seconds(0), 0)
+        self.assertEqual(normalize_auto_announce_interval_seconds(-5), 0)
+        self.assertEqual(normalize_auto_announce_interval_seconds("nope"), 0)
+        self.assertEqual(normalize_auto_announce_interval_seconds(60), 60)
+        self.assertEqual(normalize_auto_announce_interval_seconds(90), 60)
+        self.assertEqual(normalize_auto_announce_interval_seconds(8 * 24 * 60 * 60), 7 * 24 * 60 * 60)
 
     def test_auto_announce_off_uses_a_quarter_hour(self):
         self.assertEqual(route_max_age_seconds(0), 15 * 60)

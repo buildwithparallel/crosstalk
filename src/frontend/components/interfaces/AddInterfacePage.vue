@@ -156,27 +156,12 @@
                             </select>
                             <button type="button" @click="scanPrnsUsb" :disabled="prnsUsbScanning" class="ct-secondary-button rounded-lg px-3 py-2 text-sm">{{ prnsUsbScanning ? 'Scanning…' : 'Find devices' }}</button>
                         </div>
-                        <FormSubLabel>Connects directly to a board running Prns Hopspot firmware. Keep each board in its assigned USB port.</FormSubLabel>
-                        <div class="grid grid-cols-3 gap-2">
-                            <div>
-                                <FormLabel>Spreading factor</FormLabel>
-                                <input type="number" min="5" max="12" v-model.number="prnsSpreadingFactor" class="block w-full rounded-lg border p-2.5 text-sm">
-                            </div>
-                            <div>
-                                <FormLabel>Bandwidth (kHz)</FormLabel>
-                                <input type="number" min="1" v-model.number="prnsBandwidthKhz" class="block w-full rounded-lg border p-2.5 text-sm">
-                            </div>
-                            <div>
-                                <FormLabel>Coding rate</FormLabel>
-                                <select v-model.number="prnsCodingRate" class="block w-full rounded-lg border p-2.5 text-sm">
-                                    <option :value="5">4/5</option>
-                                    <option :value="6">4/6</option>
-                                    <option :value="7">4/7</option>
-                                    <option :value="8">4/8</option>
-                                </select>
-                            </div>
+                        <FormSubLabel>Connects to a board already running Prns Hopspot firmware. Keep each board in its assigned USB port.</FormSubLabel>
+                        <div class="rounded-lg border border-[var(--ct-border)] bg-[rgba(255,255,255,0.04)] p-2.5 text-sm text-[var(--ct-muted)]">
+                            This USB link delivers packets to the Hopspot. It does not choose the radio, and the board does not report its LoRa settings here. Those are set when the board is flashed, or by a paired Prns controller.
+                            <span v-if="selectedPrnsBoardHasBluetooth"> This board's firmware also runs Bluetooth, so a path can leave over Bluetooth instead of LoRa.</span>
+                            <span v-else> The board may also have Bluetooth or another radio enabled, and it chooses which one carries each path.</span>
                         </div>
-                        <FormSubLabel>Reticulum sizes link timeouts from this profile. It must match the LoRa profile saved on the Hopspot. The tested voice profile is SF7, 500 kHz, 4/5.</FormSubLabel>
                         <div v-if="prnsUsbError" class="text-sm text-[var(--ct-red)]">{{ prnsUsbError }}</div>
                     </div>
 
@@ -987,7 +972,7 @@
                             </FormSubLabel>
                         </div>
 
-                        <div>
+                        <div v-if="newInterfaceType !== 'PrnsHopspotInterface'">
                             <FormLabel class="mb-1">Inferred Interface Bitrate</FormLabel>
                             <input
                                 v-model="sharedInterfaceSettings.bitrate"
@@ -1089,9 +1074,7 @@ export default {
 
             comports: [],
             prnsUsbDeviceId: "",
-            prnsSpreadingFactor: 7,
-            prnsBandwidthKhz: 500,
-            prnsCodingRate: 5,
+            prnsSavedUsbProduct: "",
             prnsUsbDevices: [],
             prnsUsbScanning: false,
             prnsUsbError: "",
@@ -1109,7 +1092,7 @@ export default {
                                 label: "Radio Hardware",
                                 options: [
                                     { type: "RNodeInterface", name: "RNode (LoRa Radio)", icon: "broadcast", description: "Long-range, off-grid communication using an RNode LoRa radio over USB, Bluetooth LE, or WiFi." },
-                                    { type: "PrnsHopspotInterface", name: "Prns Hopspot (USB)", icon: "usb", description: "Connect directly to a Prns Hopspot, including the muzi works Base Duo." },
+                                    { type: "PrnsHopspotInterface", name: "Prns Hopspot (USB)", icon: "usb", description: "Send packets to a Prns Hopspot over USB. The board chooses LoRa, Bluetooth, or its other radios." },
                                     { type: "RNodeMultiInterface", name: "RNode Multi", icon: "cell-tower", description: "For devices with multiple LoRa transceivers, such as the openCom XL." },
                                     { type: "IridiumIMTInterface", name: "RockBLOCK 9704 (Iridium)", icon: "planet", description: "Carry native Reticulum packets through Iridium Messaging Transport." },
                                     { type: "SerialInterface", name: "Serial Port", icon: "usb", description: "Connect through a raw serial port to custom hardware." },
@@ -1310,6 +1293,16 @@ export default {
         },
         enabledAutoInterfaceNames() {
             return this.enabledAutoInterfaces.map((iface) => `"${iface._name}"`).join(", ");
+        },
+        selectedPrnsUsbDevice() {
+            return this.prnsUsbDevices.find((device) => device.device_id === this.prnsUsbDeviceId) || null;
+        },
+        selectedPrnsUsbProduct() {
+            return this.selectedPrnsUsbDevice?.name || this.prnsSavedUsbProduct || "";
+        },
+        selectedPrnsBoardHasBluetooth() {
+            const product = this.selectedPrnsUsbProduct;
+            return /Base Duo|MeshTower|RAK4631|RAK10724/i.test(product);
         },
         selectedRNodePresetDescription() {
             if(!this.rnodePresetId){
@@ -1620,10 +1613,7 @@ export default {
                 this.newInterfaceName = interfaceName;
                 this.newInterfaceType = iface.type;
                 this.prnsUsbDeviceId = iface.device_id || "";
-                this.prnsSpreadingFactor = Number(iface.spreadingfactor || 7);
-                const savedBandwidth = Number(iface.bandwidth || 500000);
-                this.prnsBandwidthKhz = savedBandwidth > 10000 ? savedBandwidth / 1000 : savedBandwidth;
-                this.prnsCodingRate = Number(iface.codingrate || 5);
+                this.prnsSavedUsbProduct = iface.usb_product || "";
 
                 // AutoInterface additional settings
                 this.newInterfaceGroupID = iface.group_id;
@@ -1790,6 +1780,7 @@ export default {
                     type: this.interfaceTypeForSave,
                     transport: this.newInterfaceType === "PrnsHopspotInterface" ? "usb" : undefined,
                     device_id: this.newInterfaceType === "PrnsHopspotInterface" ? this.prnsUsbDeviceId : undefined,
+                    usb_product: this.newInterfaceType === "PrnsHopspotInterface" ? this.selectedPrnsUsbProduct : undefined,
 
                     // AutoInterface
                     group_id: this.newInterfaceGroupID,
@@ -1826,10 +1817,10 @@ export default {
                         ? this.resolveRNodePort()
                         : this.newInterfacePort,
                     frequency: this.calculateFrequencyInHz(),
-                    bandwidth: this.newInterfaceType === "PrnsHopspotInterface" ? Math.round(Number(this.prnsBandwidthKhz) * 1000) : this.newInterfaceBandwidth,
-                    txpower: this.newInterfaceTxpower,
-                    spreadingfactor: this.newInterfaceType === "PrnsHopspotInterface" ? this.prnsSpreadingFactor : this.newInterfaceSpreadingFactor,
-                    codingrate: this.newInterfaceType === "PrnsHopspotInterface" ? this.prnsCodingRate : this.newInterfaceCodingRate,
+                    bandwidth: this.newInterfaceType === "PrnsHopspotInterface" ? undefined : this.newInterfaceBandwidth,
+                    txpower: this.newInterfaceType === "PrnsHopspotInterface" ? undefined : this.newInterfaceTxpower,
+                    spreadingfactor: this.newInterfaceType === "PrnsHopspotInterface" ? undefined : this.newInterfaceSpreadingFactor,
+                    codingrate: this.newInterfaceType === "PrnsHopspotInterface" ? undefined : this.newInterfaceCodingRate,
 
                     // RockBLOCK 9704 / Iridium IMT
                     topic: this.iridiumIMTSettings.topic,

@@ -75,6 +75,14 @@ class Utils {
 
     }
 
+    static localIdentityLabel(displayName) {
+        const name = (displayName || "").trim();
+        if (!name || name === "Anonymous Peer") {
+            return "You";
+        }
+        return name;
+    }
+
     static formatTimeAgo(datetimeString) {
         const millisecondsAgo = Date.now() - new Date(datetimeString).getTime();
         const secondsAgo = Math.round(millisecondsAgo / 1000);

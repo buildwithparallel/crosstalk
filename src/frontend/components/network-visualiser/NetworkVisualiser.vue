@@ -20,7 +20,7 @@
                                 Live
                             </span>
                         </div>
-                        <div class="text-xs text-[var(--ct-dim)]">Reticulum topology visible to this device</div>
+                        <div class="text-xs text-[var(--ct-dim)]">Identities this device can reach</div>
                     </div>
                 </div>
 
@@ -86,6 +86,10 @@
             </div>
         </div>
 
+        <div v-if="config && reachableNodeCount === 0" class="pointer-events-none absolute bottom-0 left-0 z-10 p-3 text-xs text-[var(--ct-dim)]">
+            No other identities in range
+        </div>
+
         <div class="pointer-events-none absolute bottom-0 right-0 z-10 hidden p-3 text-[10px] text-[var(--ct-dim)] md:block">
             Drag to pan · Scroll to zoom · Double-click people or pages to open
         </div>
@@ -108,7 +112,6 @@ import { Network } from "vis-network";
 import { DataSet } from "vis-data";
 import Utils from "../../js/Utils";
 import { infrastructureIconDataUri } from "../../js/InfrastructureIcons";
-import { getPhosphorPath } from "../../js/PhosphorIcons";
 import PhosphorIcon from "../PhosphorIcon.vue";
 export default {
     name: 'NetworkVisualiser',
@@ -201,28 +204,6 @@ export default {
             const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" shape-rendering="crispEdges"><rect width="${size}" height="${size}" fill="${background}"/>${rects}</svg>`;
             const dataUri = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
             this._identiconCache[hash] = dataUri;
-            return dataUri;
-
-        },
-        // crisp vector badge for an interface node, so it stays sharp at any zoom level
-        interfaceIconDataUri(isOnline) {
-
-            this._interfaceIconCache = this._interfaceIconCache ?? {};
-            const key = isOnline ? "online" : "offline";
-            if(this._interfaceIconCache[key]){
-                return this._interfaceIconCache[key];
-            }
-
-            const background = isOnline ? "#22c55e" : "#ef4444";
-            const glyph = getPhosphorPath("tree-structure", "bold");
-
-            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">`
-                + `<circle cx="128" cy="128" r="128" fill="${background}"/>`
-                + `<path d="${glyph}" fill="#ffffff" transform="translate(48 48) scale(0.625)"/>`
-                + `</svg>`;
-
-            const dataUri = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-            this._interfaceIconCache[key] = dataUri;
             return dataUri;
 
         },
@@ -393,9 +374,6 @@ export default {
                         },
                         borderWidth: 2,
                     },
-                    "interface": {
-
-                    },
                     "announce": {
 
                     },
@@ -554,9 +532,9 @@ export default {
                 id: "me",
                 group: "me",
                 size: 44,
-                label: this.config?.display_name ?? "This Device",
+                label: Utils.localIdentityLabel(this.config?.display_name),
                 title: [
-                    `${this.config?.display_name ?? 'This Device'}`,
+                    Utils.localIdentityLabel(this.config?.display_name),
                     `Identity: ${this.config?.identity_hash ?? 'Unknown'}`,
                 ].join("\n"),
                 font: this.graphLabelFont(14),
@@ -569,71 +547,8 @@ export default {
                 },
             });
 
-            // add interfaces
-            for(const entry of this.interfaces){
-
-                // determine label
-                var label = entry.interface_name ?? entry.name;
-
-                // we want to show the full info for LocalServerInterface
-                // we also want to show the full info instead of just "Client on Name" for TCPServerInterface clients
-                if(entry.type === "LocalServerInterface" || entry.parent_interface_name != null){
-                    label = entry.name;
-                }
-
-                const node = {
-                    id: entry.name,
-                    group: "interface",
-                    label: label,
-                    title: [
-                        entry.name,
-                        `State: ${entry.status ? 'Online' : 'Offline'}`,
-                        `Bitrate: ${this.formatBitsPerSecond(entry.bitrate)}`,
-                        `TX: ${this.formatBytes(entry.txb)}`,
-                        `RX: ${this.formatBytes(entry.rxb)}`,
-                    ].join("\n"),
-                    size: 23,
-                    font: this.graphLabelFont(13),
-                    shape: "circularImage",
-                    image: this.interfaceIconDataUri(entry.status),
-                    shadow: entry.status ? { enabled: true, color: "rgba(46, 231, 129, 0.3)", size: 16, x: 0, y: 0 } : { enabled: false },
-                };
-
-                // add interface node
-                nodes.push(node);
-
-                // add edge to interface
-                if(entry.parent_interface_name){
-                    // add edge from parent interface to interface
-                    edges.push({
-                        id: `${entry.parent_interface_name}~${entry.name}`,
-                        from: entry.parent_interface_name,
-                        to: entry.name,
-                        color: {
-                            color: entry.status ? "rgba(46, 231, 129, 0.72)" : "rgba(255, 92, 114, 0.62)",
-                            highlight: entry.status ? "#6ef0a9" : "#ff8298",
-                        },
-                        dashes: !entry.status,
-                        width: entry.status ? 2.4 : 1.5,
-                        length: 180,
-                    });
-                } else {
-                    // add edge from me to interface
-                    edges.push({
-                        id: `me~${entry.name}`,
-                        from: "me",
-                        to: entry.name,
-                        color: {
-                            color: entry.status ? "rgba(46, 231, 129, 0.72)" : "rgba(255, 92, 114, 0.62)",
-                            highlight: entry.status ? "#6ef0a9" : "#ff8298",
-                        },
-                        dashes: !entry.status,
-                        width: entry.status ? 2.4 : 1.5,
-                        length: 180,
-                    });
-                }
-
-            }
+            // local interfaces stay off the map. a path already records which radio it
+            // leaves through, and drawing that radio as a node made it look like another identity.
 
             // add signed Reticulum infrastructure advertisements with friendly names.
             // an advertisement we heard once is not a link, so skip anything we have no
@@ -688,9 +603,11 @@ export default {
                 });
 
                 edges.push({
-                    id: `${path.interface}~${infrastructure.destination_hash}`,
-                    from: path.interface,
+                    id: `me~${infrastructure.destination_hash}`,
+                    from: "me",
                     to: infrastructure.destination_hash,
+                    label: this.pathEdgeLabel(path.interface),
+                    font: this.graphLabelFont(11),
                     color: {
                         color: "rgba(96, 165, 250, 0.42)",
                         highlight: "#93c5fd",
@@ -783,11 +700,12 @@ export default {
                 // add node
                 nodes.push(node);
 
-                // add edge from interface to announced aspect
                 edges.push({
-                    id: `${entry.interface}~${entry.hash}`,
-                    from: entry.interface,
+                    id: `me~${entry.hash}`,
+                    from: "me",
                     to: entry.hash,
+                    label: this.pathEdgeLabel(entry.interface),
+                    font: this.graphLabelFont(11),
                     color: {
                         color: "rgba(148, 163, 184, 0.32)",
                         highlight: "#6ea8ff",
@@ -853,11 +771,21 @@ export default {
             this.edges.update(newEdges);
 
         },
-        formatBytes: function(bytes) {
-            return Utils.formatBytes(bytes);
+        interfaceLabel(interfaceName) {
+            const entry = this.interfaces.find((iface) => iface.name === interfaceName);
+            if(!entry){
+                return interfaceName;
+            }
+            if(entry.type === "LocalServerInterface" || entry.parent_interface_name != null){
+                return entry.name;
+            }
+            return entry.interface_name ?? entry.name;
         },
-        formatBitsPerSecond: function(bits) {
-            return Utils.formatBitsPerSecond(bits);
+        pathEdgeLabel(interfaceName) {
+            if(this.interfaces.length <= 1 || !interfaceName){
+                return undefined;
+            }
+            return this.interfaceLabel(interfaceName);
         },
         formatFrequency: function(hz) {
             return Utils.formatFrequency(hz);
@@ -908,9 +836,8 @@ export default {
             }
             return reachable.size;
         },
-        // every remote node drawn on the map that we currently have a route to. this
-        // deliberately excludes "me" and our own interface nodes, since those describe
-        // this device's links rather than what is out there on the mesh.
+        // every remote identity drawn on the map that we currently have a route to.
+        // "me" is this device, so it is not part of the count.
         reachableNodeCount() {
             return this.peopleCount + this.nomadNodeCount + this.infrastructureCount;
         },

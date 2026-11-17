@@ -8,7 +8,7 @@ import RNS
 from RNS.Interfaces.Interface import Interface
 from src.backend.interfaces.PrnsHopspotInterface import (
     ACK_PREFIX, DEFAULT_LORA_BITRATE, HELLO, MAX_MESSAGE, DEFERRED_LIMIT, FrameDecoder, HopspotSession,
-    PrnsHopspotInterface, configured_bitrate, decode_message, frame_message, lora_phy_bitrate,
+    PrnsHopspotInterface, configured_bitrate, decode_message, frame_message, hopspot_usb_product, lora_phy_bitrate,
     packet_should_wait, usb_device_id, validate_device_id,
 )
 
@@ -161,6 +161,12 @@ class HopspotPacingTest(unittest.TestCase):
         self.assertEqual(configured_bitrate({"bitrate": ""}), DEFAULT_LORA_BITRATE)
         self.assertEqual(configured_bitrate({"bitrate": 10_000}), 10_000)
         self.assertEqual(configured_bitrate({"spreadingfactor": 7, "bandwidth": 500000, "codingrate": 5, "bitrate": 1}), 21_875)
+
+    def test_usb_product_keeps_hopspot_names_only(self):
+        self.assertEqual(hopspot_usb_product("Personal Hopspot (muzi Base Duo)"), "Personal Hopspot (muzi Base Duo)")
+        self.assertEqual(hopspot_usb_product("  Personal Hopspot   (muzi Base Duo) "), "Personal Hopspot (muzi Base Duo)")
+        self.assertEqual(hopspot_usb_product("RNode"), "")
+        self.assertEqual(hopspot_usb_product(None), "")
 
     def test_offline_radio_holds_one_priority_packet_and_queues_announces(self):
         radio = self.radio()

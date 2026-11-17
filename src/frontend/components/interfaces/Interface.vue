@@ -91,7 +91,8 @@
                     </div>
 
                     <div v-else-if="iface.type === 'PrnsHopspotInterface'">
-                        Prns Hopspot • USB
+                        Prns Hopspot • USB<span v-if="iface.usb_product"> • {{ iface.usb_product.replace('Personal Hopspot', '').replace(/[()]/g, '').trim() }}</span>
+                        <div class="mt-1 text-[var(--ct-muted)]">The board chooses the radio. Crosstalk cannot see whether a packet left over LoRa or Bluetooth.</div>
                         <div v-if="iface._stats?.last_error && !iface._stats?.status" class="mt-1 text-[var(--ct-muted)]">{{ iface._stats.last_error }}</div>
                     </div>
 

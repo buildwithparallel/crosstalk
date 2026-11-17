@@ -12,6 +12,20 @@ from src.backend.interfaces.PrnsHopspotInterface import DEFAULT_LORA_BITRATE
 
 DEFAULT_PATH_MAX_AGE_SECONDS = 15 * 60
 PATH_REQUEST_BUDGET = 8
+MIN_AUTO_ANNOUNCE_INTERVAL_SECONDS = 60
+MAX_AUTO_ANNOUNCE_INTERVAL_SECONDS = 7 * 24 * 60 * 60
+
+
+def normalize_auto_announce_interval_seconds(value):
+    """0 turns automatic announces off. A positive interval is whole minutes, from 1 minute to 7 days."""
+    try:
+        seconds = int(value)
+    except (TypeError, ValueError):
+        return 0
+    if seconds <= 0:
+        return 0
+    seconds = max(MIN_AUTO_ANNOUNCE_INTERVAL_SECONDS, min(MAX_AUTO_ANNOUNCE_INTERVAL_SECONDS, seconds))
+    return (seconds // 60) * 60
 
 
 def route_max_age_seconds(announce_interval_seconds):

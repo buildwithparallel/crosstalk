@@ -72,6 +72,16 @@ def configured_bitrate(config):
     return DEFAULT_LORA_BITRATE
 
 
+def hopspot_usb_product(value):
+    """USB product string from discovery. Empty when it is not a Hopspot name."""
+    if not isinstance(value, str):
+        return ""
+    text = " ".join(value.split())
+    if not text.startswith("Personal Hopspot") or len(text) > 80:
+        return ""
+    return text
+
+
 def hopspot_profile_from_request(data):
     raw_sf = data.get("spreadingfactor")
     raw_bandwidth = data.get("bandwidth")
