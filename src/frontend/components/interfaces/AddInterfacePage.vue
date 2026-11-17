@@ -161,6 +161,17 @@
                             This USB link delivers packets to the Hopspot. It does not choose the radio, and the board does not report its LoRa settings here. Those are set when the board is flashed, or by a paired Prns controller.
                             <span v-if="selectedPrnsBoardHasBluetooth"> This board's firmware also runs Bluetooth, so a path can leave over Bluetooth instead of LoRa.</span>
                             <span v-else> The board may also have Bluetooth or another radio enabled, and it chooses which one carries each path.</span>
+                            <details class="mt-2">
+                                <summary class="cursor-pointer font-semibold text-[var(--ct-text)]">How to change the radio settings</summary>
+                                <ol class="mt-2 list-decimal space-y-1 pl-5">
+                                    <li>Crosstalk can't change them. Frequency, bandwidth, spreading factor, coding rate, transmit power and Bluetooth live on the board and are set through Prns Remote Control.</li>
+                                    <li>Authorize a controller once: open the board's page on the Prns flasher (<a href="https://reticulum.rs/flash/" target="_blank" class="underline">reticulum.rs/flash</a>) in desktop Chrome or Edge, choose <b>Connect your controller</b>, paste the controller's public key, and choose <b>Authorize controller over USB</b>.</li>
+                                    <li>From that controller, choose the region and LoRa profile. A radio can stay silent until one is chosen. The board keeps it across reboots and ordinary firmware updates.</li>
+                                    <li>For a LoRa-only test, turn the board's Bluetooth off from the controller too. Otherwise nearby boards prefer Bluetooth, the faster link.</li>
+                                    <li>Both boards need the same frequency, bandwidth and spreading factor. The coding rate travels in each packet, so it doesn't have to match.</li>
+                                </ol>
+                                <a href="https://github.com/KenAKAFrosty/Prns/blob/main/personal-hopspot/README.md#first-controller-on-an-nrf-board" target="_blank" class="mt-2 inline-block underline">Prns setup guide</a>
+                            </details>
                         </div>
                         <div v-if="prnsUsbError" class="text-sm text-[var(--ct-red)]">{{ prnsUsbError }}</div>
                     </div>
