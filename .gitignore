@@ -25,6 +25,7 @@ __pycache__/
 /dist/
 /public/
 /electron/build/exe/
+/android/build/
 
 # local storage
 storage/
